@@ -8,10 +8,9 @@ import response, env
 
 class WebRequestHandler(WSGIRequestHandler):
     def log_message(self, format, *args):
-        host, port = self.client_address[:2]
         env.log.access(
+                env.server_host,
                 self.address_string(),
-                host, port,
                 self.log_date_time_string(),
                 format%args)
         #WSGIRequestHandler.log_message(self, format, *args)
@@ -20,7 +19,7 @@ class WebRequestHandler(WSGIRequestHandler):
         WSGIRequestHandler.log_request(self, code, size)
 
     def log_error(self, *args):
-        env.log.error(args)
+        env.log.error(args, self.address_string())
         #WSGIRequestHandler.log_error(self, *args)
         
 #endclass
@@ -43,6 +42,8 @@ class Reqeuest(object):
         self.start_response = start_response
         self.path = environ.get('PATH_INFO')
         self.method = environ.get('REQUEST_METHOD')
+        self.remote_addr = environ.get('REMOTE_ADDR')
+        self.remote_host = environ.get('REMOTE_HOST')
         self.cookie = environ.get('HTTP_COOKIE')
         if self.method == 'GET':
             self.form = cgi.FieldStorage(environ = environ)
@@ -124,18 +125,21 @@ class Log:
             close(self.accesslog)
     #enddef
 
-    def error(self, message):
+    def error(self, message, remote_host = ''):
+        if remote_host != '':
+            remote_host = '[%s] ' % remote_host
         if self.errorlog:
-            os.write(self.errorlog, '%s: %s\n' % 
-                        (strftime("%Y-%m-%d %H:%M:%S"),
-                         message))
+            os.write(self.errorlog, '%s: %s%s\n' % 
+                    (strftime("%Y-%m-%d %H:%M:%S"),
+                     remote_host,
+                     message))
     #enddef
 
-    def access(self, address, host, port, logtime, message):
+    def access(self, address, host, logtime, message):
         if self.accesslog:
-            # ip address:port - [time] -
-            os.write(self.accesslog, '%s %s:%s - [%s] %s\n' %
-                        (address, host, port, logtime, message))
+            # ip address - [time] -
+            os.write(self.accesslog, '%s %s - [%s] %s\n' %
+                        (address, host, logtime, message))
     #enddef
 
 #endclass

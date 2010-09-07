@@ -4,7 +4,8 @@ from wsgiref.simple_server import make_server
 from exceptions import Exception, KeyboardInterrupt
 from py_compile import compile
 from signal import signal, SIGTERM
-from socket import error as SocketError
+from socket import error as SocketError, getfqdn
+from ConfigParser import ParsingError
 
 import sys, os
 
@@ -38,12 +39,14 @@ def call_from_dispatch(req):
                         pyc_stats = os.stat(pyc)
                         py_stats  = os.stat(pyc[:-3] + 'py')
                         if pyc_stats.st_ctime < py_stats.st_ctime:
-                            req.log.error("Module %s reloaded." % module)
+                            req.log.error("Module %s reloaded." % module,
+                                          req.remote_host)
                             sys.modules.pop('%s' % module)
                             compile(pyc[:-3] + 'py')
                         #endif
                     elif pyc[-2:] == "py":
-                        req.log.error("Compiling module %s." % module)
+                        req.log.error("Compiling module %s." % module,
+                                      req.remote_host)
                         sys.modules.pop('%s' % module)
                         compile(pyc[:-2] + 'py')
                     #endif
@@ -85,9 +88,6 @@ def web_app(environ, start_response):
     #endtry
 #enddef
 
-cfg = configure()
-pidfile = save_pid()
-
 def sigterm(sig, stack = None):
     env.log.error('Shotdown server signal(%s)' % sig)
     os.unlink(pidfile)
@@ -95,13 +95,19 @@ def sigterm(sig, stack = None):
 #enddef
 
 try:
+    cfg = configure()
+    pidfile = save_pid()
+
     signal(SIGTERM, sigterm)
     
-    address = cfg.get('http', 'address')
-    port = cfg.getint('http', 'port')
-    env.log.error('Starting server %s:%s' % (address, port))
-    httpd = make_server(address,
-                        port,
+    env.server_address = cfg.get('http', 'address')
+    env.server_port = cfg.getint('http', 'port')
+    env.server_host = getfqdn(env.server_address)
+    
+    env.log.error('Starting server %s:%s' % (env.server_address,
+                                             env.server_port))
+    httpd = make_server(env.server_address,
+                        env.server_port,
                         web_app,
                         handler_class = WebRequestHandler
                         )
@@ -113,8 +119,16 @@ except SocketError, e:
     env.log.error(e[1])
     os.unlink(pidfile)
     sys.exit(1)
-except Exception, e:
-    os.unlink(pidfile)
+except ParsingError, e:
+    # configure error
     usage("Exception: %s" % e.message)
+    sys.exit(1)
+except os.error, e:
+    # pid error
+    usage("Exception: %s" % e)
+    sys.exit(1)
+except Exception, e:
+    usage("Exception: %s" % e.message)
+    os.unlink(pidfile)
     sys.exit(1)
 #endtry

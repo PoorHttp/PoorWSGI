@@ -10,7 +10,7 @@ case "$1" in
             $0 stats
         else
             echo -n "Starting Poor Http server ... "
-            $poorhttp --pidfile=$pidfile --config=$config &
+            $poorhttp --pidfile=$pidfile --config=$config & > /dev/null
             sleep 1
             if [ -f $pidfile ]; then
                 echo "Ok"

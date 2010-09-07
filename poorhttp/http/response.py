@@ -47,6 +47,7 @@ class NotFound(Ok):
             "    <title>404 - Page Not Found</title>\n",
             "    <style>\n",
             "      body {width: 80%; margin: auto; padding-top: 30px;}\n",
+            "      h1 {text-align: center; color: #707070;}\n",
             "      p {text-indent: 30px; margin-top: 30px; margin-bottom: 30px;}\n",
             "    </style>\n",
             "  <head>\n",
@@ -78,7 +79,7 @@ class InternalServerError(Ok):
                                      sys.exc_value,
                                      sys.exc_traceback)
         traceback = ''.join(traceback)
-        req.log.error(traceback)
+        req.log.error(traceback, req.remote_host)
         traceback = traceback.split('\n')
         
         content = [

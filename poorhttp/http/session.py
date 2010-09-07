@@ -1,4 +1,6 @@
 
+from env import server_secret
+
 from Cookie import SimpleCookie
 from sha import sha
 from time import time
@@ -7,6 +9,15 @@ from base64 import b64decode, b64encode
 from exceptions import NotImplementedError
 
 import bz2
+
+def hidden(text, passwd):
+    passwd = sha(passwd).digest()
+    passlen = len(passwd)
+    retval = ''
+    for i in xrange(len(text)):
+        retval += chr(ord(text[i]) ^ ord(passwd[i % passlen]))
+    return retval
+#enddef
 
 class Session:
     """
@@ -50,14 +61,21 @@ class Session:
     def read(self, req):
         if self.cookie.has_key(self.DATA):
             b64 = self.cookie[self.DATA].value
-            data = loads(bz2.decompress(b64decode(b64)))
+            try:
+                data = loads(hidden(bz2.decompress(b64decode(b64)),
+                                    server_secret + self.id))
+            except:
+                req.log.error('Error when reading cookie data: %s' % b64,
+                              req.remote_host)
+                data = {}
         else:
             data = {}
         return data
     #enddef
 
     def write(self, req, data):
-        b64 = b64encode(bz2.compress(dumps(data)))
+        b64 = b64encode(bz2.compress(hidden(dumps(data),
+                                     server_secret + self.id), 9))
         self.cookie[self.DATA] = b64
         self.cookie[self.DATA]['expires'] = self.expires
         return True

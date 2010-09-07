@@ -1,0 +1,5 @@
+20091126:
+    * new configurable value server secret key added
+    * new function hidden in session module for text crypting
+    * handled config error exception
+    * bug fix in loging

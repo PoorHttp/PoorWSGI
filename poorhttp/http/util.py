@@ -88,6 +88,8 @@ def configure():
     #endtry
 
     # cofigure additionals
+    if env.cfg.has_option('http', 'secret'):
+        env.server_secret = env.cfg.get('http', 'secret')
     if env.cfg.has_option('http', 'webmaster'):
         env.webmaster = env.cfg.get('http', 'webmaster')
     if env.cfg.has_option('http', 'application'):
@@ -98,7 +100,6 @@ def configure():
     #endif
 
     # swhitch curent dir to server path (./ default)
-    #print sys.path
     env.server_path = os.getcwd()
     sys.path.insert(0, os.path.abspath(env.application))
     #sys.path.insert(0, env.server_path)

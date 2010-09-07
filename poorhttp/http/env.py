@@ -1,11 +1,24 @@
 
 from ConfigParser import ConfigParser
+from time import time
 
 # poor http version
-server_version = 20091124
+server_version = 20091126
 
 # poor http servr root
 server_root = './'
+
+# server address
+server_address = None
+
+# server port
+server_port = None
+
+# server host
+server_host = None
+
+# poor http secret_key to crypting data (cookie)
+server_secret = "%s" % time()
 
 # global configuration
 cfg = ConfigParser()

@@ -1,9 +1,9 @@
 
-from py_compile import compile
 from http import methods, SERVER_RETURN, HTTP_INTERNAL_SERVER_ERROR, \
         HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, OK
 from mod_python.util import FieldStorage
 from sys import modules
+import dispatch_table
 
 def error_from_dispatch(req, code):
     if 'dispatch_table' in modules \
@@ -19,10 +19,10 @@ def error_from_dispatch(req, code):
 #enddef
 
 def handler(req):
-    if not 'dispatch_table' in modules:
-        exec("import dispatch_table") in globals()
-
-    req.form = FieldStorage(req)
+    #if not 'dispatch_table' in modules:
+    #    exec("import dispatch_table") in globals()
+    
+    #req.form = FieldStorage(req)
 
     # call setreq if is present
     if 'setreq' in dir(dispatch_table):

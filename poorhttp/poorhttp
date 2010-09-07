@@ -9,87 +9,85 @@ from ConfigParser import ParsingError
 
 import sys, os
 
-from http import response, env
+from http import env, handlers
+from http.enums import *
 from http.util import usage, configure, save_pid
-from http.classes import WebRequestHandler, Reqeuest
+from http.classes import WebRequestHandler, Reqeuest, PoorServerHandler
+from http.importing import *
 
-def call_from_dispatch(req):
-    import dispatch_table
+def error_from_dispatch(req, code):
+    if 'dispatch_table' in sys.modules \
+    and 'errors' in dispatch_table.__dict__ \
+    and code in dispatch_table.errors:
+        try:
+            handler = dispatch_table.errors[code]
+            return handler(req)
+        except:
+            return handlers.internal_server_error(req)
+    elif code in handlers.errors:
+        return handlers.errors[code](req)
+    return None
+#enddef
 
-    # force load dispatch_table if it is modified
-    pyc_stats = os.stat('dispatch_table.pyc')
-    py_stats  = os.stat('dispatch_table.py')
-    if pyc_stats.st_ctime < py_stats.st_ctime:
-        sys.modules.pop('dispatch_table')
+def handler_from_dispatch(req):
+    if not 'dispatch_table' in sys.modules:
         exec ("import dispatch_table") in globals()
-    #endif
+    reload_modules()
 
     # call setreq if is present
     if 'setreq' in dir(dispatch_table):
         dispatch_table.setreq(req)
     #endif
 
-    for uri, methods, module, call in dispatch_table.calls:
-        if uri == req.path and req.method in methods:
-            # check, if file is newer, then compile version
-            if module in sys.modules:
-                try:
-                    exec ("pyc = %s.__file__" % module)
-                    if pyc[-3:] == "pyc":
-                        pyc_stats = os.stat(pyc)
-                        py_stats  = os.stat(pyc[:-3] + 'py')
-                        if pyc_stats.st_ctime < py_stats.st_ctime:
-                            req.log.error("Module %s reloaded." % module,
-                                          req.remote_host)
-                            sys.modules.pop('%s' % module)
-                            compile(pyc[:-3] + 'py')
-                        #endif
-                    elif pyc[-2:] == "py":
-                        req.log.error("Compiling module %s." % module,
-                                      req.remote_host)
-                        sys.modules.pop('%s' % module)
-                        compile(pyc[:-2] + 'py')
-                    #endif
-                except:
-                    raise req.InternalServerError(req)
-                #endtry
-            #endif
-
-            exec ("import %s" % module) in globals()
-            exec ("content = %s.%s(req)" % (module, call))
-            return content
+    if req.uri in dispatch_table.handlers:
+        method, handler = dispatch_table.handlers[req.uri]
+        # check if method is allowed
+        if methods[req.method] & method:
+            retval = handler(req)
+            raise handlers.SERVER_RETURN, retval
+        else:
+            raise handlers.SERVER_RETURN, HTTP_METHOD_NOT_ALLOWED
         #endif
-    #endfor
+    #endif
 
     # try file
-    if req.document:
-        rfile = "%s/%s" % (req.document, req.path)
+    if env.document_root:
+        rfile = "%s%s" % (env.document_root,
+                os.path.normpath("/%s" % req.uri))
         if os.access(rfile, os.R_OK):
-            raise response.File(req, rfile)
+            raise handlers.SERVER_RETURN, handlers.sendfile(req, rfile)
     #endif
-    
-    raise req.NotFound(req)
+   
+    req.log_error("404 Not Found: %s" % req.uri, LOG_ERR);
+    raise handlers.SERVER_RETURN, HTTP_NOT_FOUND
 #enddef
 
-def web_app(environ, start_response):
-    req = Reqeuest(environ, start_response)
+def web_app(server_handler, request_object):
+    req = Reqeuest(server_handler)
     try:
-        content = call_from_dispatch(req)
-        raise response.Ok(content)
-    except response.Ok, res:
-        status = req.status[res.status];
-        start_response(status, res.header)
-        return res.content
+        handler_from_dispatch(req)
+    except handlers.SERVER_RETURN, e:
+        code = e.args[0]
+        if code in (OK, HTTP_OK, DONE):
+            pass
+        elif code in (HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY):
+            try:
+                raise
+            except:
+                handlers.internal_server_error(req)
+        elif not error_from_dispatch(req, code):
+            handlers.not_implemented(req, code)
+    except SocketError, e:
+        return ()
     except Exception, e:
-        res = req.InternalServerError(req)
-        status = req.status[res.status];
-        start_response(status, res.header)
-        return res.content
+        error_from_dispatch(req, 500)
     #endtry
+
+    return req.flush()
 #enddef
 
 def sigterm(sig, stack = None):
-    env.log.error('Shotdown server signal(%s)' % sig)
+    env.log.error('[S] Shotdown server signal(%s)' % sig)
     os.unlink(pidfile)
     sys.exit()
 #enddef
@@ -104,31 +102,44 @@ try:
     env.server_port = cfg.getint('http', 'port')
     env.server_host = getfqdn(env.server_address)
     
-    env.log.error('Starting server %s:%s' % (env.server_address,
-                                             env.server_port))
+    env.log.error('[S] Starting server type %s at %s:%s' \
+            % (env.server_class.type, env.server_address, env.server_port))
     httpd = make_server(env.server_address,
                         env.server_port,
                         web_app,
+                        #server_class = ForkingServer,
+                        #server_class = ThreadingServer,
+                        #server_class = PoorServer,
+                        server_class = env.server_class,
                         handler_class = WebRequestHandler
                         )
-    httpd.serve_forever()
+    #print ""
+    #print "%s:%s\n" % (WebRequestHandler, dir(WebRequestHandler))
+    #print "%s:%s\n" % (PoorServerHandler, dir(PoorServerHandler))
+    #print "%s:%s\n" % (Reqeuest, dir(Reqeuest))
+    httpd.serve_forever(None)
 except KeyboardInterrupt, e:
-    env.log.error('Shotdown server (keyboard interrupt)')
+    env.log.error('[S] Shotdown server (keyboard interrupt)')
+    del(env.log)
     os.unlink(pidfile)
 except SocketError, e:
-    env.log.error(e[1])
+    env.log.error("[S] %s" % e[1])
+    del(env.log)
     os.unlink(pidfile)
     sys.exit(1)
 except ParsingError, e:
     # configure error
     usage("Exception: %s" % e.message)
+    del(env.log)
     sys.exit(1)
 except os.error, e:
     # pid error
     usage("Exception: %s" % e)
+    del(env.log)
     sys.exit(1)
 except Exception, e:
-    usage("Exception: %s" % e.message)
+    usage("Exception: %s" % e)
+    del(env.log)
     os.unlink(pidfile)
     sys.exit(1)
 #endtry

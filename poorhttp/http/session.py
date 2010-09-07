@@ -2,7 +2,7 @@
 from env import server_secret
 
 from Cookie import SimpleCookie
-from sha import sha
+from hashlib import sha1
 from time import time
 from pickle import dumps, loads
 from base64 import b64decode, b64encode
@@ -11,7 +11,7 @@ from exceptions import NotImplementedError
 import bz2
 
 def hidden(text, passwd):
-    passwd = sha(passwd).digest()
+    passwd = sha1(passwd).digest()
     passlen = len(passwd)
     retval = ''
     for i in xrange(len(text)):
@@ -34,8 +34,8 @@ class Session:
         self.cookie = SimpleCookie()
 
         # get SID from cookie or url
-        if req.cookie:
-            self.cookie.load(req.cookie)
+        if req.subprocess_env.has.key("HTTP_COOKIE"):
+            self.cookie.load(req.subprocess_env["HTTP_COOKIE"])
             if self.cookie.has_key(SID):
                 self.id = self.cookie[SID].value
         else:
@@ -53,10 +53,36 @@ class Session:
 
     
     def create(self, req):
+        if self.id:
+            try:
+                date_expires = int(hidden(b64decode(self.id),
+                                          server_secret + req.user_agent))
+            except:
+                req.log.error('Bad session ID `%s`.' % self.id)
+                date_expires = 0
+                self.id = None
+            #endtry
+            if date_expires < int(time()) and self.id:
+                req.log.error('I: Session was expired, generating new.')
+                self.id = None
+            #endif
+        #endif
+
         if not self.id:
-            self.id = sha("%s" % time()).hexdigest()
+            date_expires = int(time()) + self.expires
+            self.id = b64encode(hidden(str(date_expires),
+                                       server_secret + req.user_agent))
+            self.cookie.clear()
         return self.id
     #enddef
+
+    def renew(self):
+        date_expires = int(time()) + self.expires
+        self.id = b64encode(hidden(str(date_expires),
+                            server_secret + req.user_agent))
+        return self.id
+    #enddef
+
 
     def read(self, req):
         if self.cookie.has_key(self.DATA):
@@ -92,8 +118,6 @@ class Session:
     #enddef
 
     def header(self, req):
-        req.SID = self.SID
-        req.DATA = self.DATA
         cookies = self.cookie.output().split('\r\n')
         header = []
         for cookie in cookies:
@@ -116,12 +140,12 @@ class MCSession(Session):
     def create(self, req):
         # check if session exist
         if not self.id or not req.mc.get(self.id):
-            self.id = sha("%s" % time()).hexdigest()
+            self.id = sha1("%s" % time()).hexdigest()
             # bad session (probably expired)
             while not req.mc.add(self.id, {}, time = self.expires):
                 if len(req.mc.get_stats()) == 0:
                     raise RuntimeError('Memmcached server not connect!')
-                self.id = sha("%s" % time()).hexdigest()
+                self.id = sha1("%s" % time()).hexdigest()
             #endwhile
         #endif
 

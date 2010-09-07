@@ -1,9 +1,13 @@
-
 from ConfigParser import ConfigParser
 from time import time
+from enums import LOG_INFO
+from classes import PoorServer
+
+# server type
+server_class = PoorServer
 
 # poor http version
-server_version = 20091126
+server_version = 20100720
 
 # poor http servr root
 server_root = './'
@@ -32,8 +36,17 @@ log = None
 # webmaster
 webmaster = ''
 
+# debug
+debug = False
+
+# auto reload modules
+autoreload = False
+
+# log_level
+log_level = LOG_INFO[0]
+
 # application path (python scripts)
 application = './'
 
 # document path (file documents)
-document = None
+document_root = None

@@ -1,10 +1,11 @@
 
 from getopt import getopt
 from exceptions import OSError
+from re import compile
 
 import sys, os
 
-from classes import Log
+from classes import Log, ForkingServer, ThreadingServer
 
 import env
 
@@ -69,6 +70,36 @@ def configure():
         usage('port not configure!')
     #endif
 
+    try:
+        env.log = Log(env.cfg)
+    except OSError, e:
+        sys.stderr.write('%s\n' % e)
+        sys.exit(1)
+    #endtry
+
+    # cofigure additionals
+    if env.cfg.has_option('http', 'type'):
+        server_type = env.cfg.get('http', 'type')
+        if server_type == "forking":
+            env.server_class = ForkingServer
+        elif server_type == "threading":
+            env.server_class = ThreadingServer
+    
+    if env.cfg.has_option('http', 'secret'):
+        env.server_secret = env.cfg.get('http', 'secret')
+    if env.cfg.has_option('http', 'webmaster'):
+        env.webmaster = env.cfg.get('http', 'webmaster')
+    if env.cfg.has_option('http', 'application'):
+        env.application = env.cfg.get('http', 'application')
+    if env.cfg.has_option('http', 'document_root'):
+        document_root = env.cfg.get('http', 'document_root')
+        env.document_root = os.path.abspath(document_root)
+    if env.cfg.has_option('http', 'debug'):
+        env.debug = env.cfg.getboolean('http', 'debug')
+    if env.cfg.has_option('http', 'autoreload'):
+        env.autoreload = env.cfg.getboolean('http', 'autoreload')
+    #endif
+
     # connect memmcace if is possible
     if env.cfg.has_option('http','memcache'):
         mc_servers = env.cfg.get('http','memcache')
@@ -78,25 +109,6 @@ def configure():
         if env.mc.get_stats() == 0:
             env.log.error("All memcache server(s) is down!")
         #endif
-    #endif
-
-    try:
-        env.log = Log(env.cfg)
-    except OSError, e:
-        sys.stderr.write('%s\n' % e)
-        sys.exit(1)
-    #endtry
-
-    # cofigure additionals
-    if env.cfg.has_option('http', 'secret'):
-        env.server_secret = env.cfg.get('http', 'secret')
-    if env.cfg.has_option('http', 'webmaster'):
-        env.webmaster = env.cfg.get('http', 'webmaster')
-    if env.cfg.has_option('http', 'application'):
-        env.application = env.cfg.get('http', 'application')
-    if env.cfg.has_option('http', 'document'):
-        document = env.cfg.get('http', 'document')
-        env.document = os.path.abspath(document)
     #endif
 
     # swhitch curent dir to server path (./ default)

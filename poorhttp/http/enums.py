@@ -62,6 +62,8 @@ LOG_INFO    = (6, 'I')
 LOG_DEBUG   = (7, 'D')
 LOG_NOERRNO = (8, '0')
 
+APLOG_ERR   = LOG_ERR
+
 METHOD_POST     = 1
 METHOD_GET      = 2
 METHOD_GET_POST = 3

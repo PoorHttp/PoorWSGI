@@ -63,7 +63,7 @@ def handler_from_dispatch(req):
 #enddef
 
 def web_app(server_handler, request_object):
-    req = Reqeuest(server_handler)
+    req = Reqeuest(server_handler, request_object)
     try:
         handler_from_dispatch(req)
     except handlers.SERVER_RETURN, e:
@@ -107,9 +107,6 @@ try:
     httpd = make_server(env.server_address,
                         env.server_port,
                         web_app,
-                        #server_class = ForkingServer,
-                        #server_class = ThreadingServer,
-                        #server_class = PoorServer,
                         server_class = env.server_class,
                         handler_class = WebRequestHandler
                         )
@@ -117,7 +114,8 @@ try:
     #print "%s:%s\n" % (WebRequestHandler, dir(WebRequestHandler))
     #print "%s:%s\n" % (PoorServerHandler, dir(PoorServerHandler))
     #print "%s:%s\n" % (Reqeuest, dir(Reqeuest))
-    httpd.serve_forever(None)
+    httpd.timeout = 0.5
+    httpd.serve_forever()
 except KeyboardInterrupt, e:
     env.log.error('[S] Shotdown server (keyboard interrupt)')
     del(env.log)

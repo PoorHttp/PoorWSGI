@@ -2,10 +2,11 @@
 from getopt import getopt
 from exceptions import OSError
 from re import compile
+from cgi import FieldStorage as CgiFieldStorage, parse_header 
 
 import sys, os
 
-from classes import Log, ForkingServer, ThreadingServer
+from classes import Log, ForkingServer, ThreadingServer, Reqeuest
 
 import env
 
@@ -133,4 +134,45 @@ def save_pid():
         sys.exit(1)
     #endif
     return pidfile
- #enddef
+#enddef
+
+class FieldStorage(CgiFieldStorage):
+    def __init__(self, fp_or_req = None,
+                        headers = None,
+                        outerboundary = '',
+                        environ = os.environ,
+                        keep_blank_values = 0, 
+                        strict_parsing = 0,
+                        file_callback = None,
+                        field_callback = None):
+        
+        self.environ = environ
+        req = None
+        if fp_or_req and isinstance(fp_or_req, Reqeuest):
+            req = fp_or_req
+            fp_or_req = None
+            environ = req.environ
+
+        if file_callback:
+            environ['wsgi.file_callback'] = file_callback
+
+        if req and req.method == 'POST':
+            fp_or_req = environ.get('wsgi.input')
+            
+        CgiFieldStorage.__init__(
+                    self,
+                    fp = fp_or_req,
+                    headers = headers,
+                    outerboundary = outerboundary,
+                    environ = environ,
+                    keep_blank_values = keep_blank_values,
+                    strict_parsing = strict_parsing)
+    #enddef
+
+    def make_file(self, binary = None):
+        if 'wsgi.file_callback' in self.environ:
+            return self.environ['wsgi.file_callback'](self.filename)
+        else:
+            return CgiFieldStorage.make_file(self, binary)
+    #enddef
+#endclass

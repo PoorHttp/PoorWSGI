@@ -11,7 +11,7 @@ from traceback import format_exception
 from httplib import responses
 
 
-import cgi, os
+import os
 
 from enums import *
 import env, handlers
@@ -47,6 +47,8 @@ class WebRequestHandler(WSGIRequestHandler):
 
         self.raw_requestline = self.rfile.readline()
         if not self.parse_request(): # An error code has been sent, just exit
+            env.log.error(
+                "[S] An error code has been sent. (WebRequestHandler.handle)")
             return
 
         handler = PoorServerHandler(
@@ -72,6 +74,7 @@ class PoorServerHandler(ServerHandler):
             self.finish_response()
         except:
             try:
+                env.log.error("[S] Application run error. (PoorServerHandler.run")
                 self.handle_error()
             except:
                 # If we get an error handling an error, just give up already!
@@ -111,42 +114,33 @@ class Buffer(list):
         strlen += len(var)
 
 class Reqeuest:
-    def __init__(self, server_handler):
+    def __init__(self, server_handler, request_object):
         """
         Reqeuest object with all server elements
         """
 
         #apache compatibility
-        environ = server_handler.environ
-        self.subprocess_env = environ
-        self.hostname = environ.get('HTTP_HOST')
-        self.method = environ.get('REQUEST_METHOD')
-        self.uri = environ.get('PATH_INFO')
+        self.environ = server_handler.environ
+        self.subprocess_env = self.environ
+        self.hostname = self.environ.get('HTTP_HOST')
+        self.method = self.environ.get('REQUEST_METHOD')
+        self.uri = self.environ.get('PATH_INFO')
 
         self.content_type = None
         self.status = 200
+        self.headers_in = request_object.headers
         self.headers_out = Headers()
         self.err_headers_out = Headers()
         #self.buffer = None
-
-        # publisher compatibilty:
-        if self.method == 'GET':
-            self.form = cgi.FieldStorage(environ = environ)
-        elif self.method == 'POST':
-            self.form = cgi.FieldStorage(fp = environ.get('wsgi.input'),
-                                         environ = environ)
-        else:
-            self.form = None
-        #endif
 
         # private
         self.start_response = server_handler.start_response
         self._start_response = False
 
-        self.remote_host = environ.get('REMOTE_HOST')
-        self.remote_addr = environ.get('REMOTE_ADDR')
-        self.user_agent = environ.get('HTTP_USER_AGENT')
-        self.scheme = environ.get('wsgi.url_scheme')
+        self.remote_host = self.environ.get('REMOTE_HOST')
+        self.remote_addr = self.environ.get('REMOTE_ADDR')
+        self.user_agent = self.environ.get('HTTP_USER_AGENT')
+        self.scheme = self.environ.get('wsgi.url_scheme')
     #enddef
     
     def _write(self, data):

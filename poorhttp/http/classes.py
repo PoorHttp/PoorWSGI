@@ -1,3 +1,6 @@
+#
+# $Id$
+#
 
 from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, ServerHandler
 from wsgiref.headers import Headers as WHeaders
@@ -10,11 +13,12 @@ from sys import exc_info
 from traceback import format_exception
 from httplib import responses
 
-
-import os
+import os, re
 
 from enums import *
 import env, handlers
+
+_httpUrlPatern = re.compile(r"^(http|https):\/\/")
 
 class PoorServer(WSGIServer):
     type = "Single"
@@ -133,6 +137,8 @@ class Reqeuest:
         self.err_headers_out = Headers()
         #self.buffer = None
 
+        self.secret_key = env.secret_key
+
         # private
         self.start_response = server_handler.start_response
         self._start_response = False
@@ -175,10 +181,16 @@ class Reqeuest:
         return env.cfg.__dict__['_sections']['application']
 
     def get_remote_host(self):
-        return self.remote_host
+        return self.remote_addr
 
     def document_root(self):
         return env.document_root
+
+    def construct_url(self, uri):
+        if not _httpUrlPatern.match(uri):
+            return "%s://%s%s" % (self.scheme, self.hostname, uri)
+        return uri
+    #enddef
 
     def log_error(self, message, level = LOG_NOTICE, server = None):
         if env.log_level >= level[0]:

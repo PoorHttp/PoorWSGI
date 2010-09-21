@@ -86,8 +86,8 @@ def configure():
         elif server_type == "threading":
             env.server_class = ThreadingServer
     
-    if env.cfg.has_option('http', 'secret'):
-        env.server_secret = env.cfg.get('http', 'secret')
+    if env.cfg.has_option('http', 'secretkey'):
+        env.secret_key = env.cfg.get('http', 'secretkey')
     if env.cfg.has_option('http', 'webmaster'):
         env.webmaster = env.cfg.get('http', 'webmaster')
     if env.cfg.has_option('http', 'application'):

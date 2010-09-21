@@ -3,27 +3,30 @@ from random import random
 from time import localtime
 from traceback import format_exception
 from os import name as osname
+#
+# $Id$
+#
 
-import types, sys, re, os
+from exceptions import IOError
+import types, sys, os
 
 from enums import *
 import env
-
-_httpUrlPatern = re.compile(r"^(http|https):\/\/")
 
 class SERVER_RETURN(Exception):
     def __init__(self, code = HTTP_INTERNAL_SERVER_ERROR):
         Exception.__init__(self, code)
 #endclass
 
-def redirect(req, url, permanent = 0, text = None):
+def redirect(req, uri, permanent = 0, text = None):
     """
     Redirect server request to url via 302 server status.
     """
-    req.headers_out = req.err_headers_out
-
-    if not _httpUrlPatern.match(url):
-        url = "%s://%s%s" % (req.scheme, req.hostname, url)
+    if len(req.headers_out) > 2 or \
+        'Server' not in req.headers_out or 'X-Powered-By' not in req.headers_out:
+        raise IOError('Headers are set before redirect')
+    
+    url = req.construct_url(uri)
     
     if permanent:
         req.status = HTTP_MOVED_PERMANENTLY

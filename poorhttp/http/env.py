@@ -1,3 +1,7 @@
+#
+# $Id$
+#
+
 from ConfigParser import ConfigParser
 from time import time
 from enums import LOG_INFO
@@ -22,7 +26,7 @@ server_port = None
 server_host = None
 
 # poor http secret_key to crypting data (cookie)
-server_secret = "%s" % time()
+secret_key = "%s" % time()
 
 # global configuration
 cfg = ConfigParser()

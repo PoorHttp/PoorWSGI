@@ -1,7 +1,10 @@
+#
+# $Id$
+#
+
 from mod_python.apache import *
 from session import *
 from mod_python.util import FieldStorage, redirect
-
 
 METHOD_POST     = 1
 METHOD_GET      = 2
@@ -14,5 +17,6 @@ methods = {
     'HEAD': METHOD_HEAD
 }
 
-LOG_INFO    = APLOG_INFO
+LOG_ERR     = APLOG_ERR
 LOG_NOTICE  = APLOG_NOTICE
+LOG_INFO    = APLOG_INFO

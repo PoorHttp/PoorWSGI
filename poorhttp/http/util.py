@@ -175,4 +175,10 @@ class FieldStorage(CgiFieldStorage):
         else:
             return CgiFieldStorage.make_file(self, binary)
     #enddef
+
+    def getfirst(self, name, default = None, fce = None):
+        if fce:
+            return fce(CgiFieldStorage.getfirst(self, name, default))
+        return CgiFieldStorage.getfirst(self, name, default)
+    #enddef
 #endclass

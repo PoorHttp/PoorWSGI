@@ -160,7 +160,7 @@ class Reqeuest:
         At firts call this function start_response will be call, and then
         data will be writen. Next call only write data
         """
-        if self.content_type and not 'Content-Type' in self.headers_out:
+        if self.content_type and not self.headers_out.get('Content-Type'):
             self.headers_out.add('Content-Type', self.content_type)
 
         self.__write = self.start_response(

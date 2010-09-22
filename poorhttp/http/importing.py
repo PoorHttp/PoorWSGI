@@ -1,5 +1,5 @@
 from sys import modules
-from os import stat
+from os import stat, access, W_OK
 from os.path import splitext
 from py_compile import compile
 from imp import reload
@@ -12,6 +12,10 @@ def chech_recency(module):
     if type(module) != ModuleType or not '__file__' in module.__dict__:
         # builtin module...
         return True
+    if not access(module.__file__, W_OK):
+        # system module...
+        return True
+
     path, ext = splitext(module.__file__)
     if ext == '.pyc':
         pyc_stats = stat(module.__file__)

@@ -4,7 +4,7 @@
 
 from mod_python.apache import *
 from session import *
-from mod_python.util import FieldStorage, redirect
+from mod_python.util import FieldStorage as APFieldStorage, redirect
 
 METHOD_POST     = 1
 METHOD_GET      = 2
@@ -20,3 +20,11 @@ methods = {
 LOG_ERR     = APLOG_ERR
 LOG_NOTICE  = APLOG_NOTICE
 LOG_INFO    = APLOG_INFO
+
+class FieldStorage(APFieldStorage):
+    def getfirst(self, name, default = None, fce = None):
+        if fce:
+            return fce(APFieldStorage.getfirst(self, name, default))
+        return APFieldStorage.getfirst(self, name, default)
+    #enddef
+#endclass

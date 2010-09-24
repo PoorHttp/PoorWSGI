@@ -43,7 +43,7 @@ class PoorSession:
         if raw:
             try:
                 self.data = loads(hidden(bz2.decompress(b64decode(raw)),
-                                    req.secret_key))
+                                    req.secretkey))
                 if type(self.data) != DictType:
                     raise RuntimeError()
             except:
@@ -73,7 +73,7 @@ class PoorSession:
             self.cookie[self.SID]['expires'] = int(time()) + self.expires
 
         raw = b64encode(bz2.compress(hidden(dumps(self.data),
-                                     req.secret_key), 9))
+                                     req.secretkey), 9))
         self.cookie[self.SID] = raw
         self.cookie[self.SID]['path'] = self.path
             

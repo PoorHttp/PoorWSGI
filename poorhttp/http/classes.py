@@ -137,7 +137,7 @@ class Reqeuest:
         self.err_headers_out = Headers()
         #self.buffer = None
 
-        self.secret_key = env.secret_key
+        self.secretkey = env.secretkey
 
         # private
         self.start_response = server_handler.start_response

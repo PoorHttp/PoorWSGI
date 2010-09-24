@@ -25,8 +25,8 @@ server_port = None
 # server host
 server_host = None
 
-# poor http secret_key to crypting data (cookie)
-secret_key = "%s" % time()
+# poor http secretkey to crypting data (cookie)
+secretkey = "%s" % time()
 
 # global configuration
 cfg = ConfigParser()

@@ -101,17 +101,6 @@ def configure():
         env.autoreload = env.cfg.getboolean('http', 'autoreload')
     #endif
 
-    # connect memmcace if is possible
-    if env.cfg.has_option('http','memcache'):
-        mc_servers = env.cfg.get('http','memcache')
-        mc_servers = map(lambda x: x.strip(), mc_servers.split(','))
-        from memcache import Client as McClient
-        env.mc = McClient(mc_servers, debug=0)
-        if env.mc.get_stats() == 0:
-            env.log.error("All memcache server(s) is down!")
-        #endif
-    #endif
-
     # swhitch curent dir to server path (./ default)
     env.server_path = os.getcwd()
     sys.path.insert(0, os.path.abspath(env.application))

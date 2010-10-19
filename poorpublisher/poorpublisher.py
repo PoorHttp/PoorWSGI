@@ -4,7 +4,8 @@
 
 from http import methods, SERVER_RETURN, HTTP_INTERNAL_SERVER_ERROR, \
         HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, OK
-from sys import modules
+from sys import modules, path
+from os import chdir
 import dispatch_table
 
 def error_from_dispatch(req, code):
@@ -22,6 +23,8 @@ def error_from_dispatch(req, code):
 
 def handler(req):
     req.secret_key = "$Id$"
+    chdir(path[1])  # change directory to app
+
 
     #if not 'dispatch_table' in modules:
     #    exec("import dispatch_table") in globals()

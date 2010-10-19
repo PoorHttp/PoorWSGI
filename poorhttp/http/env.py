@@ -31,9 +31,6 @@ secretkey = "%s" % time()
 # global configuration
 cfg = ConfigParser()
 
-# memcache clients object
-mc = None
-
 # log object
 log = None
 

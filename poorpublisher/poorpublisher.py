@@ -3,7 +3,8 @@
 #
 
 from http import methods, SERVER_RETURN, HTTP_INTERNAL_SERVER_ERROR, \
-        HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, OK
+        HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, OK, internal_server_error, \
+        APLOG_ERR
 from sys import modules, path
 from os import chdir
 import dispatch_table
@@ -18,6 +19,8 @@ def error_from_dispatch(req, code):
         except:
             return HTTP_INTERNAL_SERVER_ERROR
 
+    elif code == HTTP_INTERNAL_SERVER_ERROR:
+        return internal_server_error(req)
     return code
 #enddef
 
@@ -46,6 +49,7 @@ def handler(req):
             #endif
         #endif
 
+        req.log_error("uri '%s' not found." % req.uri, APLOG_ERR)
         return error_from_dispatch(req, HTTP_NOT_FOUND)
     except SERVER_RETURN, e:
         raise e

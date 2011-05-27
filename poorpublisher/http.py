@@ -18,9 +18,15 @@ methods = {
     'HEAD': METHOD_HEAD
 }
 
+LOG_EMERG   = APLOG_EMERG
+LOG_ALERT   = APLOG_ALERT
+LOG_CRIT    = APLOG_CRIT
 LOG_ERR     = APLOG_ERR
+LOG_WARNING = APLOG_WARNING
 LOG_NOTICE  = APLOG_NOTICE
 LOG_INFO    = APLOG_INFO
+LOG_DEBUG   = APLOG_DEBUG
+LOG_NOERRNO = APLOG_NOERRNO
 
 class FieldStorage(APFieldStorage):
     def getfirst(self, name, default = None, fce = None):

@@ -27,7 +27,10 @@ case "$1" in
     stop)
         if [ -f $pidfile ]; then
             echo "Stoping Poor Http server ..."
-            kill `cat $pidfile`
+            (kill `cat $pidfile` 2>&1) > /dev/null
+            if [ "$?" = "1" ]; then
+                rm $pidfile
+            fi
         else
             echo "Poor Http is shutdown"
         fi

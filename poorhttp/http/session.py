@@ -12,6 +12,8 @@ from types import DictType
 
 import bz2
 
+## crypt / decrypt text with sha1 hash of passwd
+#  @return string
 def hidden(text, passwd):
     passwd = sha1(passwd).digest()
     passlen = len(passwd)
@@ -22,6 +24,12 @@ def hidden(text, passwd):
 #enddef
 
 class PoorSession:
+    """
+    Self-contained cookie with session data
+    """
+
+    ## PoorSession constructor
+    #  @param req Reqeuest  object
     def __init__(self, req, expires = 0, path = '/', SID = 'SESSID', get = None):
         self.SID = SID
         self.expires = expires
@@ -85,6 +93,8 @@ class PoorSession:
         self.cookie[self.SID]['expires'] = -1
     #enddef
 
+    ## Store cookie session to headers if is set and returns headers list
+    # @return list
     def header(self, req, headers_out = None):
         self.write(req)
         cookies = self.cookie.output().split('\r\n')
@@ -104,7 +114,6 @@ class Session:
     Base Session class, data are store to DATA variable in cookie
     of if it not enable in server GET and POST variable.
     """
-
     def __init__(self, req, expires = 60*60, path = '/', SID = 'SESSID',
                                                          DATA = '_DATA'):
         self.SID = SID

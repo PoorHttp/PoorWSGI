@@ -9,6 +9,10 @@ from sys import modules, path
 from os import chdir
 import dispatch_table
 
+## Error handler of http errors. Another errors generate
+#  500 Internal serverver error. If error 500 is return, and no handlaer is
+#  defined in dispatch_table.errors dictionary, internal_server_error from http
+#  is called. This function is poorpublihser's internal.
 def error_from_dispatch(req, code):
     if 'dispatch_table' in modules \
     and 'errors' in dispatch_table.__dict__ \

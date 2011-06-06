@@ -15,6 +15,9 @@ import bz2
 ## crypt / decrypt text with sha1 hash of passwd
 #  @return string
 def hidden(text, passwd):
+    """
+    Encrypt / Decrypt text with sha1 password's hash by xor
+    """
     passwd = sha1(passwd).digest()
     passlen = len(passwd)
     retval = ''
@@ -24,13 +27,15 @@ def hidden(text, passwd):
 #enddef
 
 class PoorSession:
-    """
-    Self-contained cookie with session data
-    """
+    """Self-contained cookie with session data"""
 
     ## PoorSession constructor
     #  @param req Reqeuest  object
     def __init__(self, req, expires = 0, path = '/', SID = 'SESSID', get = None):
+        """
+        Creates session from cookie or from get value if exists. If not, creates
+        new.
+        """
         self.SID = SID
         self.expires = expires
         self.path = path
@@ -67,6 +72,7 @@ class PoorSession:
     #enddef
 
     def renew(self):
+        """Sets new expires datetime"""
         if self.expires:
             self.data['expires'] = int(time()) + self.expires
             return
@@ -75,7 +81,12 @@ class PoorSession:
             self.data.pop('expires')
     #enddef
 
+    #  @param req Request object
     def write(self, req):
+        """
+        Write data to cookie. This method is called automaticly in header
+        method.
+        """
         if self.expires:
             self.data['expires'] = int(time()) + self.expires
             self.cookie[self.SID]['expires'] = int(time()) + self.expires
@@ -89,6 +100,9 @@ class PoorSession:
     #enddef
 
     def destroy(self):
+        """
+        Destroy session. In fact this method only sets expires to -1.
+        """
         self.data['expires'] = -1
         self.cookie[self.SID]['expires'] = -1
     #enddef
@@ -96,6 +110,10 @@ class PoorSession:
     ## Store cookie session to headers if is set and returns headers list
     # @return list
     def header(self, req, headers_out = None):
+        """
+        return headers list with cookie values. If headers_out is set, append
+        values to this object.
+        """
         self.write(req)
         cookies = self.cookie.output().split('\r\n')
         header = []
@@ -111,11 +129,14 @@ class PoorSession:
 
 class Session:
     """
-    Base Session class, data are store to DATA variable in cookie
-    of if it not enable in server GET and POST variable.
+    Base Session class, data are store to DATA variable in cookie,
+    or if it not enable, in server GET and POST variable.
     """
     def __init__(self, req, expires = 60*60, path = '/', SID = 'SESSID',
                                                          DATA = '_DATA'):
+        """
+        req - Request object
+        """
         self.SID = SID
         self.DATA = DATA
         self.id = None
@@ -142,6 +163,10 @@ class Session:
 
     
     def create(self, req):
+        """
+        Set id from existing session, or create new, if it fails or if not exist
+        yet.
+        """
         if self.id:
             try:
                 date_expires = int(hidden(b64decode(self.id),
@@ -166,6 +191,9 @@ class Session:
     #enddef
 
     def renew(self):
+        """
+        Sets new expires datetime
+        """
         date_expires = int(time()) + self.expires
         self.id = b64encode(hidden(str(date_expires),
                             server_secret + req.user_agent))
@@ -174,6 +202,9 @@ class Session:
 
 
     def read(self, req):
+        """
+        Read data from cookie
+        """
         if self.cookie.has_key(self.DATA):
             b64 = self.cookie[self.DATA].value
             try:
@@ -189,6 +220,10 @@ class Session:
     #enddef
 
     def write(self, req, data):
+        """
+        Write data to cookie. This method is called automaticly when header
+        method.
+        """
         b64 = b64encode(bz2.compress(hidden(dumps(data),
                                      server_secret + self.id), 9))
         self.cookie[self.DATA] = b64
@@ -197,16 +232,25 @@ class Session:
     #enddef
 
     def clean(self, req):
+        """
+        Clean session data. This method does not destroy session.
+        """
         self.cookie[self.DATA]['expires'] = -1
         return True
     #enddef
 
     def destroy(self, req):
+        """
+        Destroy session.
+        """
         self.clean(req)
         self.cookie[self.SID]['expires'] = -1
     #enddef
 
     def header(self, req):
+        """
+        return headers list with cookie values
+        """
         cookies = self.cookie.output().split('\r\n')
         header = []
         for cookie in cookies:

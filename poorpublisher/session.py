@@ -24,6 +24,9 @@ def hidden(text, passwd):
 #enddef
 
 class PoorSession:
+    ## PoorSession constructor
+    #  @param req Request object
+    #  @param get raw data session's cookie if HTTP_COOKIE is not present
     def __init__(self, req, expires = 0, path = '/', SID = 'SESSID', get = None):
         self.SID = SID
         self.expires = expires
@@ -65,6 +68,7 @@ class PoorSession:
     #enddef
 
     def renew(self):
+        """Renew cookie, in fact set expires to next time if it set."""
         if self.expires:
             self.data['expires'] = int(time()) + self.expires
             return
@@ -74,6 +78,10 @@ class PoorSession:
     #enddef
 
     def write(self, req):
+        """
+        Store data to cookie value.
+        \param req Request object
+        """
         if self.expires:
             self.data['expires'] = int(time()) + self.expires
             self.cookie[self.SID]['expires'] = int(time()) + self.expires

@@ -29,7 +29,14 @@ LOG_DEBUG   = APLOG_DEBUG
 LOG_NOERRNO = APLOG_NOERRNO
 
 class FieldStorage(APFieldStorage):
+    """Field storage from mod_python with better getfirst method."""
+
     def getfirst(self, name, default = None, fce = None):
+        """Returns value of key from GET or POST form.
+        @param name key
+        @param default default value if is not set
+        @param fce function which processed value. For example str or int
+        """
         if fce:
             return fce(APFieldStorage.getfirst(self, name, default))
         return APFieldStorage.getfirst(self, name, default)
@@ -37,10 +44,9 @@ class FieldStorage(APFieldStorage):
 #endclass
 
 def internal_server_error(req):
-    """
-    More debug internal server error (was called automaticly when no handlers
-    is not defined and where __debug__ is true)
-    """
+    """More debug internal server error. It was be called automaticly when no
+    handlers are not defined in dispatch_table.errors. If __debug__ is true,
+    Tracaback will be genarated."""
     traceback = format_exception(sys.exc_type,
                                  sys.exc_value,
                                  sys.exc_traceback)

@@ -1,3 +1,7 @@
+#
+# $Id: poorpublisher.py 16 2011-06-06 08:43:47Z ondratu $
+#
+
 import http
 import re
 

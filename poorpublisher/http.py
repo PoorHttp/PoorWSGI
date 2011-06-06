@@ -1,11 +1,15 @@
 #
 # $Id$
-#
+## \namespace http
+# http server compatitible interface
 
 from mod_python.apache import *
 from session import *
 from mod_python.util import FieldStorage as APFieldStorage, redirect
 from traceback import format_exception
+
+## \defgroup http http server inetrface (Apache)
+# @{
 
 METHOD_POST     = 1
 METHOD_GET      = 2
@@ -32,7 +36,7 @@ class FieldStorage(APFieldStorage):
     """Field storage from mod_python with better getfirst method."""
 
     def getfirst(self, name, default = None, fce = None):
-        """Returns value of key from GET or POST form.
+        """Returns value of key from \b GET or \b POST form.
         @param name key
         @param default default value if is not set
         @param fce function which processed value. For example str or int
@@ -43,10 +47,18 @@ class FieldStorage(APFieldStorage):
     #enddef
 #endclass
 
+## @}
+
+## \addtogroup <api>
+#  @{
+
 def internal_server_error(req):
-    """More debug internal server error. It was be called automaticly when no
-    handlers are not defined in dispatch_table.errors. If __debug__ is true,
-    Tracaback will be genarated."""
+    """More debug internal server error handler. It was be called automaticly
+    when no handlers are not defined in dispatch_table.errors. If __debug__ is
+    true, Tracaback will be genarated.
+    @param req mod_python.apache.request
+    @returns http.DONE
+    """
     traceback = format_exception(sys.exc_type,
                                  sys.exc_value,
                                  sys.exc_traceback)
@@ -94,3 +106,5 @@ def internal_server_error(req):
     for l in content: req.write(l)
     return DONE
 #enddef
+
+## @}

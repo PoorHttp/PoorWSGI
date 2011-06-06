@@ -1,6 +1,8 @@
 #
 # $Id$
 #
+## \namespace session
+#  Cookie sessions.
 
 from Cookie import SimpleCookie
 from hashlib import sha1
@@ -14,7 +16,16 @@ from mod_python.apache import APLOG_INFO
 
 import bz2
 
+## \defgroup api Poor Application Interface
+# @{
+
 def hidden(text, passwd):
+    """Encrypt / Decrypt text with sha hash of passwd.
+
+    @param  text    raw data to en(de)crypt
+    @param  passwd  password
+    @returns string
+    """
     passwd = sha1(passwd).digest()
     passlen = len(passwd)
     retval = ''
@@ -24,14 +35,26 @@ def hidden(text, passwd):
 #enddef
 
 class PoorSession:
-    ## PoorSession constructor
-    #  @param req Request object
-    #  @param get raw data session's cookie if HTTP_COOKIE is not present
+    """Self-contained cookie with session data"""
+
     def __init__(self, req, expires = 0, path = '/', SID = 'SESSID', get = None):
+        """Constructor.
+        @param  req     mod_python.apache.request
+        @param  expires cookie expire time in seconds, if it 0, no expire is set
+        @param  path    cookie path
+        @param  SID     cookie key name
+        @param  get     raw data session's cookie if \b HTTP_COOKIE is not present
+        """
+        
+        # @cond PRIVATE
         self.SID = SID
         self.expires = expires
         self.path = path
         self.cookie = SimpleCookie()
+        # @endcond
+
+        ## @property data
+        # data is session dictionary to store user data in cookie
         self.data = {}
 
         raw = None
@@ -78,9 +101,8 @@ class PoorSession:
     #enddef
 
     def write(self, req):
-        """
-        Store data to cookie value.
-        \param req Request object
+        """Store data to cookie value.
+        @param req mod_python.apache.request
         """
         if self.expires:
             self.data['expires'] = int(time()) + self.expires
@@ -95,11 +117,17 @@ class PoorSession:
     #enddef
 
     def destroy(self):
+        """Set cookie expires value to past."""
         self.data['expires'] = -1
         self.cookie[self.SID]['expires'] = -1
     #enddef
 
     def header(self, req, headers_out = None):
+        """Generate cookie headers and append it to headers_out if it set.
+        @param req mod_python.apache.request
+        @param headers_out mod_python.apache.mp_table object
+        @returns list of header pairs
+        """
         self.write(req)
         cookies = self.cookie.output().split('\r\n')
         header = []
@@ -112,3 +140,5 @@ class PoorSession:
         return header
     #enddef
 #endclass
+
+## @}

@@ -2,6 +2,9 @@
 # $Id$
 #
 
+## \namespace poorpublisher
+#  python handler definition
+
 from http import methods, SERVER_RETURN, HTTP_INTERNAL_SERVER_ERROR, \
         HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, OK, internal_server_error, \
         APLOG_ERR
@@ -9,10 +12,13 @@ from sys import modules, path
 from os import chdir
 import dispatch_table
 
+## \defgroup poorpublisher Poor Publisher
+#  @{
+
 ## Error handler of http errors. Another errors generate
-#  500 Internal serverver error. If error 500 is return, and no handlaer is
-#  defined in dispatch_table.errors dictionary, internal_server_error from http
-#  is called. This function is poorpublihser's internal.
+#  500 Internal serverver error. If error 500 is return, and no handler is
+#  defined in dispatch_table.errors dictionary http.internal_server_error 
+#  called. This function is poorpublihser's internal.
 def error_from_dispatch(req, code):
     if 'dispatch_table' in modules \
     and 'errors' in dispatch_table.__dict__ \
@@ -21,7 +27,7 @@ def error_from_dispatch(req, code):
             handler = dispatch_table.errors[code]
             return handler(req)
         except:
-            return HTTP_INTERNAL_SERVER_ERROR
+            return HTTP_INTERNAL_SERVER_ERRORPoorSessionPoorSession
 
     elif code == HTTP_INTERNAL_SERVER_ERROR:
         return internal_server_error(req)
@@ -29,9 +35,14 @@ def error_from_dispatch(req, code):
 #enddef
 
 def handler(req):
+    """
+    Main python handler function, which is called from apache mod_python.
+    @param req mod_python.apache.request http://modpython.org/live/current/doc-html/pyapi-mprequest.html
+    @throw <mod_python.apache.SERVER_RETURN> http error code exception
+    \sa http://modpython.org/live/current/doc-html/pyapi-handler.html
+    """
     req.secret_key = "$Id$"
     chdir(path[1])  # change directory to app
-
 
     #if not 'dispatch_table' in modules:
     #    exec("import dispatch_table") in globals()
@@ -60,3 +71,5 @@ def handler(req):
     except:
         return error_from_dispatch(req, HTTP_INTERNAL_SERVER_ERROR)
 #enddef
+
+## @}

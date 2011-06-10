@@ -1,7 +1,8 @@
 #
 # $Id$
+#
 ## \namespace http
-# http server compatitible interface
+#  http server compatitible interface
 
 from mod_python.apache import *
 from session import *

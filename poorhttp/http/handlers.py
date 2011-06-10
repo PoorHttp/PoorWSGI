@@ -13,14 +13,39 @@ import types, sys, os
 from enums import *
 import env
 
+## \addtogroup <http>
+#  @{
+
+
 class SERVER_RETURN(Exception):
+    """Compatible with mod_python.apache exception."""
     def __init__(self, code = HTTP_INTERNAL_SERVER_ERROR):
+        """@param code one of HTTP_* status from http.enums"""
         Exception.__init__(self, code)
 #endclass
 
 def redirect(req, uri, permanent = 0, text = None):
-    """
-    Redirect server request to url via 302 server status.
+    """This is a convenience function to redirect the browser to another
+    location. When permanent is true, MOVED_PERMANENTLY status is sent to the
+    client, otherwise it is MOVED_TEMPORARILY. A short text is sent to the
+    browser informing that the document has moved (for those rare browsers that
+    do not support redirection); this text can be overridden by supplying a text
+    string. 
+
+    If this function is called after the headers have already been sent, an
+    IOError is raised. 
+
+    This function raises apache.SERVER_RETURN exception with a value of
+    http.DONE to ensuring that any later phases or stacked handlers do not run.
+    If you do not want this, you can wrap the call to redirect in a try/except
+    block catching the apache.SERVER_RETURN. Redirect server request to url via
+    302 server status.
+
+    @param req http.classes.Request object
+    @param uri string location
+    @param permanent int or boolean
+    @param text string
+    @throw IOError
     """
     if len(req.headers_out) > 2 or \
         'Server' not in req.headers_out or 'X-Powered-By' not in req.headers_out:
@@ -39,7 +64,16 @@ def redirect(req, uri, permanent = 0, text = None):
     raise SERVER_RETURN, DONE
 #enddef
 
+## @}
+
+## \defgroup internal Internal Poor Publisher functions and classes
+#  @{
+
 def forbidden(req):
+    """403 - Forbidden Access server error handler.
+    @param req http.classes.Request object
+    @returns http.DONE
+    """
     content = \
         "<html>\n"\
         "  <head>\n"\
@@ -51,7 +85,7 @@ def forbidden(req):
         "    </style>\n"\
         "  <head>\n" \
         "  <body>\n"\
-        "    <h1>403 - Forbidden Acces</h1>\n"\
+        "    <h1>403 - Forbidden Access</h1>\n"\
         "    <p>You don't have permission to access <code>%s</code> on this server.</p>\n"\
         "    <hr>\n"\
         "    <small><i>webmaster: %s </i></small>\n"\
@@ -67,6 +101,10 @@ def forbidden(req):
 #enddef
 
 def not_found(req):
+    """404 - Page Not Found server error handler.
+    @param req http.classes.Request object
+    @returns http.DONE
+    """
     content = \
         "<html>\n"\
         "  <head>\n"\
@@ -94,6 +132,10 @@ def not_found(req):
 #enddef
 
 def method_not_allowed(req):
+    """405 Method Not Allowed server error handler.
+    @param req http.classes.Request object
+    @returns http.DONE
+    """
     content = \
         "<html>\n"\
         "  <head>\n"\
@@ -121,9 +163,11 @@ def method_not_allowed(req):
 #enddef
 
 def internal_server_error(req):
-    """
-    This function call error log in init. When is not used, errors will
-    not be loged. See code.
+    """More debug 500 Internal Server Error server handler. It was be called
+    automaticly when no handlers are not defined in dispatch_table.errors.
+    If __debug__ is true, Tracaback will be genarated.
+    @param req http.classes.Request object
+    @returns http.DONE
     """
     traceback = format_exception(sys.exc_type,
                                  sys.exc_value,
@@ -189,6 +233,10 @@ def internal_server_error(req):
 #enddef
 
 def not_implemented(req, code = None):
+    """501 Not Implemented server error handler.
+    @param req http.classes.Request object
+    @returns http.DONE
+    """
     content = \
             "<html>\n"\
             "  <head>\n"\
@@ -264,3 +312,5 @@ errors = {
     HTTP_FORBIDDEN              : forbidden,
     HTTP_NOT_IMPLEMENTED        : not_implemented,
 }
+
+## @{

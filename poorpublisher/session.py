@@ -20,9 +20,9 @@ import bz2
 # @{
 
 def hidden(text, passwd):
-    """Encrypt / Decrypt text with sha hash of passwd.
+    """(en|de)crypt text with sha hash of passwd via xor.
 
-    @param  text    raw data to en(de)crypt
+    @param  text    raw data to (en|de)crypt
     @param  passwd  password
     @returns string
     """
@@ -101,7 +101,8 @@ class PoorSession:
     #enddef
 
     def write(self, req):
-        """Store data to cookie value.
+        """Store data to cookie value. This method is called automaticly in
+        header method.
         @param req mod_python.apache.request
         """
         if self.expires:
@@ -117,7 +118,8 @@ class PoorSession:
     #enddef
 
     def destroy(self):
-        """Set cookie expires value to past."""
+        """Destroy session. In fact, set cookie expires value to past (-1)."""
+        self.data = {}
         self.data['expires'] = -1
         self.cookie[self.SID]['expires'] = -1
     #enddef
@@ -126,7 +128,7 @@ class PoorSession:
         """Generate cookie headers and append it to headers_out if it set.
         @param req mod_python.apache.request
         @param headers_out mod_python.apache.mp_table object
-        @returns list of header pairs
+        @returns list of cookie header pairs
         """
         self.write(req)
         cookies = self.cookie.output().split('\r\n')

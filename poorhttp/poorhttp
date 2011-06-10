@@ -12,7 +12,7 @@ import sys, os
 from http import env, handlers
 from http.enums import *
 from http.util import usage, configure, save_pid
-from http.classes import WebRequestHandler, Reqeuest, PoorServerHandler
+from http.classes import WebRequestHandler, Request, PoorServerHandler
 from http.importing import *
 
 def error_from_dispatch(req, code):
@@ -63,7 +63,7 @@ def handler_from_dispatch(req):
 #enddef
 
 def web_app(server_handler, request_object):
-    req = Reqeuest(server_handler, request_object)
+    req = Request(server_handler, request_object)
     try:
         handler_from_dispatch(req)
     except handlers.SERVER_RETURN, e:
@@ -113,7 +113,7 @@ try:
     #print ""
     #print "%s:%s\n" % (WebRequestHandler, dir(WebRequestHandler))
     #print "%s:%s\n" % (PoorServerHandler, dir(PoorServerHandler))
-    #print "%s:%s\n" % (Reqeuest, dir(Reqeuest))
+    #print "%s:%s\n" % (Request, dir(Request))
     httpd.timeout = 0.5
     httpd.serve_forever()
 except KeyboardInterrupt, e:

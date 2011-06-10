@@ -6,7 +6,7 @@ from cgi import FieldStorage as CgiFieldStorage, parse_header
 
 import sys, os
 
-from classes import Log, ForkingServer, ThreadingServer, Reqeuest
+from classes import Log, ForkingServer, ThreadingServer, Request
 
 import env
 
@@ -137,7 +137,7 @@ class FieldStorage(CgiFieldStorage):
         
         self.environ = environ
         req = None
-        if fp_or_req and isinstance(fp_or_req, Reqeuest):
+        if fp_or_req and isinstance(fp_or_req, Request):
             req = fp_or_req
             fp_or_req = None
             environ = req.environ

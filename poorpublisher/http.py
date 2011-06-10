@@ -50,7 +50,7 @@ class FieldStorage(APFieldStorage):
 
 ## @}
 
-## \addtogroup <api>
+## \defgroup internal Internal Poor Publisher functions and classes
 #  @{
 
 def internal_server_error(req):

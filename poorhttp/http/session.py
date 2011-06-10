@@ -1,6 +1,8 @@
 #
 # $Id$
 #
+## \namespace session
+#  Cookie sessions.
 
 from Cookie import SimpleCookie
 from hashlib import sha1
@@ -12,11 +14,16 @@ from types import DictType
 
 import bz2
 
-## crypt / decrypt text with sha1 hash of passwd
+## \defgroup api Poor Application Interface
+# @{
+
 #  @return string
 def hidden(text, passwd):
-    """
-    Encrypt / Decrypt text with sha1 password's hash by xor
+    """(en|de)crypt text with sha hash of passwd via xor.
+
+    @param  text    raw data to (en|de)crypt
+    @param  passwd  password
+    @returns string
     """
     passwd = sha1(passwd).digest()
     passlen = len(passwd)
@@ -29,17 +36,24 @@ def hidden(text, passwd):
 class PoorSession:
     """Self-contained cookie with session data"""
 
-    ## PoorSession constructor
-    #  @param req Reqeuest  object
     def __init__(self, req, expires = 0, path = '/', SID = 'SESSID', get = None):
+        """Constructor.
+        @param  req     mod_python.apache.request
+        @param  expires cookie expire time in seconds, if it 0, no expire is set
+        @param  path    cookie path
+        @param  SID     cookie key name
+        @param  get     raw data session's cookie if \b HTTP_COOKIE is not present
         """
-        Creates session from cookie or from get value if exists. If not, creates
-        new.
-        """
+
+        # @cond PRIVATE
         self.SID = SID
         self.expires = expires
         self.path = path
         self.cookie = SimpleCookie()
+        # @endcond
+
+        ## @property data
+        # data is session dictionary to store user data in cookie
         self.data = {}
 
         raw = None
@@ -72,7 +86,7 @@ class PoorSession:
     #enddef
 
     def renew(self):
-        """Sets new expires datetime"""
+        """Renew cookie, in fact set expires to next time if it set."""
         if self.expires:
             self.data['expires'] = int(time()) + self.expires
             return
@@ -81,11 +95,10 @@ class PoorSession:
             self.data.pop('expires')
     #enddef
 
-    #  @param req Request object
     def write(self, req):
-        """
-        Write data to cookie. This method is called automaticly in header
-        method.
+        """Store data to cookie value. This method is called automaticly in
+        header method.
+        @param req http.classes.Request
         """
         if self.expires:
             self.data['expires'] = int(time()) + self.expires
@@ -100,19 +113,17 @@ class PoorSession:
     #enddef
 
     def destroy(self):
-        """
-        Destroy session. In fact this method only sets expires to -1.
-        """
+        """Destroy session. In fact, set cookie expires value to past (-1)."""
+        self.data = {}
         self.data['expires'] = -1
         self.cookie[self.SID]['expires'] = -1
     #enddef
 
-    ## Store cookie session to headers if is set and returns headers list
-    # @return list
     def header(self, req, headers_out = None):
-        """
-        return headers list with cookie values. If headers_out is set, append
-        values to this object.
+        """Generate cookie headers and append it to headers_out if it set.
+        @param req http.classes.Request
+        @param headers_out http.classes.Headers object
+        @returns list of cookie header pairs
         """
         self.write(req)
         cookies = self.cookie.output().split('\r\n')
@@ -129,30 +140,33 @@ class PoorSession:
 
 class Session:
     """
-    Base Session class, data are store to DATA variable in cookie,
-    or if it not enable, in server GET and POST variable.
+    Base Session self-contained class, data are store to DATA variable in cookie.
     """
     def __init__(self, req, expires = 60*60, path = '/', SID = 'SESSID',
                                                          DATA = '_DATA'):
+        """Constructor.
+        @param  req     http.classes.Request
+        @param  expires cookie expire time in seconds, if it 0, no expire is set
+        @param  path    cookie path
+        @param  SID     cookie key name
+        @param  DATA    cookie data name
         """
-        req - Request object
-        """
+
+        # @cond PRIVATE
         self.SID = SID
         self.DATA = DATA
         self.id = None
         self.expires = expires
         self.cookie = SimpleCookie()
+        # @endcond
 
         # get SID from cookie or url
         if req.subprocess_env.has.key("HTTP_COOKIE"):
             self.cookie.load(req.subprocess_env["HTTP_COOKIE"])
             if self.cookie.has_key(SID):
                 self.id = self.cookie[SID].value
-        else:
-            # XXX: this is not checked
-            self.id = req.form.getvalue(SID)
         #endif
-        
+
         self.create(req)
 
         # complete cookie
@@ -163,9 +177,9 @@ class Session:
 
     
     def create(self, req):
-        """
-        Set id from existing session, or create new, if it fails or if not exist
-        yet.
+        """Load session if exist or create new.
+        @private This method is called inetrnaly.
+        http.classes.Request
         """
         if self.id:
             try:
@@ -191,19 +205,25 @@ class Session:
     #enddef
 
     def renew(self):
+        """Renew cookie, in fact set expires to next time if it set.
+        @returns id integer
         """
-        Sets new expires datetime
-        """
-        date_expires = int(time()) + self.expires
-        self.id = b64encode(hidden(str(date_expires),
+        if self.expires:
+            date_expires = int(time()) + self.expires
+            self.id = b64encode(hidden(str(date_expires),
                             server_secret + req.user_agent))
+
+        if 'expires' in self.data:
+            self.data.pop('expires')
+
         return self.id
     #enddef
 
 
     def read(self, req):
-        """
-        Read data from cookie
+        """Reads data from cookie.
+        @param req http.classes.Request object
+        @returns data or empty dictionary if fails or not exists
         """
         if self.cookie.has_key(self.DATA):
             b64 = self.cookie[self.DATA].value
@@ -220,9 +240,9 @@ class Session:
     #enddef
 
     def write(self, req, data):
-        """
-        Write data to cookie. This method is called automaticly when header
-        method.
+        """ Write data to cookie.
+        @param req http.classes.Request object
+        @param data any type data
         """
         b64 = b64encode(bz2.compress(hidden(dumps(data),
                                      server_secret + self.id), 9))
@@ -232,24 +252,30 @@ class Session:
     #enddef
 
     def clean(self, req):
+        """Clean session data (set to empty dictionary). In fact, set cookie
+        DATA expires value to past (-1). This method does not destroy session.
+        @param req http.classes.Request object
         """
-        Clean session data. This method does not destroy session.
-        """
+        b64 = b64encode(bz2.compress(hidden(dumps({}),
+                                     server_secret + self.id), 9))
+        self.cookie[self.DATA] = b64
         self.cookie[self.DATA]['expires'] = -1
         return True
     #enddef
 
     def destroy(self, req):
-        """
-        Destroy session.
+        """Destroy session. In fact, set cookie expires value to past (-1).
+        @param req http.classes.Request object
         """
         self.clean(req)
         self.cookie[self.SID]['expires'] = -1
     #enddef
 
-    def header(self, req):
-        """
-        return headers list with cookie values
+    def header(self, req, headers_out = None):
+        """Generate cookie headers and append it to headers_out if it set.
+        @param req http.classes.Request object
+        @param headers_out http.classes.Headers object
+        @returns list of cookie header pairs
         """
         cookies = self.cookie.output().split('\r\n')
         header = []
@@ -257,6 +283,8 @@ class Session:
             var = cookie[:10] # Set-Cookie
             val = cookie[12:] # SID=###; expires=###; Path=/
             header.append((var,val))
+            if headers_out:
+                headers_out.add(var, val)
         return header
     #enddef
 
@@ -267,6 +295,12 @@ class MCSession(Session):
     Memcache session, data are stored to memcache server
     """
     def __init__(self, req, expires = 60*60, path = '/', SID = 'SESSID'):
+        """Constructor.
+        @param  req     http.classes.Request
+        @param  expires cookie expire time in seconds, if it 0, no expire is set
+        @param  path    cookie path
+        @param  SID     cookie key name
+        """
         Session.__init__(self, req, expires, path, SID)
     #enddef
 
@@ -299,11 +333,11 @@ class MCSession(Session):
 
 #endclass
 
-# TODO: not available now
 class FileSession(Session):
     """
-    File session. Data are stored in filesystem in tmp.
-    """
+    File session, data are stored in filesystem in tmp.
+    \b Warning: This session is not implemented yet !"""
+
     def __init__(self, req, expires = 60*60, path = '/', SID = 'SESSID'):
         raise NotImplementedError('FileSession class is not implemented yet.')
         #Session.__init__(self, req, expires, path, SID)
@@ -326,3 +360,5 @@ class FileSession(Session):
     #enddef
 
 #endclass
+
+## @}

@@ -1,0 +1,207 @@
+/** \mainpage
+
+\section Introdution
+
+- \subpage introdution
+- \ref why
+- \ref licence
+
+\section Installation
+ 
+- \subpage installation
+- \subpage configuration
+
+\section Tutorial
+
+- \subpage dispatch_table
+- \subpage handlers
+- \subpage sessions
+
+\section Reference
+- \subpage http
+- \subpage api
+
+**/
+
+/** \page introdution Introdution
+
+Poor Http Server is standalone http server, which is designed for using python
+web applications. Unlike other projects, this is not framework, but single
+server type application. It is not depended on another special technologies
+or frameworks, only on base python library and it provides base API for making
+python web applications.
+
+\section why Why choose Poor Http
+
+- Stand alone server application.
+- It's depends only on base Python library, there is no need to other special
+  frameworks or libraries.
+- Base API for writing python web applications allows running applications under
+  self users.
+- Python modules are still stores in memory, so new request are serves very
+  quickly. [Single and Threading mode]
+- Server could runs in threading and forking mode, so more request could be
+  serves in same time.
+- Easy configuration by ini file, which could be use to configuration of web
+  application.
+- Error and Access Log
+- Standard error handlers: 500 Internal Server Error, 400 Not Found, 302 Found
+  (redirect), etc.
+- API variability
+- Base file transport (css, txt, png files)
+
+Server is not, and it could be not classic http server. It does not support cgi,
+directory listing or virtual hosting (HTTP/1.1 header). It goes well where it's
+better run python application in server mode. It is no need to other http server
+, but it is recommending to use real http server as proxy server before this
+application. Poor Http server application could be use as html gui of some
+system application for example too.
+
+\section licence BSD Licence
+
+Copyright (c) 2009, Ondrej Tuma. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+- Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+- Redistributions in binary form must reproduce the above copyright notice, this
+  list of conditions and the following disclaimer in the documentation and/or
+  other materials provided with the distribution.
+- Neither the name of the author nor the names of its contributors may be used
+  to endorse or promote products derived from this software without specific
+  prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL COPYRIGHT HOLDER BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+**/
+
+/** \page installation Installation
+
+Installation is so easy, just download, unpack, copy and run. Server can't
+support hosting of more then one application. So each application must have self
+installation.
+
+\code
+$ tar xjf poorhttp-20091124.tar.bz2
+$ mkdir -p /srv/run /srv/log /srv/app /srv/www
+$ mv poorhttp /srv/
+$ mv etc /srv/
+$ mv init.d/poorhttp /etc/init.d/
+$ /etc/init.d/poorhttp start
+\endcode
+
+**/
+
+/** \page dispatch_table dispatch_table.py
+
+\code
+handlers = {
+   '/'             : (http.METHOD_GET, index),
+   '/login'        : (http.METHOD_GET, login),
+   '/dologin'      : (http.METHOD_POST, dologin),
+   '/dologout'     : (http.METHOD_GET_POST, dologout),
+}
+\endcode
+
+\code
+errors = {
+   http.HTTP_INTERNAL_SERVER_ERROR : my_internal_server_error,
+   http.HTTP_NOT_FOUND : my_page_not_found,
+}
+\endcode
+
+\code
+init = False
+re_mail = None
+
+def setreq(req):
+   global re_mail
+   global init
+
+   if not init:
+       re_mail = re.compile("^[a-z0-9\-_\.]+@[a-z0-9\-_\.]+$")
+
+       req.log_error('Reinicalizace ...', http.LOG_DEBUG)
+       init = True
+   #endif
+   
+   req.re_mail = re_mail
+#enddef
+\endcode
+
+**/
+
+/** \page handlers Handlers
+
+\code
+def light(req):
+   if False:
+       # k toto chybe nastesti nikdy nedojde
+       raise SERVER_RETURN, http.HTTP_NOT_ACCEPTABLE
+
+   req.content_type = „text/html” # nastavi content_type
+   req.headers_out.add(‚X-My-Info‘, ‚Moje vlastni hlavicka‘) # nastavi hlavicku
+
+   html = [
+       „<html>”,
+       „  <head>”,
+       „    <title>Jednoduchy priklad</title>”,
+       „  </head>”,
+       „  <body>”,
+       „     <h1>Toto je jednoduchy priklad metody lomitko</h1>”,
+       „     <p>Ahoj, tato stranka obsahuje velmi jednoduchy html kod.”,
+       „     Dnes je <code>%s</code> a je „ % strftime(„%Y-%m-%d”),
+       „       <code>%s</code>.” % strftime(„%H:%M:%S”),
+       „     </p>”,
+       „     Dekujeme za navstevu.,
+       „   </body>”,
+       „</html>”,
+   ]
+   for line in html:
+       req.write(line + ‚\n‘)	 # vystup html kodu
+   return http.DONE               # korektni ukonceni
+\endcode
+
+\code
+def forbidden(req):
+   content = \
+       "<html>\n"\
+       "  <head>\n"\
+       "    <title>403 - Pristup odepren</title>\n"\
+       "    <style>\n"\
+       "      body {width: 80%%; margin: auto; padding-top: 30px;}\n"\
+       "      h1 {text-align: center; color: #ff0000;}\n"\
+       "      p {text-indent: 30px; margin-top: 30px; margin-bottom: 30px;}\n"\
+       "    </style>\n"\
+       "  <head>\n" \
+       "  <body>\n"\
+       "    <h1>403 - Pristup odepren</h1>\n"\
+       "    <p>Nemate prava k pristupu k <code>%s</code> na tomto serveru.</p>\n"\
+       "  </body>\n"\
+       "</html>" % req.uri
+       
+   req.content_type = "text/html"			# nastavi content type
+   req.status = HTTP_FORBIDDEN			# nastavi status kod
+   req.write(content)
+   return DONE
+\endcode
+
+\code
+    form = FieldStorage(req, keep_blank_values = True)
+    nick = form.getfirst(‚nick‘, ‚anonym‘, str)
+    message = form.getfirst(‚message‘, ‚‘, str)
+    age = form.getfirst(‚age‘, 0, int)
+\endcode
+
+**/

@@ -2,6 +2,8 @@ import http
 
 from mysession import doLogin, doLogout, checkLogin
 
+from urllib import quote
+
 def index(req):
     session = checkLogin(req, "/login")
     session.data['count'] = session.data.get('count', 0) + 1
@@ -54,3 +56,32 @@ def dologout(req):
     doLogout(req)
     http.redirect(req, "/login")
 #enddef
+
+def session(req):
+    form = http.FieldStorage(req)
+    raw = form.getfirst("SESSID", '', str)
+    raw = None if raw == '' else raw
+
+    session = http.PoorSession(req, get = raw)
+    session.data['count'] = session.data.get('count', 0) + 1
+
+    req.content_type = "text/html"
+
+    html = [
+        "<html>",
+        "  <head>",
+        "    <title>Poor Session Example</title>",
+        "    <style>pre{line-height: 20px;}</style>"
+        "  </head>",
+        "  <body>",
+        '     <h1 style="line-height: 45px;">Poor Session Example</h1>',
+        '     <a href="/session?SESSID=%s">Refresh</a>' % quote(session.write(req)),
+        "     <pre>%s</pre>" % str(session.data),
+        "   </body>",
+        "</html>",
+    ]
+    for line in html:
+        req.write(line + '\n')
+    return http.DONE
+#enddef
+

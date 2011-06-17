@@ -114,7 +114,7 @@ class PoorSession:
         self.cookie[self.SID] = raw
         self.cookie[self.SID]['path'] = self.path
             
-        return True
+        return raw
     #enddef
 
     def destroy(self):

@@ -5,7 +5,7 @@
 import http
 import re
 
-from main import index, login, dologin, dologout
+from main import index, login, dologin, dologout, session
 
 init = False
 re_mail = None
@@ -29,4 +29,5 @@ handlers = {
     '/login'        : (http.METHOD_GET, login),
     '/dologin'      : (http.METHOD_GET, dologin),
     '/dologout'     : (http.METHOD_GET, dologout),
+    '/session'      : (http.METHOD_GET, session),
 }

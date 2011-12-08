@@ -1,3 +1,11 @@
+20111208:
+    * convertor in FieldStorage
+    * html error update
+    * Doxygen support
+    * example code
+    * comments and documentation
+    * bug fixes
+
 20100729:
     * apache compatibility
     * single / forking / thrading mode

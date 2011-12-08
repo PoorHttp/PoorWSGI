@@ -17,14 +17,13 @@ import bz2
 ## \defgroup api Poor Application Interface
 # @{
 
-#  @return string
 def hidden(text, passwd):
     """(en|de)crypt text with sha hash of passwd via xor.
-
     @param  text    raw data to (en|de)crypt
     @param  passwd  password
     @returns string
     """
+    
     passwd = sha1(passwd).digest()
     passlen = len(passwd)
     retval = ''
@@ -36,13 +35,12 @@ def hidden(text, passwd):
 class PoorSession:
     """Self-contained cookie with session data"""
 
-    def __init__(self, req, expires = 0, path = '/', SID = 'SESSID', get = None):
+    def __init__(self, req, expires = 0, path = '/', SID = 'SESSID'):
         """Constructor.
         @param  req     mod_python.apache.request
         @param  expires cookie expire time in seconds, if it 0, no expire is set
         @param  path    cookie path
         @param  SID     cookie key name
-        @param  get     raw data session's cookie if \b HTTP_COOKIE is not present
         """
 
         # @cond PRIVATE
@@ -58,13 +56,11 @@ class PoorSession:
 
         raw = None
 
-        # get SID from cookie or url
+        # get SID from cookie
         if req.subprocess_env.has_key("HTTP_COOKIE"):
             self.cookie.load(req.subprocess_env["HTTP_COOKIE"])
             if self.cookie.has_key(SID):
                 raw = self.cookie[SID].value
-        elif get:
-            raw = get
         #endif
 
         if raw:

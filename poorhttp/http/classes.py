@@ -279,7 +279,8 @@ class Log:
 
     def __init__(self, cfg):
         # when destructor is call, os module is not present, but we need
-        # close fce
+        # close fce.
+        # @TODO pokud znak zacina pipou (|), tak otevrit rouru pres popen
         self.close = os.close
         self.errorlog = None
         self.accesslog = None

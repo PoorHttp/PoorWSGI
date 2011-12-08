@@ -26,7 +26,7 @@ server_port = None
 server_host = None
 
 # poor http secretkey to crypting data (cookie)
-secretkey = "%s" % time()
+secretkey = "$Id$"
 
 # global configuration
 cfg = ConfigParser()

@@ -11,6 +11,7 @@ from classes import Log, ForkingServer, ThreadingServer, Request
 import env
 
 def usage(err = None):
+    """ """
     o = sys.stderr if err else sys.stdout
 
     o.write("Poor http - python web server\n")
@@ -26,6 +27,9 @@ def usage(err = None):
         "Usage: \n"
         "     poorhttp [options]\n\n"
         "Options:\n"
+        "     -h, --help                        only print this help text\n"
+        "     -v, --version                     only print server version\n"
+        "\n"
         "     --config=/etc/poorhttp.ini        config file, default ./poorhttp.ini\n"
         "     --pidfile=/var/run/poorhttp.pid   pid file, by default gets from config\n"
         "     --address=127.0.0.1               listening address, by default gets from\n"
@@ -41,12 +45,21 @@ def usage(err = None):
 def configure():
     (pairs, endval) = getopt(
                 sys.argv[1:],
-                '',
-                ['config=', 'pidfile=', 'address=', 'port=']
+                'hv',
+                ['config=', 'pidfile=', 'address=', 'port=', 'help', 'version']
             )
+
     opts = {'config': './poorhttp.ini'}
     for var, val in pairs:
         opts[var[2:]] = val
+        if var in ('--help', '-h'):
+            usage()
+            sys.exit(0)
+
+        if var in ('--version', '-v'):
+            sys.stdout.write("Poor Http Server version %s.\n" \
+                    % env.server_version);
+            sys.exit(0)
     #endfor
 
     if not os.access(opts['config'], os.F_OK):

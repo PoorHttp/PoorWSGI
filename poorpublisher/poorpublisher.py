@@ -27,8 +27,9 @@ def error_from_dispatch(req, code):
             handler = dispatch_table.errors[code]
             return handler(req)
         except:
-            return HTTP_INTERNAL_SERVER_ERRORPoorSessionPoorSession
-
+            #return HTTP_INTERNAL_SERVER_ERROR
+            return internal_server_error(req)
+    
     elif code == HTTP_INTERNAL_SERVER_ERROR:
         return internal_server_error(req)
     return code
@@ -41,6 +42,7 @@ def handler(req):
     @throw <mod_python.apache.SERVER_RETURN> http error code exception
     \sa http://modpython.org/live/current/doc-html/pyapi-handler.html
     """
+    #@TODO server_key by mel byt nastavitelny pres option v .htaccess !!
     req.secret_key = "$Id$"
     chdir(path[1])  # change directory to app
 

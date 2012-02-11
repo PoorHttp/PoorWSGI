@@ -51,3 +51,6 @@ application = './'
 
 # document path (file documents)
 document_root = None
+
+# Directory index in document root (file listing)
+document_index = False

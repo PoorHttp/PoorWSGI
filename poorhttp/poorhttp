@@ -50,12 +50,20 @@ def handler_from_dispatch(req):
         #endif
     #endif
 
-    # try file
+    # try file or index
     if env.document_root:
-        rfile = "%s%s" % (env.document_root,
-                os.path.normpath("/%s" % req.uri))
-        if os.access(rfile, os.R_OK):
+        rfile = "%s%s" % (env.document_root, os.path.normpath("%s" % req.uri))
+        
+        if not os.access(rfile, os.R_OK):
+            req.log_error("404 Not Found: %s" % req.uri, LOG_ERR);
+            raise handlers.SERVER_RETURN, HTTP_NOT_FOUND
+
+        if os.path.isfile(rfile):
             raise handlers.SERVER_RETURN, handlers.sendfile(req, rfile)
+        
+        # try directory index
+        if env.document_index and os.path.isdir(rfile):
+            raise handlers.SERVER_RETURN, handlers.directory_index(req, rfile)
     #endif
    
     req.log_error("404 Not Found: %s" % req.uri, LOG_ERR);

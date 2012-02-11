@@ -1,6 +1,6 @@
 
 from random import random
-from time import localtime
+from time import localtime, strftime, gmtime
 from traceback import format_exception
 from os import name as osname
 #
@@ -280,7 +280,10 @@ def sendfile(req, path):
     application/octet-stream.
     """
     if not os.path.isfile(path):
-        raise SERVER_RETURN, HTTP_FORBIDDEN
+        req.log_error (
+            "Only file can be send with sendfile handler. `%s' is not file",
+            path);
+        raise SERVER_RETURN, HTTP_INTERNAL_SERVER_ERROR
 
     bf = os.open(path, os.O_RDONLY)
     
@@ -302,6 +305,116 @@ def sendfile(req, path):
     #endwhile
     os.close(bf)
 
+    return DONE
+#enddef
+
+def directory_index(req, path):
+    """
+    Returns directory index as html page
+    """
+    if not os.path.isdir(path):
+        req.log_error (
+            "Only directory_index can be send with directory_index handler. "
+            "`%s' is not directory.",
+            path);
+        raise SERVER_RETURN, HTTP_INTERNAL_SERVER_ERROR
+    
+    index = os.listdir(path)
+    # parent directory
+    if cmp(path[:-1], env.document_root) > 0:
+        index.append("..")
+    index.sort()
+
+    def hbytes(val):
+        unit = ' '
+        if val > 100:
+            unit = 'k'
+            val = val / 1024.0
+        if val > 500:
+            unit = 'M'
+            val = val / 1024.0
+        if val > 500:
+            unit = 'G'
+            val = val / 1024.0
+        return (val, unit)
+#enddef
+
+    content = [
+        "<html>\n",
+        "  <head>\n",
+        "    <title>Index of %s</title>\n" % req.uri,
+        "    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"/>\n",
+        "    <style>\n",
+        "      body { width: 98%; margin: auto; }\n",
+        "      table { font: 90% monospace; text-align: left; }\n",
+        "      td, th { padding: 0 1em 0 1em; }\n",
+        "      .size { text-align:right; white-space:pre; }\n",
+        "    </style>\n",
+        "  <head>\n",
+        "  <body>\n",
+        "    <h1>Index of %s</h1>\n" % req.uri,
+        "    <hr>\n"
+        "    <table>\n",
+        "      <tr><th>Name</th><th>Last Modified</th>"
+                  "<th class=\"size\">Size</th><th>Type</th></tr>\n"
+    ]
+
+    for item in index:
+        # dot files
+        if item[0] == "." and item[1] != ".":
+            continue
+        # bakup files (~)
+        if item[-1] == "~":
+            continue
+
+        fpath = "%s/%s" % (path, item)
+        fname = item + ('/' if os.path.isdir(fpath) else '')
+        ftype = "";
+        if os.path.isdir(fpath):
+            ftype = "Directory"
+        else:
+            ext = os.path.splitext(item)
+            if env.cfg.has_option('mime-type', ext[1][1:]):
+                ftype = env.cfg.get('mime-type', ext[1][1:])
+            else:
+                ftype = 'application/octet-stream'
+        #endif
+
+        content.append("      "
+            "<tr><td><a href=\"%s\">%s</a></td><td>%s</td>"
+            "<td class=\"size\">%s</td><td>%s</td></tr>\n" %\
+            (fname,
+            "Parent Directory" if fname == "../" else fname,
+            strftime("%d-%b-%Y %H:%M", gmtime(os.path.getctime(fpath))),
+            "%.1f%s" % hbytes(os.path.getsize(fpath)) if os.path.isfile(fpath) else "- ",
+            ftype
+            ))
+
+    content += [
+        "    </table>\n",
+        "    <hr>\n"
+    ]
+
+    if env.debug:
+        content += [
+            "    <small><i>Poor Http / %s, Python / %s, webmaster: %s </i></small>\n" % \
+                    (env.server_version,
+                    sys.version.split(' ')[0],
+                    env.webmaster),
+        ]
+    else:
+        content += [
+            "    <small><i>webmaster: %s </i></small>\n" % env.webmaster
+        ]
+
+    content += [
+        "  </body>\n",
+        "</html>"
+    ]
+
+    req.content_type = "text/html"
+    #req.headers_out.add('Content-Length', str(len(content)))
+    for l in content: req.write(l)
     return DONE
 #enddef
 

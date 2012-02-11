@@ -105,9 +105,11 @@ def configure():
         env.webmaster = env.cfg.get('http', 'webmaster')
     if env.cfg.has_option('http', 'application'):
         env.application = env.cfg.get('http', 'application')
-    if env.cfg.has_option('http', 'document_root'):
-        document_root = env.cfg.get('http', 'document_root')
+    if env.cfg.has_option('http', 'document'):
+        document_root = env.cfg.get('http', 'document')
         env.document_root = os.path.abspath(document_root)
+    if env.cfg.has_option('http', 'index'):
+        env.document_index = env.cfg.getboolean('http', 'index')
     if env.cfg.has_option('http', 'debug'):
         env.debug = env.cfg.getboolean('http', 'debug')
     if env.cfg.has_option('http', 'autoreload'):

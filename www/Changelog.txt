@@ -1,3 +1,8 @@
+20120211
+    * File listing support as default handler for directory if new config
+      option index is enabled.
+    * Little bugfix with document config option.
+
 20111208:
     * convertor in FieldStorage
     * html error update

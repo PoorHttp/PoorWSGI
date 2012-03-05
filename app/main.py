@@ -1,8 +1,14 @@
 import http
 
-from mysession import doLogin, doLogout, checkLogin
+from mysession import doLogin, doLogout, checkLogin, redirect
 
 from urllib import quote
+
+def itworks(req):
+    req.content_type = "text/html; charset=UTF-8"
+    req.sendfile("%s/index.html" % req.document_root())
+    return http.DONE
+#endif
 
 def index(req):
     session = checkLogin(req, "/login")
@@ -49,12 +55,12 @@ def login(req):
 
 def dologin(req):
     doLogin(req, 'x', True)
-    http.redirect(req, "/")
+    redirect(req, "/")
 #enddef
 
 def dologout(req):
     doLogout(req)
-    http.redirect(req, "/login")
+    redirect(req, "/login")
 #enddef
 
 def session(req):
@@ -84,4 +90,3 @@ def session(req):
         req.write(line + '\n')
     return http.DONE
 #enddef
-

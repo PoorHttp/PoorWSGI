@@ -59,7 +59,7 @@ def handler_from_dispatch(req):
             raise handlers.SERVER_RETURN, HTTP_NOT_FOUND
 
         if os.path.isfile(rfile):
-            raise handlers.SERVER_RETURN, handlers.sendfile(req, rfile)
+            raise handlers.SERVER_RETURN, handlers.send_file(req, rfile)
         
         # try directory index
         if env.document_index and os.path.isdir(rfile):

@@ -1,5 +1,16 @@
-from http import PoorSession, redirect, LOG_INFO
+from http import PoorSession, LOG_INFO, HTTP_MOVED_TEMPORARILY, SERVER_RETURN, \
+                DONE
 from time import time
+
+def redirect (req, uri):
+    url = req.construct_url(uri)
+
+    req.status = HTTP_MOVED_TEMPORARILY
+    req.headers_out.add('Location', url)
+
+    req.write('Redirect to : %s' % url)
+    raise SERVER_RETURN, DONE
+#enddef
 
 def doLogin(req, id, ip = None):
     cookie = PoorSession(req)

@@ -274,18 +274,11 @@ def not_implemented(req, code = None):
     return DONE
 #enddef
 
-def sendfile(req, path):
+def send_file(req, path):
     """
     Returns file with content_type detect from server configuration or
     application/octet-stream.
     """
-    if not os.path.isfile(path):
-        req.log_error (
-            "Only file can be send with sendfile handler. `%s' is not file",
-            path);
-        raise SERVER_RETURN, HTTP_INTERNAL_SERVER_ERROR
-
-    bf = os.open(path, os.O_RDONLY)
     
     ext = os.path.splitext(path)
     if env.cfg.has_option('mime-type', ext[1][1:]):
@@ -294,16 +287,12 @@ def sendfile(req, path):
         req.content_type = 'application/octet-stream'
     #endif
 
-    req.headers_out.add('Content-Disposition',
-            'attachment; filename="%s"' % os.path.basename(path))
-    req.headers_out.add('Content-Length', str(os.fstat(bf).st_size))
-
-    data = os.read(bf, 4096)
-    while data != '':
-        req.write(data)
-        data = os.read(bf, 4096)
-    #endwhile
-    os.close(bf)
+    #bf = os.open(path, os.O_RDONLY)
+    #req.headers_out.add('Content-Disposition',
+    #        'attachment; filename="%s"' % os.path.basename(path))
+    #req.headers_out.add('Content-Length', str(os.fstat(bf).st_size))
+    
+    req.sendfile(path)
 
     return DONE
 #enddef

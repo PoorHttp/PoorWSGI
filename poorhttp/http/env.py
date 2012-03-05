@@ -11,7 +11,7 @@ from classes import PoorServer
 server_class = PoorServer
 
 # poor http version
-server_version = 20100720
+server_version = 20120305
 
 # poor http servr root
 server_root = './'

@@ -266,8 +266,28 @@ class Request:
         return ()
     #enddef
 
-    def sendfile(self, path):
-        handlers.sendfile(self, path)
+    def sendfile(self, path, offset = 0, limit = -1 ):
+        """
+        Send file defined by path to client. offset and len is not supported yet
+        """
+        if not os.access(path, os.R_OK):
+            raise IOError("Could not stat file for reading")
+        
+        length = 0
+
+        bf = os.open(path, os.O_RDONLY)
+
+        data = os.read(bf, 4096)
+        while data != '':
+            length = len(data)
+            self.write(data)
+            data = os.read(bf, 4096)
+        #endwhile
+        os.close(bf)
+
+        return length
+    #enddef
+
 #endclass
 
 ## @}

@@ -5,7 +5,7 @@
 import http
 import re
 
-from main import index, login, dologin, dologout, session
+from main import itworks
 
 init = False
 re_mail = None
@@ -25,9 +25,9 @@ def setreq(req):
 #enddef
 
 handlers = {
-    '/'             : (http.METHOD_GET, index),
-    '/login'        : (http.METHOD_GET, login),
-    '/dologin'      : (http.METHOD_GET, dologin),
-    '/dologout'     : (http.METHOD_GET, dologout),
-    '/session'      : (http.METHOD_GET, session),
+    '/'             : (http.METHOD_GET, itworks),
+#    '/login'        : (http.METHOD_GET, main.login),
+#    '/dologin'      : (http.METHOD_GET, main.dologin),
+#    '/dologout'     : (http.METHOD_GET, main.dologout),
+#    '/session'      : (http.METHOD_GET, main.session),
 }

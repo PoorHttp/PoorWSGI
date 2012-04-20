@@ -46,6 +46,16 @@ class FieldStorage(APFieldStorage):
             return fce(APFieldStorage.getfirst(self, name, default))
         return APFieldStorage.getfirst(self, name, default)
     #enddef
+
+    def getlist(self, name, fce = None):
+        """Returns list of values of key from \b GET or \b POST form.
+        @param name key
+        @param fce function which processed value. For example str or int
+        """
+        if fce:
+            return map(fce, APFieldStorage.getlist(self, name))
+        return APFieldStorage.getlist(self, name)
+    #enddef
 #endclass
 
 ## @}

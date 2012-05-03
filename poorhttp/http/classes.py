@@ -119,12 +119,11 @@ class Headers(WHeaders):
         ]
         WHeaders.__init__(self, headers)
     
-    ## TODO: mod_python.apache.Table object allows duplicite keys for cookies.
     def add(self, key, value):
         """Set header key to value. Duplicate keys are not allowed."""
-        if self.has_key(key):
+        if key != "Set-Cookie" and self.has_key(key):
             raise KeyError("Key %s exist." % key)
-        self.__setitem__(key, value)
+        self.add_header(key, value)
 #endclass
 
 class Request:
@@ -175,6 +174,7 @@ class Request:
         self.start_response = server_handler.start_response
         self._start_response = False
         
+        self._file = self.environ.get("wsgi.input")
 
         self.remote_host = self.environ.get('REMOTE_HOST')
         self.remote_addr = self.environ.get('REMOTE_ADDR')
@@ -182,7 +182,25 @@ class Request:
         self.scheme = self.environ.get('wsgi.url_scheme')
         # @endcond
     #enddef
-    
+
+    def _read(self, length = -1):
+        return self._file.read(length)
+   
+    def read(self, length = -1):
+        """
+        Read data from client (typical for XHR2 data POST). If length is not
+        set, or if is lower then zero, Content-Length was be use.
+        """
+        content_length = int(self.headers_in.get("Content-Length", 0))
+        if content_length == 0:
+            self.log_error("No Content-Length found, read was failed!", LOG_ERR)
+            return '';
+        if length > -1 and length < content_length:
+            self.read = self._read
+            return self.read(length)
+        return self._file.read(content_length)
+    #enddef
+
     def _write(self, data):
         data = str(data)
         #self.buffer.append(data)

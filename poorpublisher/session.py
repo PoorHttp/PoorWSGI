@@ -105,14 +105,14 @@ class PoorSession:
         header method.
         @param req mod_python.apache.request
         """
-        if self.expires:
-            self.data['expires'] = int(time()) + self.expires
-            self.cookie[self.SID]['expires'] = int(time()) + self.expires
-
         raw = b64encode(bz2.compress(hidden(dumps(self.data),
                                      req.secret_key), 9))
         self.cookie[self.SID] = raw
         self.cookie[self.SID]['path'] = self.path
+
+        if self.expires:
+            self.data['expires'] = int(time()) + self.expires
+            self.cookie[self.SID]['expires'] = self.expires
             
         return raw
     #enddef

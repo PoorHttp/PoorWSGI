@@ -517,9 +517,9 @@ PythonOption secretkey = a79470ca0d18db24fe86aabd78c2bd409d7e36d9
       </section>
 
       <section>
-        <title>funkce setreq</title>
+        <title>funkce pre_process</title>
 
-        <para>Funkce setreq pokud je v souboru dispatch_table.py definována,
+        <para>Funkce pre_process pokud je v souboru dispatch_table.py definována,
         je volána před každou obsluhou http požadavku, tedy ještě dříve než je
         známa informace, zda tento požadavek může být vůbec obsloužen. Tato
         funkce se hodí například na zpracování konfigurace, případě
@@ -530,7 +530,7 @@ PythonOption secretkey = a79470ca0d18db24fe86aabd78c2bd409d7e36d9
         <programlisting language="python">init = False
 re_mail = None
 
-def setreq(req):
+def pre_process(req):
    global re_mail
    global init
 

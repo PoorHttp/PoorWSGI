@@ -16,6 +16,11 @@ from http.classes import WebRequestHandler, Request, PoorServerHandler
 from http.importing import *
 
 def error_from_dispatch(req, code):
+    # set post_process handler if is possible
+    if 'dispatch_table' in sys.modules and 'post_process' in dir(dispatch_table):
+        dispatch_table.post_process(req)
+    #endif
+
     if 'dispatch_table' in sys.modules \
     and 'errors' in dispatch_table.__dict__ \
     and code in dispatch_table.errors:
@@ -34,9 +39,9 @@ def handler_from_dispatch(req):
         exec ("import dispatch_table") in globals()
     reload_modules()
 
-    # call setreq if is present
-    if 'setreq' in dir(dispatch_table):
-        dispatch_table.setreq(req)
+    # call pre_process if is present
+    if 'pre_process' in dir(dispatch_table):
+        dispatch_table.pre_process(req)
     #endif
 
     if req.uri in dispatch_table.handlers:
@@ -49,6 +54,10 @@ def handler_from_dispatch(req):
             raise handlers.SERVER_RETURN, HTTP_METHOD_NOT_ALLOWED
         #endif
     #endif
+
+    if 'default_handler' in dir(dispatch_table):
+        retval = dispatch_table.default_handler(req)
+        raise handlers.SERVER_RETURN, retval
 
     # try file or index
     if env.document_root:
@@ -91,6 +100,10 @@ def web_app(server_handler, request_object):
         error_from_dispatch(req, 500)
     #endtry
 
+    # set post_process handler if is possible
+    if 'dispatch_table' in sys.modules and 'post_process' in dir(dispatch_table):
+        dispatch_table.post_process(req)
+    #endif
     return req.flush()
 #enddef
 

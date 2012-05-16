@@ -10,7 +10,7 @@ from main import itworks
 init = False
 re_mail = None
 
-def setreq(req):
+def pre_process(req):
     global re_mail
     global init
 

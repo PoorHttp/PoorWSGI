@@ -65,8 +65,8 @@ class FieldStorage(APFieldStorage):
 
 def internal_server_error(req):
     """More debug internal server error handler. It was be called automaticly
-    when no handlers are not defined in dispatch_table.errors. If __debug__ is
-    true, Tracaback will be genarated.
+    when no handlers are not defined in dispatch_table.errors. If PythonDebug is
+    1, Tracaback will be genarated.
     @param req mod_python.apache.request
     @returns http.DONE
     """
@@ -96,7 +96,7 @@ def internal_server_error(req):
     
     for l in content: req.write(l)
 
-    if __debug__:
+    if bool(int(req.get_config().get('PythonDebug', '0'))):
         content = [
             "    <h2>Exception Traceback</h2>\n",
             "    <pre>",

@@ -84,9 +84,9 @@ class Request:
 
         ## String, which is used to encrypt http.session.PoorSession and
         #  http.session.Session
-        self.secretkey = self.environ.get('poor_SecretKey', '$Id: env.py 30 2012-03-05 13:03:43Z ondratu $')
+        self.secretkey = os.environ.get('poor_SecretKey', '$Id: env.py 30 2012-03-05 13:03:43Z ondratu $')
 
-        self.debug = self.environ.get('poor_Debug', 'Off').lower() == 'on'
+        self.debug = os.environ.get('poor_Debug', 'Off').lower() == 'on'
 
         # @cond PRIVATE
         self.start_response = start_response
@@ -117,14 +117,14 @@ class Request:
         self.protocol = self.environ.get('SERVER_PROTOCOL')
 
         try:
-            self._log_level = levels[self.environ.get('poor_LogLevel', 'warn').lower()]
+            self._log_level = levels[os.environ.get('poor_LogLevel', 'warn').lower()]
         except:
             self._log_level = LOG_WARNING
             self.log_error('Bad poor_LogLevel, default is warn.', LOG_WARNING)
         #endtry
 
         try:
-            self._buffer_size = int(self.environ.get('poor_BufferSize', '4096'))
+            self._buffer_size = int(os.environ.get('poor_BufferSize', '4096'))
         except:
             self._buffer_size = 4096
             self.log_error('Bad poor_BufferSize, default is 4096.', LOG_WARNING)
@@ -193,7 +193,8 @@ class Request:
         """Returns a reference to the ConfigParser object containing the
         server options."""
         options = {}
-        for key,val in self.environ.items():
+        # uWsgi does not propagate os environ to process
+        for key,val in os.environ.items():
             if key[:4].lower() == 'app_':
                 options[key[4:].lower()] = val
         return options
@@ -385,8 +386,7 @@ def redirect(req, uri, permanent = 0, text = None):
     @param text plain text string
     @throw IOError
     """
-    if len(req.headers_out) > 2 or \
-        'Server' not in req.headers_out or 'X-Powered-By' not in req.headers_out:
+    if len(req.headers_out) > 1 or 'X-Powered-By' not in req.headers_out:
         raise IOError('Headers are set before redirect')
     
     url = req.construct_url(uri)

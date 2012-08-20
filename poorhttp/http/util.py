@@ -1,12 +1,12 @@
+# $Id$
+#
 
 from getopt import getopt
 from exceptions import OSError
-from re import compile
-from cgi import FieldStorage as CgiFieldStorage, parse_header 
 
 import sys, os
 
-from classes import Log, ForkingServer, ThreadingServer, Request
+from classes import Log, ForkingServer, ThreadingServer
 
 import env
 
@@ -43,6 +43,31 @@ def usage(err = None):
 #enddef
     
 def configure():
+    # set default values
+    env.cfg.add_section('http')                 # http section
+    env.cfg.set('http', 'webmaster', 'root@localhost')
+    env.cfg.set('http', 'errorlog', '/var/log/poorhttp-error.log')
+    env.cfg.set('http', 'accesslog', '/var/log/poorhttp-access.log')
+    env.cfg.set('http', 'document', '/srv/www')
+    env.cfg.set('http', 'index', 'False')
+    env.cfg.set('http', 'type', 'single')
+    env.cfg.set('http', 'application', '')
+    env.cfg.set('http', 'path', './')
+    env.cfg.set('http', 'autoreload', 'False')
+    env.cfg.set('http', 'optimize', '1')
+
+    env.cfg.add_section('poor')                 # poor section
+    env.cfg.set('poor', 'debug', 'False')
+    env.cfg.set('poor', 'loglevel', 'warn')
+    env.cfg.set('poor', 'buffersize', '4096')
+    env.cfg.set('poor', 'secretkey', '$Id$')
+
+    env.cfg.add_section('mime-type')            # mime-type section
+    # no default mime-types defined
+
+    env.cfg.add_section('environ')              # environ section
+    # no default application environment defined
+
     (pairs, endval) = getopt(
                 sys.argv[1:],
                 'hv',
@@ -65,13 +90,13 @@ def configure():
     if not os.access(opts['config'], os.F_OK):
         if not 'pidfile' in opts or not 'address' in opts or not 'port' in opts:
             usage('config file not readable!')
+            # couse default values for these variables is not good idea
         #endif
-
-        env.cfg.add_section('http')
     else:
         env.cfg.read(opts['config'])
     #endif
 
+    # some http variable could be set from command line
     for key, val in opts.items():
         env.cfg.set('http', key, val)
     #endfor
@@ -91,36 +116,55 @@ def configure():
         sys.exit(1)
     #endtry
 
-    # cofigure additionals
+    # set environment from cfg
+    if env.cfg.has_option('http', 'webmaster'):
+        os.environ['SERVER_ADMIN'] = env.cfg.get('http', 'webmaster')
+    if env.cfg.has_option('http', 'document'):
+        document_root = env.cfg.get('http', 'document')
+        os.environ['DOCUMENT_ROOT'] = os.path.abspath(document_root)
+    if env.cfg.has_option('http', 'index'):
+        os.environ['poor.DocumentIndex'] = env.cfg.get('http', 'index')
+
     if env.cfg.has_option('http', 'type'):
         server_type = env.cfg.get('http', 'type')
         if server_type == "forking":
             env.server_class = ForkingServer
         elif server_type == "threading":
             env.server_class = ThreadingServer
-    
-    if env.cfg.has_option('http', 'secretkey'):
-        env.secretkey = env.cfg.get('http', 'secretkey')
-    if env.cfg.has_option('http', 'webmaster'):
-        env.webmaster = env.cfg.get('http', 'webmaster')
+        os.environ['poor.ServerType'] = server_type
+    if env.cfg.has_option('http', 'path'):
+        python_paths = env.cfg.get('http', 'path', './').split(':')
+        python_paths.reverse()
+        for path in python_paths:
+            sys.path.insert(0, os.path.abspath(path))
+        #endfor
     if env.cfg.has_option('http', 'application'):
-        env.application = env.cfg.get('http', 'application')
-    if env.cfg.has_option('http', 'document'):
-        document_root = env.cfg.get('http', 'document')
-        env.document_root = os.path.abspath(document_root)
-    if env.cfg.has_option('http', 'index'):
-        env.document_index = env.cfg.getboolean('http', 'index')
-    if env.cfg.has_option('http', 'debug'):
-        env.debug = env.cfg.getboolean('http', 'debug')
+        appfile = env.cfg.get('http', 'application')
+        if not os.access(appfile, os.R_OK) or not os.path.isfile(appfile):
+            usage('Access denied to %s' % appfile)
+        os.environ['poor.Application'] = os.path.splitext(os.path.basename(appfile))[0]
+        sys.path.insert(0, os.path.abspath(os.path.dirname(appfile)))
     if env.cfg.has_option('http', 'autoreload'):
-        env.autoreload = env.cfg.getboolean('http', 'autoreload')
+        os.environ['poor.AutoReload'] = env.cfg.get('http', 'autoreload')
+    if env.cfg.has_option('http', 'optimze'):
+        os.environ['poor.Optimze'] = env.cfg.get('http', 'index')
     #endif
 
-    # swhitch curent dir to server path (./ default)
-    env.server_path = os.getcwd()
-    sys.path.insert(0, os.path.abspath(env.application))
-    #sys.path.insert(0, env.server_path)
-    os.chdir(env.application)
+    # poor section
+    if env.cfg.has_option('poor', 'debug'):
+        os.environ['poor_Debug'] = env.cfg.get('poor', 'debug')
+    if env.cfg.has_option('poor', 'loglevel'):
+        os.environ['poor_LogLevel'] = env.cfg.get('poor', 'loglevel')
+    if env.cfg.has_option('poor', 'buffersize'):
+        os.environ['poor_BufferSize'] = env.cfg.get('poor', 'buffersize')
+    if env.cfg.has_option('poor', 'secretkey'):
+        os.environ['poor_SecretKey'] = env.cfg.get('poor', 'secretkey')
+    
+    # application environment
+    for option in env.cfg.options('environ'):
+        os.environ[option] = env.cfg.get('environ', option)
+        env.log.error('set %s to %s' % (option, os.environ[option]))
+    #endfor
 
     return env.cfg
 #enddef
@@ -139,68 +183,3 @@ def save_pid():
     #endif
     return pidfile
 #enddef
-
-class FieldStorage(CgiFieldStorage):
-    def __init__(self, fp_or_req = None,
-                        headers = None,
-                        outerboundary = '',
-                        environ = os.environ,
-                        keep_blank_values = 0, 
-                        strict_parsing = 0,
-                        file_callback = None,
-                        field_callback = None):
-        
-        self.environ = environ
-        req = None
-        if fp_or_req and isinstance(fp_or_req, Request):
-            req = fp_or_req
-            fp_or_req = None
-            environ = req.environ
-
-        if file_callback:
-            environ['wsgi.file_callback'] = file_callback
-
-        if req and req.method == 'POST':
-            fp_or_req = environ.get('wsgi.input')
-            
-        CgiFieldStorage.__init__(
-                    self,
-                    fp = fp_or_req,
-                    headers = headers,
-                    outerboundary = outerboundary,
-                    environ = environ,
-                    keep_blank_values = keep_blank_values,
-                    strict_parsing = strict_parsing)
-    #enddef
-
-    def make_file(self, binary = None):
-        if 'wsgi.file_callback' in self.environ:
-            return self.environ['wsgi.file_callback'](self.filename)
-        else:
-            return CgiFieldStorage.make_file(self, binary)
-    #enddef
-
-    def getfirst(self, name, default = None, fce = None):
-        """Returns value of key from \b GET or \b POST form.
-        @param name key
-        @param default default value if is not set
-        @param fce function which processed value. For example str or int
-        """
-        if fce:
-            return fce(CgiFieldStorage.getfirst(self, name, default))
-        return CgiFieldStorage.getfirst(self, name, default)
-    #enddef
-
-    def getlist(self, name, fce = None):
-        """Returns list of values of key from \b GET or \b POST form.
-        @param name key
-        @param fce function which processed value. For example str or int
-        """
-        if fce:
-            return map(fce, CgiFieldStorage.getlist(self, name))
-        return CgiFieldStorage.getlist(self, name)
-    #enddef
-    
-
-    
-#endclass

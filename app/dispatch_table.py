@@ -5,7 +5,7 @@
 import http
 import re
 
-from main import itworks
+from main import itworks, login, dologin, dologout, session
 
 init = False
 re_mail = None
@@ -26,8 +26,8 @@ def pre_process(req):
 
 handlers = {
     '/'             : (http.METHOD_GET, itworks),
-#    '/login'        : (http.METHOD_GET, main.login),
-#    '/dologin'      : (http.METHOD_GET, main.dologin),
-#    '/dologout'     : (http.METHOD_GET, main.dologout),
-#    '/session'      : (http.METHOD_GET, main.session),
+    '/login'        : (http.METHOD_GET, login),
+    '/dologin'      : (http.METHOD_GET, dologin),
+    '/dologout'     : (http.METHOD_GET, dologout),
+    '/session'      : (http.METHOD_GET, session),
 }

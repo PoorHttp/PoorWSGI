@@ -6,14 +6,11 @@ from py_compile import compile
 from signal import signal, SIGTERM
 from socket import error as SocketError, getfqdn
 from ConfigParser import ParsingError
+from traceback import format_exception
 
 import sys, os
 
-from http import env, handlers
-from http.enums import *
 from http.util import usage, configure, save_pid
-from http.classes import WebRequestHandler, Request, PoorServerHandler
-from http.importing import *
 
 def error_from_dispatch(req, code):
     # set post_process handler if is possible
@@ -79,6 +76,7 @@ def handler_from_dispatch(req):
     raise handlers.SERVER_RETURN, HTTP_NOT_FOUND
 #enddef
 
+"""
 def web_app(server_handler, request_object):
     req = Request(server_handler, request_object)
     try:
@@ -106,6 +104,7 @@ def web_app(server_handler, request_object):
     #endif
     return req.flush()
 #enddef
+"""
 
 def sigterm(sig, stack = None):
     env.log.error('[S] Shotdown server signal(%s)' % sig)
@@ -119,15 +118,24 @@ try:
 
     signal(SIGTERM, sigterm)
     
+    print ".. a taky tu.."
+
+    from http import env, handlers
+    from http.enums import *
+    from http.classes import WebRequestHandler, PoorServerHandler
+    from http.importing import *
+    
     env.server_address = cfg.get('http', 'address')
     env.server_port = cfg.getint('http', 'port')
     env.server_host = getfqdn(env.server_address)
     
     env.log.error('[S] Starting server type %s at %s:%s' \
             % (env.server_class.type, env.server_address, env.server_port))
+
+    exec ("from %s import application" % os.environ['poor.Application']) in globals()
     httpd = make_server(env.server_address,
                         env.server_port,
-                        web_app,
+                        application,
                         server_class = env.server_class,
                         handler_class = WebRequestHandler
                         )
@@ -157,7 +165,11 @@ except os.error, e:
     del(env.log)
     sys.exit(1)
 except Exception, e:
-    usage("Exception: %s" % e)
+    traceback = format_exception(sys.exc_type,
+                                 sys.exc_value,
+                                 sys.exc_traceback)
+    traceback = ''.join(traceback)
+    usage("Exception: %s" % traceback)
     del(env.log)
     os.unlink(pidfile)
     sys.exit(1)

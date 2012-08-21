@@ -156,6 +156,7 @@ class Request:
         data was be sent to client via old write method (directly). Otherwhise,
         data was be sent at the end of request as iterable object.
         """
+        # FIXME: self._buffer is not FIFO
         self._buffer_len += len(data)
         self._buffer.write(data)
         if self._buffer_len - self._buffer_offset > self._buffer_size:
@@ -249,7 +250,7 @@ class Request:
             return self._buffer     # return buffer (StringIO)
         else:
             self._buffer.seek(self._buffer_offset)
-            self.__write(self._buffer.read(self._buffer_size*2))
+            self.__write(self._buffer.read()    # flush all from buffer
             self._buffer_offset = self._buffer_len
             return ()               # data was be sent via write method
         #enddef
@@ -261,7 +262,7 @@ class Request:
             self._call_start_response() 
         
         self._buffer.seek(self._buffer_offset)
-        self.__write(self._buffer.read(self._buffer_size))
+        self.__write(self._buffer.read())       # flush all from buffer
         self._buffer_offset = self._buffer_len
     #enddef
 

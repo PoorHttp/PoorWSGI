@@ -82,11 +82,21 @@ class Request:
         ## These headers get send with the error response, instead of headers_out.
         self.err_headers_out = Headers()
 
+        ## uwsgi do not sent environ variables to apps environ
+        if 'uwsgi.version' in self.environ:
+            self.poor_environ = os.environ
+        else:
+            self.poor_environ = self.environ
+        #endif
+
         ## String, which is used to encrypt http.session.PoorSession and
         #  http.session.Session
-        self.secretkey = os.environ.get('poor_SecretKey', '$Id: env.py 30 2012-03-05 13:03:43Z ondratu $')
 
-        self.debug = os.environ.get('poor_Debug', 'Off').lower() == 'on'
+        self.secretkey = self.poor_environ.get(
+                                'poor_SecretKey',
+                                '$Id: env.py 30 2012-03-05 13:03:43Z ondratu $')
+
+        self.debug = self.poor_environ.get('poor_Debug', 'Off').lower() == 'on'
 
         # @cond PRIVATE
         self.start_response = start_response
@@ -117,17 +127,17 @@ class Request:
         self.protocol = self.environ.get('SERVER_PROTOCOL')
 
         try:
-            self._log_level = levels[os.environ.get('poor_LogLevel', 'warn').lower()]
+            self._log_level = levels[self.poor_environ.get('poor_LogLevel', 'warn').lower()]
         except:
             self._log_level = LOG_WARNING
             self.log_error('Bad poor_LogLevel, default is warn.', LOG_WARNING)
         #endtry
 
         try:
-            self._buffer_size = int(os.environ.get('poor_BufferSize', '4096'))
+            self._buffer_size = int(self.poor_environ.get('poor_BufferSize', '8192'))
         except:
             self._buffer_size = 4096
-            self.log_error('Bad poor_BufferSize, default is 4096.', LOG_WARNING)
+            self.log_error('Bad poor_BufferSize, default is 8192.', LOG_WARNING)
         #endtry
         # @endcond
     #enddef
@@ -194,8 +204,7 @@ class Request:
         """Returns a reference to the ConfigParser object containing the
         server options."""
         options = {}
-        # uWsgi does not propagate os environ to process
-        for key,val in os.environ.items():
+        for key,val in self.poor_environ.items():
             if key[:4].lower() == 'app_':
                 options[key[4:].lower()] = val
         return options
@@ -250,7 +259,7 @@ class Request:
             return self._buffer     # return buffer (StringIO)
         else:
             self._buffer.seek(self._buffer_offset)
-            self.__write(self._buffer.read()    # flush all from buffer
+            self.__write(self._buffer.read())   # flush all from buffer
             self._buffer_offset = self._buffer_len
             return ()               # data was be sent via write method
         #enddef

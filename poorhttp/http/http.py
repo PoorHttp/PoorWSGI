@@ -6,6 +6,7 @@ from wsgiref.headers import Headers as WHeaders
 from cgi import FieldStorage as CgiFieldStorage
 from httplib import responses
 from cStringIO import StringIO
+from traceback import format_exception
 
 import os, re
 

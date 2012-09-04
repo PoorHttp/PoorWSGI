@@ -66,6 +66,7 @@ def application(environ, start_response):
         # XXX: elif code in (HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY):
         else:
             req.status = code
+            error_from_dispatch(req, code)
     except SocketError, e:
         return ()
     except Exception, e:

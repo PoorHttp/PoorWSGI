@@ -7,8 +7,9 @@ from cgi import FieldStorage as CgiFieldStorage
 from httplib import responses
 from cStringIO import StringIO
 from traceback import format_exception
+from time import strftime, gmtime
 
-import os, re, sys
+import os, re, sys, mimetypes
 
 from enums import *
 from session import *
@@ -139,6 +140,8 @@ class Request:
             self._buffer_size = 4096
             self.log_error('Bad poor_BufferSize, default is 8192.', LOG_WARNING)
         #endtry
+
+        self.document_index = self.poor_environ.get('poor_DocumentIndex', 'Off').lower() == 'on'
         # @endcond
     #enddef
 
@@ -215,7 +218,7 @@ class Request:
 
     def document_root(self):
         """Returns DocumentRoot setting."""
-        return self.environ.get('DOCUMENT_ROOT', '')
+        return self.poor_environ.get('poor_DocumentRoot', '')
 
     def construct_url(self, uri):
         """This function returns a fully qualified URI string from the path
@@ -459,9 +462,8 @@ def internal_server_error(req):
         content = [
             "    </pre>\n",
             "    <hr>\n",
-            "    <small><i>%s / Poor WSGI for Python/%s , webmaster: %s </i></small>\n" % \
+            "    <small><i>%s / Poor WSGI for Python , webmaster: %s </i></small>\n" % \
                     (req.server_software,
-                    sys.version.split(' ')[0],
                     req.server_admin),
         ]
         for l in content: req.write(l)
@@ -483,19 +485,132 @@ def internal_server_error(req):
     return DONE
 #enddef
 
-def send_file(req, path, content_type = 'application/octet-stream'):
+def send_file(req, path, content_type = None):
     """
     Returns file with content_type as fast as possible on wsgi
     """
+    if content_type == None:     # auto mime type select
+        (content_type, encoding) = mimetypes.guess_type(path)
+    if content_type == None:     # default mime type
+        content_type = "application/octet-stream"
+    
     req.content_type = content_type
 
     if not os.access(path, os.R_OK):
         raise IOError("Could not stat file for reading")
-        
-    req._buffer = os.open(path, os.O_RDONLY)
+    
+    #req._buffer = os.open(path, os.O_RDONLY)
+    req._buffer = file(path, 'r')
     return DONE
 #enddef
 
+def directory_index(req, path):
+    """
+    Returns directory index as html page
+    """
+    if not os.path.isdir(path):
+        req.log_error (
+            "Only directory_index can be send with directory_index handler. "
+            "`%s' is not directory.",
+            path);
+        raise SERVER_RETURN, HTTP_INTERNAL_SERVER_ERROR
+    
+    index = os.listdir(path)
+    # parent directory
+    if cmp(path[:-1], req.document_root()) > 0:
+        index.append("..")
+    index.sort()
+
+    def hbytes(val):
+        unit = ' '
+        if val > 100:
+            unit = 'k'
+            val = val / 1024.0
+        if val > 500:
+            unit = 'M'
+            val = val / 1024.0
+        if val > 500:
+            unit = 'G'
+            val = val / 1024.0
+        return (val, unit)
+    #enddef
+
+    diruri = req.uri.rstrip('/')
+    content = [
+        "<html>\n",
+        "  <head>\n",
+        "    <title>Index of %s</title>\n" % diruri,
+        "    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"/>\n",
+        "    <style>\n",
+        "      body { width: 98%; margin: auto; }\n",
+        "      table { font: 90% monospace; text-align: left; }\n",
+        "      td, th { padding: 0 1em 0 1em; }\n",
+        "      .size { text-align:right; white-space:pre; }\n",
+        "    </style>\n",
+        "  <head>\n",
+        "  <body>\n",
+        "    <h1>Index of %s</h1>\n" % diruri,
+        "    <hr>\n"
+        "    <table>\n",
+        "      <tr><th>Name</th><th>Last Modified</th>"
+                  "<th class=\"size\">Size</th><th>Type</th></tr>\n"
+    ]
+
+    for item in index:
+        # dot files
+        if item[0] == "." and item[1] != ".":
+            continue
+        # bakup files (~)
+        if item[-1] == "~":
+            continue
+
+        fpath = "%s/%s" % (path, item)
+        fname = item + ('/' if os.path.isdir(fpath) else '')
+        ftype = "";
+        if os.path.isdir(fpath):
+            ftype = "Directory"
+        else:
+            (ftype, encoding) = mimetypes.guess_type(fpath)
+            if not ftype:
+                ftype = 'application/octet-stream'
+        #endif
+
+        content.append("      "
+            "<tr><td><a href=\"%s\">%s</a></td><td>%s</td>"
+            "<td class=\"size\">%s</td><td>%s</td></tr>\n" %\
+            (diruri + '/' + fname,
+            fname,
+            strftime("%d-%b-%Y %H:%M", gmtime(os.path.getctime(fpath))),
+            "%.1f%s" % hbytes(os.path.getsize(fpath)) if os.path.isfile(fpath) else "- ",
+            ftype
+            ))
+
+    content += [
+        "    </table>\n",
+        "    <hr>\n"
+    ]
+
+    if req.debug:
+        content += [
+            "    <small><i>%s / Poor WSGI for Python, webmaster: %s </i></small>\n" % \
+                    (req.server_software,
+                    req.server_admin),
+        ]
+    else:
+        content += [
+            "    <small><i>webmaster: %s </i></small>\n" % req.server_admin
+        ]
+
+    content += [
+        "  </body>\n",
+        "</html>"
+    ]
+
+    req.content_type = "text/html"
+    #req.headers_out.add('Content-Length', str(len(content)))
+    for l in content: req.write(l)
+    return DONE
+#enddef
 
 errors = {
     HTTP_INTERNAL_SERVER_ERROR  : internal_server_error,

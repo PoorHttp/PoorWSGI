@@ -3,10 +3,11 @@
 from exceptions import Exception
 from socket import error as SocketError
 
-import sys
+import sys, os
     
 from enums import *
-from http import Request, internal_server_error, SERVER_RETURN
+from http import Request, internal_server_error, SERVER_RETURN, \
+        send_file, directory_index
 
 def error_from_dispatch(req, code):
     # set post_process handler if is possible
@@ -51,6 +52,24 @@ def handler_from_dispatch(req):
         retval = dispatch_table.default_handler(req)
         raise SERVER_RETURN, retval
    
+    # try file or index
+    if req.document_root():
+        rfile = "%s%s" % (req.document_root(), os.path.normpath("%s" % req.uri))
+        
+        if not os.access(rfile, os.R_OK):
+            req.log_error("404 Not Found: File: %s" % req.uri, LOG_ERR)
+            raise SERVER_RETURN, HTTP_NOT_FOUND
+
+        if os.path.isfile(rfile):
+            req.log_error("Return file: %s" % req.uri, LOG_INFO);
+            raise SERVER_RETURN, send_file(req, rfile)
+        
+        # try directory index
+        if req.document_index and os.path.isdir(rfile):
+            req.log_error("Return directory: %s" % req.uri, LOG_INFO);
+            raise SERVER_RETURN, directory_index(req, rfile)
+    #endif
+
     req.log_error("404 Not Found: %s" % req.uri, LOG_ERR);
     raise SERVER_RETURN, HTTP_NOT_FOUND
 #enddef

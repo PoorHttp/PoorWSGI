@@ -10,101 +10,7 @@ from traceback import format_exception
 
 import sys, os
 
-from http.util import usage, configure, save_pid
-
-def error_from_dispatch(req, code):
-    # set post_process handler if is possible
-    if 'dispatch_table' in sys.modules and 'post_process' in dir(dispatch_table):
-        dispatch_table.post_process(req)
-    #endif
-
-    if 'dispatch_table' in sys.modules \
-    and 'errors' in dispatch_table.__dict__ \
-    and code in dispatch_table.errors:
-        try:
-            handler = dispatch_table.errors[code]
-            return handler(req)
-        except:
-            return handlers.internal_server_error(req)
-    elif code in handlers.errors:
-        return handlers.errors[code](req)
-    return None
-#enddef
-
-def handler_from_dispatch(req):
-    if not 'dispatch_table' in sys.modules:
-        exec ("import dispatch_table") in globals()
-    reload_modules()
-
-    # call pre_process if is present
-    if 'pre_process' in dir(dispatch_table):
-        dispatch_table.pre_process(req)
-    #endif
-
-    if req.uri in dispatch_table.handlers:
-        method, handler = dispatch_table.handlers[req.uri]
-        # check if method is allowed
-        if methods[req.method] & method:
-            retval = handler(req)
-            raise handlers.SERVER_RETURN, retval
-        else:
-            raise handlers.SERVER_RETURN, HTTP_METHOD_NOT_ALLOWED
-        #endif
-    #endif
-
-    if 'default_handler' in dir(dispatch_table):
-        retval = dispatch_table.default_handler(req)
-        raise handlers.SERVER_RETURN, retval
-
-    # try file or index
-    if env.document_root:
-        rfile = "%s%s" % (env.document_root, os.path.normpath("%s" % req.uri))
-        
-        if not os.access(rfile, os.R_OK):
-            req.log_error("404 Not Found: %s" % req.uri, LOG_ERR);
-            raise handlers.SERVER_RETURN, HTTP_NOT_FOUND
-
-        if os.path.isfile(rfile):
-            raise handlers.SERVER_RETURN, handlers.send_file(req, rfile)
-        
-        # try directory index
-        if env.document_index and os.path.isdir(rfile):
-            raise handlers.SERVER_RETURN, handlers.directory_index(req, rfile)
-    #endif
-   
-    req.log_error("404 Not Found: %s" % req.uri, LOG_ERR);
-    raise handlers.SERVER_RETURN, HTTP_NOT_FOUND
-#enddef
-
-"""
-def web_app(server_handler, request_object):
-    req = Request(server_handler, request_object)
-    try:
-        handler_from_dispatch(req)
-    except handlers.SERVER_RETURN, e:
-        code = e.args[0]
-        if code in (OK, HTTP_OK, DONE):
-            pass
-        elif code in (HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY):
-            try:
-                raise
-            except:
-                handlers.internal_server_error(req)
-        elif not error_from_dispatch(req, code):
-            handlers.not_implemented(req, code)
-    except SocketError, e:
-        return ()
-    except Exception, e:
-        error_from_dispatch(req, 500)
-    #endtry
-
-    # set post_process handler if is possible
-    if 'dispatch_table' in sys.modules and 'post_process' in dir(dispatch_table):
-        dispatch_table.post_process(req)
-    #endif
-    return req.flush()
-#enddef
-"""
+from phttp.util import usage, configure, save_pid
 
 def sigterm(sig, stack = None):
     env.log.error('[S] Shotdown server signal(%s)' % sig)
@@ -118,12 +24,10 @@ try:
 
     signal(SIGTERM, sigterm)
     
-    print ".. a taky tu.."
-
-    from http import env, handlers
-    from http.enums import *
-    from http.classes import WebRequestHandler, PoorServerHandler
-    from http.importing import *
+    from phttp import env, handlers
+    from phttp.enums import *
+    from phttp.classes import WebRequestHandler, PoorServerHandler
+    from phttp.importing import *
     
     env.server_address = cfg.get('http', 'address')
     env.server_port = cfg.getint('http', 'port')

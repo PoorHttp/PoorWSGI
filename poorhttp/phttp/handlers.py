@@ -326,7 +326,7 @@ def directory_index(req, path):
             unit = 'G'
             val = val / 1024.0
         return (val, unit)
-#enddef
+    #enddef
 
     content = [
         "<html>\n",

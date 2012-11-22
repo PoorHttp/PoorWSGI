@@ -56,12 +56,6 @@ def configure():
     env.cfg.set('http', 'autoreload', 'False')
     env.cfg.set('http', 'optimize', '1')
 
-    env.cfg.add_section('poor')                 # poor section
-    env.cfg.set('poor', 'debug', 'False')
-    env.cfg.set('poor', 'loglevel', 'warn')
-    env.cfg.set('poor', 'buffersize', '4096')
-    env.cfg.set('poor', 'secretkey', '$Id$')
-
     env.cfg.add_section('mime-type')            # mime-type section
     # no default mime-types defined
 
@@ -149,16 +143,6 @@ def configure():
     if env.cfg.has_option('http', 'optimze'):
         os.environ['poor.Optimze'] = env.cfg.get('http', 'index')
     #endif
-
-    # poor section
-    if env.cfg.has_option('poor', 'debug'):
-        os.environ['poor_Debug'] = env.cfg.get('poor', 'debug')
-    if env.cfg.has_option('poor', 'loglevel'):
-        os.environ['poor_LogLevel'] = env.cfg.get('poor', 'loglevel')
-    if env.cfg.has_option('poor', 'buffersize'):
-        os.environ['poor_BufferSize'] = env.cfg.get('poor', 'buffersize')
-    if env.cfg.has_option('poor', 'secretkey'):
-        os.environ['poor_SecretKey'] = env.cfg.get('poor', 'secretkey')
     
     # application environment
     for option in env.cfg.options('environ'):

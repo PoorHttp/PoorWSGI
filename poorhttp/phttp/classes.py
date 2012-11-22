@@ -50,7 +50,8 @@ class WebRequestHandler(WSGIRequestHandler):
             return
 
         handler = PoorServerHandler(
-            self.rfile, self.wfile, self.get_stderr(), self.get_environ()
+            #self.rfile, self.wfile, self.get_stderr(), self.get_environ()
+            self.rfile, self.wfile, env.log, self.get_environ()
         )
         handler.request_handler = self      # backpointer for logging
         handler.run(self.server.get_app(), self)
@@ -84,10 +85,6 @@ class PoorServerHandler(ServerHandler):
 
     def setup_environ(self):
         ServerHandler.setup_environ(self)
-        #self.environ['DOCUMENT_ROOT'] = ''
-        #self.environ['SERVER_ADMIN'] = ''
-        #self.environ['poor_LogLevel'] = ''
-        #self.environ['poor_Debug'] = ''
 
     def log_exception(self, exc_info):
         traceback = format_exception(exc_info[0],
@@ -130,6 +127,9 @@ class Log:
         if self.accesslog:
             self.close(self.accesslog)
     #enddef
+
+    def write(self, message):
+        self.error(message)
 
     def error(self, message, remote_host = ''):
         if remote_host != '':

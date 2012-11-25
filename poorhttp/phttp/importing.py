@@ -5,7 +5,6 @@ from py_compile import compile
 from imp import reload
 from types import ModuleType
 
-from enums import LOG_NOTICE
 import env
 
 def chech_recency(module):
@@ -21,14 +20,14 @@ def chech_recency(module):
         pyc_stats = stat(module.__file__)
         py_stats  = stat(path + '.py')
         if pyc_stats.st_ctime < py_stats.st_ctime:
-            if env.log_level >= LOG_NOTICE[0]:
+            if env.debug:
                 env.log.error("[N] Compiling module %s <%s.py>." % (module, path))
             compile(path + '.py')
             return False
         #endif
         return True
     elif ext == '.py':
-        if env.log_level >= LOG_NOTICE[0]:
+        if env.debug:
             env.log.error("[N] Compiling module %s <%s.py>." % (module, path))
         try:
             compile(module.__file__)
@@ -45,7 +44,7 @@ def import_module(name, autoreload=None, log=None, path=None):
     # check, if file is newer, then compile version
     if env.autoreload and name in modules:
         if not chech_recency(modules[name]):
-            if env.log_level >= LOG_NOTICE[0]:
+            if env.debug:
                 env.log.error("[N] Reloading module %s <%s>." % (name, pyc))
             reload(modules[name])
         return modules[name]
@@ -59,7 +58,7 @@ def reload_modules():
         return
     for name, module in modules.items():
         if not chech_recency(module):
-            if env.log_level >= LOG_NOTICE[0]:
+            if env.debug:
                 env.log.error("[N] Reloading module %s <%s>." % (name, module.__file__))
             reload(module)            
         #endif

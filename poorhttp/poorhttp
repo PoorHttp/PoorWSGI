@@ -24,10 +24,10 @@ try:
 
     signal(SIGTERM, sigterm)
     
-    from phttp import env, handlers
-    from phttp.enums import *
+    from phttp import env
     from phttp.classes import WebRequestHandler, PoorServerHandler
     from phttp.importing import *
+    __import__ = import_module
     
     env.server_address = cfg.get('http', 'address')
     env.server_port = cfg.getint('http', 'port')

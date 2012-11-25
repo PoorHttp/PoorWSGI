@@ -48,16 +48,12 @@ def configure():
     env.cfg.set('http', 'webmaster', 'root@localhost')
     env.cfg.set('http', 'errorlog', '/var/log/poorhttp-error.log')
     env.cfg.set('http', 'accesslog', '/var/log/poorhttp-access.log')
-    env.cfg.set('http', 'document', '/srv/www')
-    env.cfg.set('http', 'index', 'False')
     env.cfg.set('http', 'type', 'single')
     env.cfg.set('http', 'application', '')
     env.cfg.set('http', 'path', './')
     env.cfg.set('http', 'autoreload', 'False')
     env.cfg.set('http', 'optimize', '1')
-
-    env.cfg.add_section('mime-type')            # mime-type section
-    # no default mime-types defined
+    env.cfg.set('http', 'debug', 'True')
 
     env.cfg.add_section('environ')              # environ section
     # no default application environment defined
@@ -113,11 +109,6 @@ def configure():
     # set environment from cfg
     if env.cfg.has_option('http', 'webmaster'):
         os.environ['SERVER_ADMIN'] = env.cfg.get('http', 'webmaster')
-    if env.cfg.has_option('http', 'document'):
-        document_root = env.cfg.get('http', 'document')
-        os.environ['DOCUMENT_ROOT'] = os.path.abspath(document_root)
-    if env.cfg.has_option('http', 'index'):
-        os.environ['poor.DocumentIndex'] = env.cfg.get('http', 'index')
 
     if env.cfg.has_option('http', 'type'):
         server_type = env.cfg.get('http', 'type')
@@ -141,13 +132,20 @@ def configure():
     if env.cfg.has_option('http', 'autoreload'):
         os.environ['poor.AutoReload'] = env.cfg.get('http', 'autoreload')
     if env.cfg.has_option('http', 'optimze'):
-        os.environ['poor.Optimze'] = env.cfg.get('http', 'index')
+        os.environ['poor.Optimze'] = env.cfg.get('http', 'optimize')
+    os.environ['poor.Version'] = str(env.server_version)
     #endif
     
     # application environment
     for option in env.cfg.options('environ'):
-        os.environ[option] = env.cfg.get('environ', option)
-        env.log.error('set %s to %s' % (option, os.environ[option]))
+        var = env.cfg.get('environ', option)
+        pos = var.find('=')
+        if pos < 1 or len(var) == pos+1:
+            env.log.error('[E] Wrong variable setting `%s`' % var)
+            continue
+
+        os.environ[var[:pos]] = var[pos+1:]
+        env.log.error('[I] Set variable %s to %s' % (var[:pos], os.environ[var[:pos]]))
     #endfor
 
     return env.cfg

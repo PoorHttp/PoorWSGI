@@ -11,7 +11,6 @@ from traceback import format_exception
 
 import os
 
-from enums import *
 import env
 
 class PoorServer(WSGIServer):
@@ -109,8 +108,8 @@ class Log:
         self.errorlog = None
         self.accesslog = None
         
-        if cfg.has_option('http', 'log_level'):
-            env.log_level = cfg.getint('http', 'log_level')
+        if cfg.has_option('http', 'debug'):
+            env.debug = cfg.getboolean('http', 'debug')
 
         if cfg.has_option('http', 'errorlog'):
             self.errorlog = os.open(cfg.get('http', 'errorlog'),

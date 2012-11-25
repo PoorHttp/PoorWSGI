@@ -4,7 +4,6 @@
 
 from ConfigParser import ConfigParser
 from time import time
-from enums import LOG_INFO
 from classes import PoorServer
 
 # server type
@@ -28,5 +27,5 @@ cfg = ConfigParser()
 # log object
 log = None
 
-# log_level
-log_level = LOG_INFO[0]
+# debug
+debug = False

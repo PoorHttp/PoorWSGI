@@ -6,8 +6,8 @@ from socket import error as SocketError
 import sys, os
     
 from enums import *
-from http import Request, internal_server_error, SERVER_RETURN, \
-        send_file, directory_index
+from http import Request, errors, not_implemented, internal_server_error, \
+        SERVER_RETURN, send_file, directory_index
 
 def error_from_dispatch(req, code):
     # set post_process handler if is possible
@@ -23,9 +23,11 @@ def error_from_dispatch(req, code):
             return handler(req)
         except:
             return internal_server_error(req)
-    elif code == 500:
-        return internal_server_error(req)
-    return None
+    elif code in errors:
+        handler = errors[code]
+        handler(req)
+    else:
+        not_implemented(req)
 #enddef
 
 def handler_from_dispatch(req):
@@ -57,7 +59,7 @@ def handler_from_dispatch(req):
         rfile = "%s%s" % (req.document_root(), os.path.normpath("%s" % req.uri))
         
         if not os.access(rfile, os.R_OK):
-            req.log_error("404 Not Found: File: %s" % req.uri, LOG_ERR)
+            req.log_error("404 File Not Found: %s" % req.uri, LOG_ERR)
             raise SERVER_RETURN, HTTP_NOT_FOUND
 
         if os.path.isfile(rfile):
@@ -68,6 +70,8 @@ def handler_from_dispatch(req):
         if req.document_index and os.path.isdir(rfile):
             req.log_error("Return directory: %s" % req.uri, LOG_INFO);
             raise SERVER_RETURN, directory_index(req, rfile)
+        else:
+            raise SERVER_RETURN, HTTP_FORBIDDEN
     #endif
 
     req.log_error("404 Not Found: %s" % req.uri, LOG_ERR);

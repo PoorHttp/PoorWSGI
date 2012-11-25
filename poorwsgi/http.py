@@ -84,7 +84,7 @@ class Request:
         self.err_headers_out = Headers()
 
         ## uwsgi do not sent environ variables to apps environ
-        if 'uwsgi.version' in self.environ:
+        if 'uwsgi.version' in self.environ or 'poor.Version' in os.environ:
             self.poor_environ = os.environ
         else:
             self.poor_environ = self.environ
@@ -218,6 +218,8 @@ class Request:
 
     def document_root(self):
         """Returns DocumentRoot setting."""
+        self.log_error("poor_DocumentRoot: %s" % self.poor_environ.get('poor_DocumentRoot', ''),
+                LOG_INFO)
         return self.poor_environ.get('poor_DocumentRoot', '')
 
     def construct_url(self, uri):
@@ -369,6 +371,9 @@ class FieldStorage(CgiFieldStorage):
 
 #endclass
 
+## \addtogroup <http>
+#  @{
+
 class SERVER_RETURN(Exception):
     """Compatible with mod_python.apache exception."""
     def __init__(self, code = HTTP_INTERNAL_SERVER_ERROR):
@@ -415,6 +420,11 @@ def redirect(req, uri, permanent = 0, text = None):
         req.write(text)
     raise SERVER_RETURN, DONE
 #enddef
+
+## @}
+
+## \defgroup internal Internal Poor Publisher functions and classes
+#  @{
 
 def internal_server_error(req):
     """More debug 500 Internal Server Error server handler. It was be called
@@ -482,6 +492,142 @@ def internal_server_error(req):
     ]
 
     for l in content: req.write(l)
+    return DONE
+#enddef
+
+def forbidden(req):
+    """403 - Forbidden Access server error handler.
+    @param req http.classes.Request object
+    @returns http.DONE
+    """
+    content = \
+        "<html>\n"\
+        "  <head>\n"\
+        "    <title>403 - Forbidden Acces</title>\n"\
+        "    <style>\n"\
+        "      body {width: 80%%; margin: auto; padding-top: 30px;}\n"\
+        "      h1 {text-align: center; color: #ff0000;}\n"\
+        "      p {text-indent: 30px; margin-top: 30px; margin-bottom: 30px;}\n"\
+        "    </style>\n"\
+        "  <head>\n" \
+        "  <body>\n"\
+        "    <h1>403 - Forbidden Access</h1>\n"\
+        "    <p>You don't have permission to access <code>%s</code> on this server.</p>\n"\
+        "    <hr>\n"\
+        "    <small><i>webmaster: %s </i></small>\n"\
+        "  </body>\n"\
+        "</html>" % (req.uri, req.server_admin)
+        
+    req.content_type = "text/html"
+    req.status = HTTP_FORBIDDEN
+    req.headers_out = req.err_headers_out
+    req.headers_out.add('Content-Length', str(len(content)))
+    req.write(content)
+    return DONE
+#enddef
+
+
+def not_found(req):
+    """404 - Page Not Found server error handler.
+    @param req http.classes.Request object
+    @returns http.DONE
+    """
+    content = \
+        "<html>\n"\
+        "  <head>\n"\
+        "    <title>404 - Page Not Found</title>\n"\
+        "    <style>\n"\
+        "      body {width: 80%%; margin: auto; padding-top: 30px;}\n"\
+        "      h1 {text-align: center; color: #707070;}\n"\
+        "      p {text-indent: 30px; margin-top: 30px; margin-bottom: 30px;}\n"\
+        "    </style>\n"\
+        "  <head>\n" \
+        "  <body>\n"\
+        "    <h1>404 - Page Not Found</h1>\n"\
+        "    <p>Your reqeuest <code>%s</code> was not found.</p>\n"\
+        "    <hr>\n"\
+        "    <small><i>webmaster: %s </i></small>\n"\
+        "  </body>\n"\
+        "</html>" % (req.uri, req.server_admin)
+        
+    req.content_type = "text/html"
+    req.status = HTTP_NOT_FOUND
+    req.headers_out = req.err_headers_out
+    req.headers_out.add('Content-Length', str(len(content)))
+    req.write(content)
+    return DONE
+#enddef
+
+def method_not_allowed(req):
+    """405 Method Not Allowed server error handler.
+    @param req http.classes.Request object
+    @returns http.DONE
+    """
+    content = \
+        "<html>\n"\
+        "  <head>\n"\
+        "    <title>405 - Method Not Allowed</title>\n"\
+        "    <style>\n"\
+        "      body {width: 80%%; margin: auto; padding-top: 30px;}\n"\
+        "      h1 {text-align: center; color: #707070;}\n"\
+        "      p {text-indent: 30px; margin-top: 30px; margin-bottom: 30px;}\n"\
+        "    </style>\n"\
+        "  <head>\n"\
+        "  <body>\n"\
+        "    <h1>405 - Method Not Allowed</h1>\n"\
+        "    <p>This method %s is not allowed to access <code>%s</code> on this server.</p>\n"\
+        "    <hr>\n"\
+        "    <small><i>webmaster: %s </i></small>\n"\
+        "  </body>\n"\
+        "</html>" % (req.method, req.uri, req.server_admin)
+        
+    req.content_type = "text/html"
+    req.status = HTTP_METHOD_NOT_ALLOWED
+    req.headers_out = req.err_headers_out
+    req.headers_out.add('Content-Length', str(len(content)))
+    req.write(content)
+    return DONE
+#enddef
+
+def not_implemented(req, code = None):
+    """501 Not Implemented server error handler.
+    @param req http.classes.Request object
+    @returns http.DONE
+    """
+    content = \
+            "<html>\n"\
+            "  <head>\n"\
+            "    <title>501 - Not Implemented</title>\n"\
+            "    <style>\n"\
+            "      body {width: 80%%; margin: auto; padding-top: 30px;}\n"\
+            "      h1 {text-align: center; color: #707070;}\n"\
+            "      p {text-indent: 30px; margin-top: 30px; margin-bottom: 30px;}\n"\
+            "    </style>\n"\
+            "  <head>\n"\
+            "  <body>\n"\
+            "    <h1>501 - Not Implemented</h1>\n"
+
+    if code:
+        content += \
+            "    <p>Your reqeuest <code>%s</code> returned not implemented\n"\
+            "      status <code>%s</code>.</p>\n" % (req.uri, code)
+    else:
+        content += \
+            "    <p>Response for Your reqeuest <code>%s</code> is not implemented</p>" \
+            % req.uri
+    #endif
+
+    content += \
+            "    <hr>\n"\
+            "    <small><i>webmaster: %s </i></small>\n"\
+            "  </body>\n"\
+            "</html>" % req.server_admin
+        
+    req.content_type = "text/html"
+    req.status = HTTP_NOT_IMPLEMENTED
+    req.headers_out = req.err_headers_out
+    req.headers_out.add('Content-Length', str(len(content)))
+    req.write(content)
     return DONE
 #enddef
 
@@ -565,8 +711,12 @@ def directory_index(req, path):
             continue
 
         fpath = "%s/%s" % (path, item)
+        if not os.access(fpath, os.R_OK):
+            continue
+
         fname = item + ('/' if os.path.isdir(fpath) else '')
         ftype = "";
+
         if os.path.isdir(fpath):
             ftype = "Directory"
         else:
@@ -614,6 +764,10 @@ def directory_index(req, path):
 
 errors = {
     HTTP_INTERNAL_SERVER_ERROR  : internal_server_error,
+    HTTP_NOT_FOUND              : not_found,
+    HTTP_METHOD_NOT_ALLOWED     : method_not_allowed,
+    HTTP_FORBIDDEN              : forbidden,
+    HTTP_NOT_IMPLEMENTED        : not_implemented,
 }
 
 ## @}

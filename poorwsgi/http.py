@@ -481,7 +481,7 @@ def internal_server_error(req):
     else:
         content = [
             "    <hr>\n",
-            "    <small><i>webmaster: %s </i></small>\n" % '' ,
+            "    <small><i>webmaster: %s </i></small>\n" % req.server_admin ,
         ]
         for l in content: req.write(l)
     #endif

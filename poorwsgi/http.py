@@ -252,7 +252,7 @@ class Request:
         @param server interface only compatibility parameter
         """
 
-        if self._log_level >= level[0]:
+        if self._log_level[0] >= level[0]:
             self._errors.write("<%s> %s\n" % (level[1], message))
 
     def __end_of_request__(self):

@@ -1,13 +1,13 @@
 #!/usr/bin/python
 
-from exceptions import Exception
+#from exceptions import Exception
 from socket import error as SocketError
 
 import sys, os
     
 from enums import *
 from http import Request, errors, not_implemented, internal_server_error, \
-        SERVER_RETURN, send_file, directory_index
+        SERVER_RETURN, send_file, directory_index, DECLINED
 
 def error_from_dispatch(req, code):
     # set post_process handler if is possible
@@ -44,15 +44,17 @@ def handler_from_dispatch(req):
         # check if method is allowed
         if methods[req.method] & method:
             retval = handler(req)
-            raise SERVER_RETURN, retval
+            if retval != DECLINED:
+                raise SERVER_RETURN(retval)
         else:
-            raise SERVER_RETURN, HTTP_METHOD_NOT_ALLOWED
+            raise SERVER_RETURN(HTTP_METHOD_NOT_ALLOWED)
         #endif
     #endif
 
     if 'default_handler' in dir(dispatch_table):
         retval = dispatch_table.default_handler(req)
-        raise SERVER_RETURN, retval
+        if retval != DECLINED:
+            raise SERVER_RETURN(retval)
    
     # try file or index
     if req.document_root():
@@ -60,29 +62,29 @@ def handler_from_dispatch(req):
         
         if not os.access(rfile, os.R_OK):
             req.log_error("404 File Not Found: %s" % req.uri, LOG_ERR)
-            raise SERVER_RETURN, HTTP_NOT_FOUND
+            raise SERVER_RETURN(HTTP_NOT_FOUND)
 
         if os.path.isfile(rfile):
             req.log_error("Return file: %s" % req.uri, LOG_INFO);
-            raise SERVER_RETURN, send_file(req, rfile)
-        
+            raise SERVER_RETURN(send_file(req, rfile))
+
         # try directory index
         if req.document_index and os.path.isdir(rfile):
             req.log_error("Return directory: %s" % req.uri, LOG_INFO);
-            raise SERVER_RETURN, directory_index(req, rfile)
+            raise SERVER_RETURN(directory_index(req, rfile))
         else:
-            raise SERVER_RETURN, HTTP_FORBIDDEN
+            raise SERVER_RETURN(HTTP_FORBIDDEN)
     #endif
 
     req.log_error("404 Not Found: %s" % req.uri, LOG_ERR);
-    raise SERVER_RETURN, HTTP_NOT_FOUND
+    raise SERVER_RETURN(HTTP_NOT_FOUND)
 #enddef
 
 def application(environ, start_response):
     req = Request(environ, start_response)
     try:
         handler_from_dispatch(req)
-    except SERVER_RETURN, e:
+    except SERVER_RETURN as e:
         code = e.args[0]
         if code in (OK, HTTP_OK, DONE):
             pass
@@ -90,9 +92,9 @@ def application(environ, start_response):
         else:
             req.status = code
             error_from_dispatch(req, code)
-    except SocketError, e:
+    except SocketError as e:
         return ()
-    except Exception, e:
+    except Exception as e:
         error_from_dispatch(req, 500)
     #endtry
 

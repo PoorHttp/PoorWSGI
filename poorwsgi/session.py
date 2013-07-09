@@ -4,15 +4,18 @@
 ## \namespace session
 #  Cookie sessions.
 
-from Cookie import SimpleCookie
 from hashlib import sha1
 from time import time
 from pickle import dumps, loads
 from base64 import b64decode, b64encode
-from exceptions import NotImplementedError
-from types import DictType
+#from exceptions import NotImplementedError
 
-import bz2
+import bz2, sys
+
+if sys.version_info[0] < 3:
+    from Cookie import SimpleCookie
+else:
+    from http.cookies import SimpleCookie
 
 ## \defgroup api Poor Application Interface
 # @{
@@ -67,7 +70,7 @@ class PoorSession:
             try:
                 self.data = loads(hidden(bz2.decompress(b64decode(raw)),
                                     req.secretkey))
-                if type(self.data) != DictType:
+                if not isinstance(self.data, dict):
                     raise RuntimeError()
             except:
                 req.log_error('Bad session data.')

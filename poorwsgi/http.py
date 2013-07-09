@@ -4,12 +4,17 @@
 
 from wsgiref.headers import Headers as WHeaders
 from cgi import FieldStorage as CgiFieldStorage
-from httplib import responses
-from cStringIO import StringIO
 from traceback import format_exception
 from time import strftime, gmtime
 
 import os, re, sys, mimetypes
+
+if sys.version_info[0] < 3:
+    from httplib import responses               # python 2.x
+    from cStringIO import StringIO
+else:
+    from http.client import responses           # python 3.x
+    from io import StringIO
 
 from enums import *
 from session import *
@@ -22,14 +27,14 @@ _httpUrlPatern = re.compile(r"^(http|https):\/\/")
 
 class Headers(WHeaders):
     """Class inherited from wsgiref.headers.Headers."""
-    
+
     def __init__(self):
         """By default constains X-Powered-By values."""
         headers = [
             ("X-Powered-By", "Poor WSGI for Python")
         ]
         WHeaders.__init__(self, headers)
-    
+
     def add(self, key, value):
         """Set header key to value. Duplicate keys are not allowed."""
         if key != "Set-Cookie" and self.has_key(key):
@@ -75,6 +80,10 @@ class Request:
             if key[:5] == 'HTTP_':
                 key = '-'.join(map(lambda x: x.capitalize() ,key[5:].split('_')))
                 tmp.append((key, val))
+            elif key in ("CONTENT_LENGTH", "CONTENT_TYPE"):
+                key = '-'.join(map(lambda x: x.capitalize() ,key.split('_')))
+                tmp.append((key, val))
+
         self.headers_in = WHeaders(tmp)
 
         ## A Headers object representing the headers to be sent to the client.
@@ -102,7 +111,7 @@ class Request:
         # @cond PRIVATE
         self.start_response = start_response
         self._start_response = False
-        
+
         self._file = self.environ.get("wsgi.input")
         self._errors = self.environ.get("wsgi.errors")
         self._buffer = StringIO()
@@ -113,8 +122,10 @@ class Request:
         self.remote_addr = self.environ.get('REMOTE_ADDR')
         self.user_agent = self.environ.get('HTTP_USER_AGENT')
         self.scheme = self.environ.get('wsgi.url_scheme')
-        
+
         self.server_software = self.environ.get('SERVER_SOFTWARE','Unknown')
+        if self.server_software == 'Unknown' and 'uwsgi.version' in self.environ:
+            self.server_software = 'uWsgi'
         self.server_admin = self.environ.get('SERVER_ADMIN',
                             'webmaster@%s' % self.hostname)
 
@@ -147,7 +158,7 @@ class Request:
 
     def _read(self, length = -1):
         return self._file.read(length)
-   
+
     def read(self, length = -1):
         """
         Read data from client (typical for XHR2 data POST). If length is not
@@ -194,7 +205,7 @@ class Request:
             self.headers_out.add('Content-Length', str(self.clength))
 
         self.__write = self.start_response(
-                            "%d %s" % (self.status, responses[self.status]), 
+                            "%d %s" % (self.status, responses[self.status]),
                             self.headers_out.items())
         self._start_response = True
     #enddef
@@ -234,7 +245,7 @@ class Request:
     #enddef
 
     def log_error(self, message, level = LOG_ERR, server = None):
-        """An interface to the server http.classes.log.error method. 
+        """An interface to the server http.classes.log.error method.
         @param message string with the error message
         @param level is one of the following flags constants:
         \code
@@ -273,8 +284,8 @@ class Request:
     def flush(self):
         """Flushes the output buffer."""
         if not self._start_response:
-            self._call_start_response() 
-        
+            self._call_start_response()
+
         self._buffer.seek(self._buffer_offset)
         self.__write(self._buffer.read())       # flush all from buffer
         self._buffer_offset = self._buffer_len
@@ -286,7 +297,7 @@ class Request:
         """
         if not os.access(path, os.R_OK):
             raise IOError("Could not stat file for reading")
-        
+
         length = 0
 
         bf = os.open(path, os.O_RDONLY)
@@ -313,11 +324,11 @@ class FieldStorage(CgiFieldStorage):
                         headers = None,
                         outerboundary = '',
                         environ = os.environ,
-                        keep_blank_values = 0, 
+                        keep_blank_values = 0,
                         strict_parsing = 0,
                         file_callback = None,
                         field_callback = None):
-        
+
         self.environ = environ
         req = None
         if fp_or_req and isinstance(fp_or_req, Request):
@@ -330,7 +341,7 @@ class FieldStorage(CgiFieldStorage):
 
         if req and req.method == 'POST':
             fp_or_req = environ.get('wsgi.input')
-            
+
         CgiFieldStorage.__init__(
                     self,
                     fp = fp_or_req,
@@ -387,10 +398,10 @@ def redirect(req, uri, permanent = 0, text = None):
     client, otherwise it is MOVED_TEMPORARILY. A short text is sent to the
     browser informing that the document has moved (for those rare browsers that
     do not support redirection); this text can be overridden by supplying a text
-    string. 
+    string.
 
     If this function is called after the headers have already been sent, an
-    IOError is raised. 
+    IOError is raised.
 
     This function raises apache.SERVER_RETURN exception with a value of
     http.DONE to ensuring that any later phases or stacked handlers do not run.
@@ -406,19 +417,19 @@ def redirect(req, uri, permanent = 0, text = None):
     """
     if len(req.headers_out) > 1 or 'X-Powered-By' not in req.headers_out:
         raise IOError('Headers are set before redirect')
-    
+
     url = req.construct_url(uri)
-    
+
     if permanent:
         req.status = HTTP_MOVED_PERMANENTLY
     else:
         req.status = HTTP_MOVED_TEMPORARILY
-    
+
     req.headers_out.add('Location', url)
+    req.content_type = 'plain/text'
     if text:
-        req.content_type = 'plain/text'
         req.write(text)
-    raise SERVER_RETURN, DONE
+    raise SERVER_RETURN(DONE)
 #enddef
 
 ## @}
@@ -477,7 +488,7 @@ def internal_server_error(req):
                     req.server_admin),
         ]
         for l in content: req.write(l)
-    
+
     else:
         content = [
             "    <hr>\n",
@@ -485,7 +496,7 @@ def internal_server_error(req):
         ]
         for l in content: req.write(l)
     #endif
-        
+
     content = [
         "  </body>\n",
         "</html>"
@@ -517,7 +528,7 @@ def forbidden(req):
         "    <small><i>webmaster: %s </i></small>\n"\
         "  </body>\n"\
         "</html>" % (req.uri, req.server_admin)
-        
+
     req.content_type = "text/html"
     req.status = HTTP_FORBIDDEN
     req.headers_out = req.err_headers_out
@@ -549,7 +560,7 @@ def not_found(req):
         "    <small><i>webmaster: %s </i></small>\n"\
         "  </body>\n"\
         "</html>" % (req.uri, req.server_admin)
-        
+
     req.content_type = "text/html"
     req.status = HTTP_NOT_FOUND
     req.headers_out = req.err_headers_out
@@ -580,7 +591,7 @@ def method_not_allowed(req):
         "    <small><i>webmaster: %s </i></small>\n"\
         "  </body>\n"\
         "</html>" % (req.method, req.uri, req.server_admin)
-        
+
     req.content_type = "text/html"
     req.status = HTTP_METHOD_NOT_ALLOWED
     req.headers_out = req.err_headers_out
@@ -622,7 +633,7 @@ def not_implemented(req, code = None):
             "    <small><i>webmaster: %s </i></small>\n"\
             "  </body>\n"\
             "</html>" % req.server_admin
-        
+
     req.content_type = "text/html"
     req.status = HTTP_NOT_IMPLEMENTED
     req.headers_out = req.err_headers_out
@@ -639,12 +650,12 @@ def send_file(req, path, content_type = None):
         (content_type, encoding) = mimetypes.guess_type(path)
     if content_type == None:     # default mime type
         content_type = "application/octet-stream"
-    
+
     req.content_type = content_type
 
     if not os.access(path, os.R_OK):
         raise IOError("Could not stat file for reading")
-    
+
     #req._buffer = os.open(path, os.O_RDONLY)
     req._buffer = file(path, 'r')
     return DONE
@@ -659,8 +670,8 @@ def directory_index(req, path):
             "Only directory_index can be send with directory_index handler. "
             "`%s' is not directory.",
             path);
-        raise SERVER_RETURN, HTTP_INTERNAL_SERVER_ERROR
-    
+        raise SERVER_RETURN(HTTP_INTERNAL_SERVER_ERROR)
+
     index = os.listdir(path)
     # parent directory
     if cmp(path[:-1], req.document_root()) > 0:

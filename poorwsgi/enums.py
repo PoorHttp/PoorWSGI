@@ -84,10 +84,13 @@ levels = {
     'debug' :   LOG_DEBUG,
 }
 
-METHOD_POST     = 1
-METHOD_GET      = 2
-METHOD_GET_POST = 3
-METHOD_HEAD     = 4
+METHOD_POST         = 1
+METHOD_GET          = 2
+METHOD_GET_POST     = 3
+METHOD_HEAD         = 4
+METHOD_HEAD_POST    = 5
+METHOD_HEAD_GET     = 6
+METHOD_HEAD_GET_POST    = 7
 
 methods = {
     'POST': METHOD_POST,

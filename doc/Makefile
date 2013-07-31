@@ -10,6 +10,7 @@ book: clean dokumentace.xml xhtml-chunk.xsl xhtml-common.xsl
 
 single: clean dokumentace.xml xhtml-onechunk.xsl xhtml-common.xsl
 	xsltproc -o html-cs/ xhtml-onechunk.xsl dokumentace.xml
+	xsltproc -o html-en/ xhtml-onechunk.xsl documentation.xml
 
 fo: dokumentace.xml
 	xsltproc -o dokumentace.fo fo-common.xsl dokumentace.xml

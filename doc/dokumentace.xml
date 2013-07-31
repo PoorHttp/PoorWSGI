@@ -3,7 +3,7 @@
 "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
 <book lang="cs">
   <bookinfo>
-    <title>Poor Http - Python http server</title>
+    <title>Poor Http for Python - Python http server</title>
 
     <author>
       <firstname>Ondřej</firstname>
@@ -275,7 +275,7 @@ js = text/javascript</programlisting>
         obdobně jak tomu je v případě serveru Apache a modulu mod_python.
         Příklad zápisu:</para>
 
-        <programlisting  language="ini">user        = admin
+        <programlisting language="ini">user        = admin
 password    = admin
 inifile     =   /srv/one-web/etc/one-web.ini</programlisting>
       </section>
@@ -336,7 +336,7 @@ inifile     =   /srv/one-web/etc/one-web.ini</programlisting>
         balancer. Více informací se dovíze na stránkách projektu: <ulink
         url="???">http://lighttpd.net</ulink>.</para>
 
-        <programlisting  language="httpd"># nahraní modulu proxy
+        <programlisting language="httpd"># nahraní modulu proxy
 server.modules   += ( "mod_proxy" )
 
 ## Balance algorithm, possible values are: "hash", "round-robin" or "fair" (default)
@@ -418,7 +418,7 @@ AccessFileName .htaccess
       <para>Soubor .htaccess v adresáři /var/www/my-app by mohl vypadat
       takto:</para>
 
-      <programlisting  language="httpd"># o oblsuju teto url se bude starat mod_python
+      <programlisting language="httpd"># o oblsuju teto url se bude starat mod_python
 SetHandler mod_python
 
 # se zapnutym debugem
@@ -519,11 +519,11 @@ PythonOption secretkey = a79470ca0d18db24fe86aabd78c2bd409d7e36d9
       <section>
         <title>funkce pre_process</title>
 
-        <para>Funkce pre_process pokud je v souboru dispatch_table.py definována,
-        je volána před každou obsluhou http požadavku, tedy ještě dříve než je
-        známa informace, zda tento požadavek může být vůbec obsloužen. Tato
-        funkce se hodí například na zpracování konfigurace, případě
-        před-vypočítání nějakých hodnot. Stejně jako ostatní handlery
+        <para>Funkce pre_process pokud je v souboru dispatch_table.py
+        definována, je volána před každou obsluhou http požadavku, tedy ještě
+        dříve než je známa informace, zda tento požadavek může být vůbec
+        obsloužen. Tato funkce se hodí například na zpracování konfigurace,
+        případě před-vypočítání nějakých hodnot. Stejně jako ostatní handlery
         (obsluhující funkce) i tento dostává v parametru objekt
         Request.</para>
 

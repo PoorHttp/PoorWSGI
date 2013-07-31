@@ -146,10 +146,10 @@ class Request:
         #endtry
 
         try:
-            self._buffer_size = int(self.poor_environ.get('poor_BufferSize', '8192'))
+            self._buffer_size = int(self.poor_environ.get('poor_BufferSize', '16384'))
         except:
-            self._buffer_size = 4096
-            self.log_error('Bad poor_BufferSize, default is 8192.', LOG_WARNING)
+            self._buffer_size = 16384
+            self.log_error('Bad poor_BufferSize, default is 16384 B (16 KiB).', LOG_WARNING)
         #endtry
 
         self.document_index = self.poor_environ.get('poor_DocumentIndex', 'Off').lower() == 'on'

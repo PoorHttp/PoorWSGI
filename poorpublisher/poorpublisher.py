@@ -60,7 +60,8 @@ def handler(req):
     """
     #@TODO server_key by mel byt nastavitelny pres option v .htaccess !!
     req.secret_key = "$Id$"
-    chdir(path[1])  # change directory to app
+    chdir(path[1])  # change directory to app  # XXX: tohle je spatne, nemusi to
+                    # vzdy byt zrovna 1cka !!!
     
     # set pre_process handler if is possible
     if 'pre_process' in dir(dispatch_table):

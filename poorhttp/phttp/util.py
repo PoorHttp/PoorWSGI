@@ -109,7 +109,6 @@ def configure():
     # set environment from cfg
     if env.cfg.has_option('http', 'webmaster'):
         os.environ['SERVER_ADMIN'] = env.cfg.get('http', 'webmaster')
-
     if env.cfg.has_option('http', 'type'):
         server_type = env.cfg.get('http', 'type')
         if server_type == "forking":
@@ -117,23 +116,25 @@ def configure():
         elif server_type == "threading":
             env.server_class = ThreadingServer
         os.environ['poor.ServerType'] = server_type
-    if env.cfg.has_option('http', 'path'):
-        python_paths = env.cfg.get('http', 'path', './').split(':')
-        python_paths.reverse()
-        for path in python_paths:
-            sys.path.insert(0, os.path.abspath(path))
-        #endfor
     if env.cfg.has_option('http', 'application'):
         appfile = env.cfg.get('http', 'application')
         if not os.access(appfile, os.R_OK) or not os.path.isfile(appfile):
             usage('Access denied to %s' % appfile)
         os.environ['poor.Application'] = os.path.splitext(os.path.basename(appfile))[0]
         sys.path.insert(0, os.path.abspath(os.path.dirname(appfile)))
+    # yes python path could be on the top of path just like uwsgi
+    if env.cfg.has_option('http', 'path'):
+        python_paths = env.cfg.get('http', 'path', './').split(':')
+        python_paths.reverse()
+        for path in python_paths:
+            sys.path.insert(0, os.path.abspath(path))
+        #endfor
     if env.cfg.has_option('http', 'autoreload'):
         os.environ['poor.AutoReload'] = env.cfg.get('http', 'autoreload')
     if env.cfg.has_option('http', 'optimze'):
         os.environ['poor.Optimze'] = env.cfg.get('http', 'optimize')
     os.environ['poor.Version'] = str(env.server_version)
+    env.log.error('[I] New python path: %s' % str(sys.path))
     #endif
     
     # application environment

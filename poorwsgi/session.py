@@ -8,14 +8,10 @@ from hashlib import sha1
 from time import time
 from pickle import dumps, loads
 from base64 import b64decode, b64encode
-#from exceptions import NotImplementedError
 
 import bz2, sys
 
-if sys.version_info[0] < 3:
-    from Cookie import SimpleCookie
-else:
-    from http.cookies import SimpleCookie
+from Cookie import SimpleCookie
 
 ## \defgroup api Poor Application Interface
 # @{

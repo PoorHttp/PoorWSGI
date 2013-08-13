@@ -81,19 +81,31 @@ levels = {
     'warn'  :   LOG_WARNING,
     'notice':   LOG_NOTICE,
     'info'  :   LOG_INFO,
-    'debug' :   LOG_DEBUG,
+    'debug' :   LOG_DEBUG
 }
 
-METHOD_POST         = 1
-METHOD_GET          = 2
-METHOD_GET_POST     = 3
-METHOD_HEAD         = 4
-METHOD_HEAD_POST    = 5
-METHOD_HEAD_GET     = 6
-METHOD_HEAD_GET_POST    = 7
+METHOD_HEAD     = 1
+METHOD_GET      = 2
+METHOD_POST     = 4
+METHOD_PUT      = 8
+METHOD_DELETE   = 16
+METHOD_TRACE    = 32
+METHOD_OPTIONS  = 64
+METHOD_CONNECT  = 128
+METHOD_PATCH    = 256
+
+METHOD_GET_POST = METHOD_HEAD | METHOD_GET | METHOD_POST
 
 methods = {
-    'POST': METHOD_POST,
-    'GET' : METHOD_GET,
-    'HEAD': METHOD_HEAD,
+    'HEAD'      : METHOD_HEAD,
+    'GET'       : METHOD_GET,
+    'POST'      : METHOD_POST,
+    'PUT'       : METHOD_PUT,
+    'DELETE'    : METHOD_DELETE,
+    'TRACE'     : METHOD_TRACE,
+    'OPTIONS'   : METHOD_OPTIONS,
+    'CONNECT'   : METHOD_CONNECT,
+    'PATCH'     : METHOD_PATCH
 }
+
+sorted_methods = sorted(methods.items(), key = lambda (k,v): (v,k))

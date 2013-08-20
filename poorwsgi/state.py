@@ -1,3 +1,10 @@
+"""
+constants like http status code, log levels and method types
+"""
+__author__  = "Ondrej Tuma (McBig) <mcbig@zeropage.cz>"
+__date__    = "20 August 2013"
+__version__ = "1.0"
+
 OK          = 0
 DONE        = 1
 DECLINED    = 2
@@ -62,17 +69,6 @@ LOG_INFO    = (6, 'I')
 LOG_DEBUG   = (7, 'D')
 LOG_NOERRNO = (8, '0')
 
-# apache compatible enums
-APLOG_EMERG     = LOG_EMERG
-APLOG_ALERT     = LOG_ALERT
-APLOG_CRIT      = LOG_CRIT
-APLOG_ERR       = LOG_ERR
-APLOG_WARNING   = LOG_WARNING
-APLOG_NOTICE    = LOG_NOTICE
-APLOG_INFO      = LOG_INFO
-APLOG_DEBUG     = LOG_DEBUG
-APLOG_NOERRNO   = LOG_NOERRNO
-
 levels = {
     'emerg' :   LOG_EMERG,
     'alert' :   LOG_ALERT,
@@ -95,6 +91,7 @@ METHOD_CONNECT  = 128
 METHOD_PATCH    = 256
 
 METHOD_GET_POST = METHOD_HEAD | METHOD_GET | METHOD_POST
+METHOD_ALL      = 511 # METHOD_HEAD | ... | METHOD_PATCH
 
 methods = {
     'HEAD'      : METHOD_HEAD,

@@ -1,6 +1,9 @@
-#
-# $Id: classes.py 32 2012-05-03 11:50:00Z ondratu $
-#
+"""
+Headers, Request, FieldStorage and SERVER_RETURN classes
+
+This classes is used for managing requests.
+"""
+
 
 from wsgiref.headers import Headers as WHeaders
 from cgi import FieldStorage as CgiFieldStorage
@@ -11,14 +14,12 @@ import os, re, sys, mimetypes
 
 from httplib import responses
 from cStringIO import StringIO
-from state import *
-from session import *
+from state import __author__, __date__, __version__, \
+        LOG_ERR, LOG_WARNING, LOG_INFO, \
+        HTTP_OK, \
+        HTTP_INTERNAL_SERVER_ERROR 
 
 _httpUrlPatern = re.compile(r"^(http|https):\/\/")
-
-## \defgroup http http server inetrface
-# @{
-#  Compatible as soon as posible with mod_python apache inteface.
 
 class Headers(WHeaders):
     """Class inherited from wsgiref.headers.Headers."""
@@ -94,16 +95,8 @@ class Request:
             self.poor_environ = self.environ
         #endif
 
-        ## String, which is used to encrypt http.session.PoorSession and
-        #  http.session.Session
-
-        self.secretkey = self.poor_environ.get(
-                                'poor_SecretKey',
-                                '$Id: env.py 30 2012-03-05 13:03:43Z ondratu $')
-
         self.debug = self.poor_environ.get('poor_Debug', 'Off').lower() == 'on'
 
-        # @cond PRIVATE
         self.start_response = start_response
         self._start_response = False
 
@@ -133,6 +126,14 @@ class Request:
         # Protocol, as given by the client, or HTTP/0.9. cgi SERVER_PROTOCOL value
         self.protocol = self.environ.get('SERVER_PROTOCOL')
 
+        
+        # String, which is used to encrypt session.PoorSession
+        self.secretkey = self.poor_environ.get(
+                'poor_SecretKey',
+                'Poor WSGI/%s for Python/%s.%s on %s' % \
+                    (__version__, sys.version_info.major, sys.version_info.minor,
+                    self.server_software))
+        
         try:
             self._log_level = levels[self.poor_environ.get('poor_LogLevel', 'warn').lower()]
         except:
@@ -148,7 +149,6 @@ class Request:
         #endtry
 
         self.document_index = self.poor_environ.get('poor_DocumentIndex', 'Off').lower() == 'on'
-        # @endcond
     #enddef
 
     def _read(self, length = -1):
@@ -240,22 +240,19 @@ class Request:
     #enddef
 
     def log_error(self, message, level = LOG_ERR, server = None):
-        """An interface to the server http.classes.log.error method.
-        @param message string with the error message
-        @param level is one of the following flags constants:
-        \code
-        LOG_EMERG
-        LOG_ALERT
-        LOG_CRIT
-        LOG_ERR
-        LOG_WARNING
-        LOG_NOTICE
-        LOG_INFO
-        LOG_DEBUG
-        LOG_NOERRNO
-        \endcode
-        APLOG_constains are supported too for easier migration from mod_python.
-        @param server interface only compatibility parameter
+        """An interface to log error via wsgi.errors.
+        message - string with the error message
+        level - is one of the following flags constants:
+                    LOG_EMERG
+                    LOG_ALERT
+                    LOG_CRIT
+                    LOG_ERR     (default)
+                    LOG_WARNING
+                    LOG_NOTICE
+                    LOG_INFO
+                    LOG_DEBUG
+                    LOG_NOERRNO
+        server - interface only compatibility parameter
         """
 
         if self._log_level[0] >= level[0]:
@@ -355,10 +352,10 @@ class FieldStorage(CgiFieldStorage):
     #enddef
 
     def getfirst(self, name, default = None, fce = None):
-        """Returns value of key from \b GET or \b POST form.
-        @param name key
-        @param default default value if is not set
-        @param fce function which processed value. For example str or int
+        """Returns variable value from request (like POST form).
+        name    - key
+        default - default value if is not set
+        fce     - function which processed value. For example str or int
         """
         if fce:
             return fce(CgiFieldStorage.getfirst(self, name, default))
@@ -366,9 +363,9 @@ class FieldStorage(CgiFieldStorage):
     #enddef
 
     def getlist(self, name, fce = None):
-        """Returns list of values of key from \b GET or \b POST form.
-        @param name key
-        @param fce function which processed value. For example str or int
+        """Returns list of variable values from requests (like POST form).
+        name - key
+        fce  - function which processed value. For example str or int
         """
         if fce:
             return map(fce, CgiFieldStorage.getlist(self, name))
@@ -380,6 +377,6 @@ class FieldStorage(CgiFieldStorage):
 class SERVER_RETURN(Exception):
     """Compatible with mod_python.apache exception."""
     def __init__(self, code = HTTP_INTERNAL_SERVER_ERROR):
-        """@param code one of HTTP_* status from http.enums"""
+        """code is one of HTTP_* status from state module"""
         Exception.__init__(self, code)
 #endclass

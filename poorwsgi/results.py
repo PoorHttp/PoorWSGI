@@ -1,9 +1,6 @@
-#
-# File: results.py
-#   
-# This file containt base result functionality (redirect, sendfile, errors or
-# directory listing).
-#
+"""
+default Poor WSGI handlers
+"""
 
 from traceback import format_exception
 from time import strftime, gmtime
@@ -12,7 +9,13 @@ import os, re, sys, mimetypes
 
 from httplib import responses
 from cStringIO import StringIO
-from state import *
+
+from state import __author__, __date__, __version__, \
+        DONE, METHOD_ALL, methods, sorted_methods, levels, LOG_ERR, \
+        HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_FORBIDDEN, \
+        HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED, HTTP_INTERNAL_SERVER_ERROR, \
+        HTTP_NOT_IMPLEMENTED 
+
 
 def redirect(req, uri, permanent = 0, text = None):
     """This is a convenience function to redirect the browser to another
@@ -390,31 +393,58 @@ def directory_index(req, path):
     return DONE
 #enddef
 
-def debug_info(req, handlers, default_handler, shandlers):
+def debug_info(req, handlers, dhandlers, shandlers):
     def _human_methods_(m):
+        if m == METHOD_ALL:
+            return 'ALL'
         return ' | '.join(key for key, val in sorted_methods if val & m)
+    #enddef
+
+
+    def handlers_view(handlers):
+        rv = []
+        for u, d in sorted(handlers.items()):
+            mm = sorted(d.keys())
+
+            vt = {}
+            for m, h in d.items():
+                if not h in vt: vt[h] = 0
+                vt[h] ^= m
+
+            for h,m in sorted(vt.items(), key = lambda (k,v): (v,k)):
+                rv.append((u, m, h))
+
+        return rv
+    #enddef
 
     # transform handlers table to html
     handlers_html = "\n".join(
             ("        <tr><td><a href=\"%s\">%s</a></td><td>%s</td><td>%s</td></tr>" % \
                 (u, u, _human_methods_(m), f.__module__+'.'+f.__name__) \
-                    for u,(m, f) in sorted(handlers.items()) ))
+                    for u, m, f in handlers_view(handlers) ))
+    # this result function could be called by user, so we need to test req.debug
     if req.debug and 'debug-info' not in handlers:
         handlers_html += "        <tr><td><a href=\"%s\">%s</a></td><td>%s</td><td>%s</td></tr>" % \
             ('/debug-info', '/debug-info', 'ALL', debug_info.__module__+'.'+debug_info.__name__ )
 
-    handlers_html += "        <tr><td>%s</td><td>%s</td><td>%s</td></tr>" % \
-            ('default handler', 'ALL',
-                default_handler.__module__+'.'+default_handler.__name__ if default_handler else 'None')
+    handlers_html += "\n".join(
+            ("        <tr><td>_default_handler_</td><td>%s</td><td>%s</td></tr>" % \
+                (_human_methods_(m), f.__module__+'.'+f.__name__) \
+                    for x, m, f in handlers_view({'x': dhandlers}) ))
 
     # transform state handlers and default state table to html, users handler
     # from shandlers are preferer 
-    ehandlers_html = "\n".join(list("        <tr><td>%s</td><td>%s</td></tr>" % \
-            (c, f.__module__+'.'+f.__name__) for c,f in sorted(
-                list( (c, f) \
-                    for c, f in default_shandlers.items() if c not in shandlers) +\
-                shandlers.items()
-            )))
+    _tmp_shandlers = {}
+    _tmp_shandlers.update(default_shandlers)
+    for k, v in shandlers.items():
+        if k in _tmp_shandlers:
+            _tmp_shandlers[k].update(shandlers[k])
+        else:
+            _tmp_shandlers[k] = shandlers[k]
+    #endfor
+    ehandlers_html = "\n".join("        <tr><td>%s</td><td>%s</td><td>%s</td></tr>" % \
+                (c, _human_methods_(m), f.__module__+'.'+f.__name__) \
+                    for c, m, f in handlers_view(_tmp_shandlers))
 
     # transform actual request headers to hml
     headers_html = "\n".join(("        <tr><td>%s:</td><td>%s</td></tr>" %\
@@ -425,6 +455,8 @@ def debug_info(req, handlers, default_handler, shandlers):
             (key, val) for key, val in (
                     ('SecretKey', req.secretkey),
                     ('Debug', req.debug),
+                    ('Version', "%s (%s)" % (__version__, __date__)),
+                    ('Python Version', sys.version),
                     ('Server Software', req.server_software),
                     ('Server Hostname', req.server_hostname),
                     ('Server Port', req.port),
@@ -492,12 +524,15 @@ def debug_info(req, handlers, default_handler, shandlers):
     return DONE
 #enddef
 
-default_shandlers = {
-    HTTP_INTERNAL_SERVER_ERROR  : internal_server_error,
-    HTTP_NOT_FOUND              : not_found,
-    HTTP_METHOD_NOT_ALLOWED     : method_not_allowed,
-    HTTP_FORBIDDEN              : forbidden,
-    HTTP_NOT_IMPLEMENTED        : not_implemented,
-}
+default_shandlers = {}
 
-## @}
+def __fill_default_shandlers__(code, handler):
+    default_shandlers[code] = {}
+    for m in methods.values():
+        default_shandlers[code][m] = handler
+__fill_default_shandlers__(HTTP_INTERNAL_SERVER_ERROR, internal_server_error)
+__fill_default_shandlers__(HTTP_NOT_FOUND, not_found)
+__fill_default_shandlers__(HTTP_METHOD_NOT_ALLOWED, method_not_allowed)
+__fill_default_shandlers__(HTTP_FORBIDDEN, forbidden)
+__fill_default_shandlers__(HTTP_NOT_IMPLEMENTED, not_implemented)
+

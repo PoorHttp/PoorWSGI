@@ -1,99 +1,111 @@
 #!/usr/bin/python
 
-#from exceptions import Exception
+"""
+main application function, and functions for working with dispatch table
+"""
+
 from socket import error as SocketError
 
 import sys, os
 
-from state import *
+from state import OK, DONE, DECLINED, HTTP_ERROR, HTTP_OK, \
+            METHOD_GET, METHOD_POST, METHOD_HEAD, methods
 from request import Request, SERVER_RETURN
 from results import default_shandlers, not_implemented, internal_server_error, \
-            send_file, directory_index, debug_info, DECLINED
-
+            send_file, directory_index, debug_info
 
 def pre_process(req):
-    # this method is called before each request
+    """
+    This method is called before each request, if you want to use it, just
+    simple redefined it.
+    """
     pass
 
 def post_process(req):
-    # this method is called after each request
+    """
+    This method is called after each request, if you want to use it, just
+    simple redefined it.
+    """
     pass
 
-def default_handler(req):
-    # this method is called if no url is match from handlers or rhandlers table
-    pass
+# dhandlers table for default handers on methods {METHOD_GET: handler}
+dhandlers = {}
 
-# default_handler is None, couse if would be function, i can't test his sets
-default_handler = None
-
-# handlers table of simple paths: {'/path/to/request': (METHOD_GET, handler)}
-# TODO: {(uri, method): handler}
+# handlers table of simple paths: {'/path': {METHOD_GET: handler}}
 handlers = {}
 
-# handlers table of regex paths: {r'/user/([a-z]?)': (METHOD_GET, handler)}
+# handlers table of regex paths: {r'/user/([a-z]?)': {METHOD_GET: handler}}
 rhandlers = {}
 
-# http state handlers table : {HTTP_NOT_FOUND: my_404_handler}
+# http state handlers table : {HTTP_NOT_FOUND: {METHOD_GET: my_404_handler}}
 shandlers = {}
 
 def route(uri, method = METHOD_HEAD | METHOD_GET):
-    # wrap function to be handler for uri with method
-    def wrapper (fn):
-        global handlers
-        handlers[uri] = (method, fn)
+    """ wrap function to be handler for uri by method """
+    def wrapper(fn):
+        if not uri in handlers: handlers[uri] = {}
+        for m in methods.values():
+            if method & m: handlers[uri][m] = fn
         return fn
     return wrapper
 #enddef
 
 def rroute():
+    """ TODO: routes defined by regular expression """
     pass
 
 def groute():
+    """ TODO: routes defined by simple group regular expression """
     pass
 
-def default():
-    # wrap default handler (before 404)
-    def wrapper (fn):
-        global default_handler
-        default_handler = fn
+def default(method = METHOD_HEAD | METHOD_GET):
+    """ wrap default handler (called before error_not_found) by method """
+    def wrapper(fn):
+        for m in methods.values():
+            if method & m: dhandlers[m] = fn
         return fn
     return wrapper
 #enddef
 
-def http_state(code):
-    # wrap function to be error handler for http code
-    def wrapper (fn):
+def http_state(code, method = METHOD_HEAD | METHOD_GET | METHOD_POST):
+    """ wrap function to handle another http status codes like http errors """
+    def wrapper(fn):
         global shandlers
-        shandlers[code] = fn
+        if not code in shandlers: shandlers[code] = {}
+        for m in methods.values():
+            if method & m: shandlers[code][m] = fn
         return fn
     return wrapper
 #enddef
 
 def error_from_table(req, code):
-    # call post_process handler
-    post_process(req)
-
-    if code in shandlers:
+    """ this function is called if error was accured. If status code is in
+        shandlers (fill with http_state function), call this handler.
+    """
+    if code in shandlers and req.method in shandlers[code]:
         try:
-            handler = shandlers[code]
+            handler = shandlers[code][req.method]
             return handler(req)
         except:
             return internal_server_error(req)
     elif code in default_shandlers:
-        handler = default_shandlers[code]
+        handler = default_shandlers[code][METHOD_GET]
         handler(req)
     else:
         not_implemented(req)
 #enddef
 
 def handler_from_table(req):
-    # call pre_process
-    pre_process(req)
+    """ call right handler from handlers table (fill with route function). If no
+        handler is fined, try to find directory or file if Document Root, resp.
+        Document Index is set. Then try to call default handler for right method
+        or call handler for status code 404 - not found.
+    """
 
     if req.uri in handlers:
-        method, handler = handlers[req.uri]
-        # check if method is allowed
-        if methods[req.method] & method:
+        req.log_error("handlers uri %s method %s" % (req.uri, str(handlers[req.uri]) ) )
+        if req.method in handlers[req.uri]:
+            handler = handlers[req.uri][req.method]
             retval = handler(req)
             if retval != DECLINED:
                 raise SERVER_RETURN(retval)
@@ -123,11 +135,11 @@ def handler_from_table(req):
     #endif
 
     if req.debug and req.uri == '/debug-info':
-        raise SERVER_RETURN(debug_info(req, handlers, default_handler, shandlers))
+        raise SERVER_RETURN(debug_info(req, handlers, dhandlers, shandlers))
 
     # default handler is at the end of request - before 404 error
-    if default_handler is not None:
-        retval = default_handler(req)
+    if req.method in dhandlers:
+        retval = dhandlers[req.method](req)
         if retval != DECLINED:
             raise SERVER_RETURN(retval)
 
@@ -136,7 +148,17 @@ def handler_from_table(req):
 #enddef
 
 def application(environ, start_response):
+    """ Poor WSGI application which is called by WSGI server, how is describe
+        in PEP XXXX (http://xxx).
+        This function create Request object, call pre_process function, 
+        handler_from_table, and post_process function. pre_process and
+        post_process functions are not in try except block !
+    """
     req = Request(environ, start_response)
+
+    # call pre_process
+    pre_process(req)
+
     try:
         handler_from_table(req)
     except SERVER_RETURN as e:

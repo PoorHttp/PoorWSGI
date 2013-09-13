@@ -168,7 +168,7 @@ def handler_from_table(req):
 
 def application(environ, start_response):
     """ Poor WSGI application which is called by WSGI server, how is describe
-        in PEP XXXX (http://xxx).
+        in PEP 0333 (http://www.python.org/dev/peps/pep-0333/).
         This function create Request object, call pre_process function, 
         handler_from_table, and post_process function. pre_process and
         post_process functions are not in try except block !

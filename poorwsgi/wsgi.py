@@ -9,7 +9,8 @@ from socket import error as SocketError
 import sys, os
 
 from state import OK, DONE, DECLINED, HTTP_ERROR, HTTP_OK, \
-            METHOD_GET, METHOD_POST, METHOD_HEAD, methods
+            METHOD_GET, METHOD_POST, METHOD_HEAD, methods, LOG_INFO, LOG_ERR, \
+            HTTP_METHOD_NOT_ALLOWED
 from request import Request, SERVER_RETURN
 from results import default_shandlers, not_implemented, internal_server_error, \
             send_file, directory_index, debug_info
@@ -50,6 +51,13 @@ def route(uri, method = METHOD_HEAD | METHOD_GET):
     return wrapper
 #enddef
 
+def set_route(uri, fn, method = METHOD_HEAD | METHOD_GET):
+    """ set fn as handler for uri and method """
+    if not uri in handlers: handlers[uri] = {}
+    for m in methods.values():
+        if method & m: handlers[uri][m] = fn
+#enddef
+
 def rroute():
     """ TODO: routes defined by regular expression """
     pass
@@ -67,15 +75,27 @@ def default(method = METHOD_HEAD | METHOD_GET):
     return wrapper
 #enddef
 
+def set_default(fn, method = METHOD_HEAD | METHOD_GET):
+    """ set fn as default handler for method """
+    for m in methods.values():
+        if method & m: dhandlers[m] = fn
+#enddef
+
 def http_state(code, method = METHOD_HEAD | METHOD_GET | METHOD_POST):
     """ wrap function to handle another http status codes like http errors """
     def wrapper(fn):
-        global shandlers
         if not code in shandlers: shandlers[code] = {}
         for m in methods.values():
             if method & m: shandlers[code][m] = fn
         return fn
     return wrapper
+#enddef
+
+def set_http_state(code, fn, method = METHOD_HEAD | METHOD_GET | METHOD_POST):
+    """ set fn as handler for http state code and method """
+    if not code in shandlers: shandlers[code] = {}
+    for m in methods.values():
+        if method & m: shandlers[code][m] = fn
 #enddef
 
 def error_from_table(req, code):

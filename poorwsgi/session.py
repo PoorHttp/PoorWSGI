@@ -1,9 +1,7 @@
-#
-# $Id$
-#
-## \namespace session
-#  Cookie sessions.
+"""
+PoorSession self-contained cookie class
 
+"""
 from hashlib import sha1
 from time import time
 from pickle import dumps, loads
@@ -12,9 +10,6 @@ from base64 import b64decode, b64encode
 import bz2, sys
 
 from Cookie import SimpleCookie
-
-## \defgroup api Poor Application Interface
-# @{
 
 def hidden(text, passwd):
     """(en|de)crypt text with sha hash of passwd via xor.
@@ -133,5 +128,4 @@ class PoorSession:
     #enddef
 #endclass
 
-
-## @}
+from state import __author__, __date__, __version__

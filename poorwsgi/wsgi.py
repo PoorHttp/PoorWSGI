@@ -10,7 +10,7 @@ import sys, os
 
 from state import OK, DONE, DECLINED, HTTP_ERROR, HTTP_OK, \
             METHOD_GET, METHOD_POST, METHOD_HEAD, methods, LOG_INFO, LOG_ERR, \
-            HTTP_METHOD_NOT_ALLOWED
+            HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND
 from request import Request, SERVER_RETURN
 from results import default_shandlers, not_implemented, internal_server_error, \
             send_file, directory_index, debug_info
@@ -102,9 +102,9 @@ def error_from_table(req, code):
     """ this function is called if error was accured. If status code is in
         shandlers (fill with http_state function), call this handler.
     """
-    if code in shandlers and req.method in shandlers[code]:
+    if code in shandlers and req.method_number in shandlers[code]:
         try:
-            handler = shandlers[code][req.method]
+            handler = shandlers[code][req.method_number]
             return handler(req)
         except:
             return internal_server_error(req)
@@ -123,9 +123,8 @@ def handler_from_table(req):
     """
 
     if req.uri in handlers:
-        req.log_error("handlers uri %s method %s" % (req.uri, str(handlers[req.uri]) ) )
-        if req.method in handlers[req.uri]:
-            handler = handlers[req.uri][req.method]
+        if req.method_number in handlers[req.uri]:
+            handler = handlers[req.uri][req.method_number]
             retval = handler(req)
             if retval != DECLINED:
                 raise SERVER_RETURN(retval)
@@ -158,8 +157,8 @@ def handler_from_table(req):
         raise SERVER_RETURN(debug_info(req, handlers, dhandlers, shandlers))
 
     # default handler is at the end of request - before 404 error
-    if req.method in dhandlers:
-        retval = dhandlers[req.method](req)
+    if req.method_number in dhandlers:
+        retval = dhandlers[req.method_number](req)
         if retval != DECLINED:
             raise SERVER_RETURN(retval)
 

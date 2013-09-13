@@ -14,8 +14,8 @@ import os, re, sys, mimetypes
 
 from httplib import responses
 from cStringIO import StringIO
-from state import __author__, __date__, __version__, \
-        LOG_ERR, LOG_WARNING, LOG_INFO, \
+from state import __author__, __date__, __version__, methods, \
+        levels, LOG_ERR, LOG_WARNING, LOG_INFO, \
         HTTP_OK, \
         HTTP_INTERNAL_SERVER_ERROR 
 
@@ -57,6 +57,10 @@ class Request:
         ## A string containing the method - 'GET', 'HEAD', 'POST', etc. Same as
         #  CGI REQUEST_METHOD
         self.method = self.environ.get('REQUEST_METHOD')
+        if not self.method in methods:
+            self.method = 'HEAD'
+
+        self.method_number = methods[self.method]
 
         ## The path portion of the URI.
         self.uri = self.environ.get('PATH_INFO')

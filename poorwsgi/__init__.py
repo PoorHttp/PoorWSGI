@@ -23,5 +23,4 @@ from results import redirect
 
 from state import __author__, __date__, __version__
 
-from wsgi import application, route, set_route, http_state, set_http_state, \
-        default, set_default
+from wsgi import application, app

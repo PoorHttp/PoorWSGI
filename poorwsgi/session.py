@@ -6,10 +6,10 @@ from hashlib import sha1
 from time import time
 from pickle import dumps, loads
 from base64 import b64decode, b64encode
-
-import bz2, sys
-
+from bz2 import compress, decompress
 from Cookie import SimpleCookie
+
+from state import __author__, __date__, __version__
 
 def hidden(text, passwd):
     """(en|de)crypt text with sha hash of passwd via xor.
@@ -59,7 +59,7 @@ class PoorSession:
 
         if raw:
             try:
-                self.data = loads(hidden(bz2.decompress(b64decode(raw)),
+                self.data = loads(hidden(decompress(b64decode(raw)),
                                     req.secretkey))
                 if not isinstance(self.data, dict):
                     raise RuntimeError()
@@ -90,7 +90,7 @@ class PoorSession:
         header method.
         @param req http.classes.Request
         """
-        raw = b64encode(bz2.compress(hidden(dumps(self.data),
+        raw = b64encode(compress(hidden(dumps(self.data),
                                      req.secretkey), 9))
         self.cookie[self.SID] = raw
         self.cookie[self.SID]['path'] = self.path
@@ -127,5 +127,3 @@ class PoorSession:
         return header
     #enddef
 #endclass
-
-from state import __author__, __date__, __version__

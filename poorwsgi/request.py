@@ -9,8 +9,9 @@ from wsgiref.headers import Headers as WHeaders
 from cgi import FieldStorage as CgiFieldStorage
 from traceback import format_exception
 from time import strftime, gmtime
+from sys import version_info
 
-import os, re, sys, mimetypes
+import os, re 
 
 from httplib import responses
 from cStringIO import StringIO
@@ -70,6 +71,8 @@ class Request:
         self.content_type = None
 
         self.clength = 0
+
+        self.body_bytes_sent = 0
 
         ## Status. One of http.enums.HTTP_* values.
         self.status = HTTP_OK
@@ -135,7 +138,7 @@ class Request:
         self.secretkey = self.poor_environ.get(
                 'poor_SecretKey',
                 'Poor WSGI/%s for Python/%s.%s on %s' % \
-                    (__version__, sys.version_info.major, sys.version_info.minor,
+                    (__version__, version_info.major, version_info.minor,
                     self.server_software))
         
         try:
@@ -190,6 +193,7 @@ class Request:
             self.__write(self._buffer.read(self._buffer_size))
             self._buffer_offset += self._buffer_size
             self._buffer.seek(0,2)  # seek to EOF
+            self.body_bytes_sent = self._buffer_offset
         if flush == 1:
             self.flush()
     #enddef
@@ -262,6 +266,15 @@ class Request:
         if self._log_level[0] >= level[0]:
             self._errors.write("<%s> %s\n" % (level[1], message))
 
+    def __reset_buffer__(self):
+        """ Clean _buffer - for internal server error use """
+        self._buffer.reset()
+        self._buffer.truncate()
+        self._buffer_len = 0
+        self._buffer_offset = 0
+        self.body_bytes_sent = 0
+    #enddef
+
     def __end_of_request__(self):
         if not self._start_response:
             self.set_content_lenght(self._buffer_len)
@@ -273,6 +286,7 @@ class Request:
             self._buffer.seek(self._buffer_offset)
             self.__write(self._buffer.read())   # flush all from buffer
             self._buffer_offset = self._buffer_len
+            self.body_bytes_sent = self._buffer_len
             return ()               # data was be sent via write method
         #enddef
     #enddef
@@ -285,6 +299,7 @@ class Request:
         self._buffer.seek(self._buffer_offset)
         self.__write(self._buffer.read())       # flush all from buffer
         self._buffer_offset = self._buffer_len
+        self.body_bytes_sent = self._buffer_len
     #enddef
 
     def sendfile(self, path, offset = 0, limit = -1 ):

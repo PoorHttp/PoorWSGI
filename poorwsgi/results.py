@@ -4,8 +4,9 @@ default Poor WSGI handlers
 
 from traceback import format_exception
 from time import strftime, gmtime
+from os import path, access, listdir, R_OK
 
-import os, re, sys, mimetypes
+import sys, mimetypes
 
 from httplib import responses
 from cStringIO import StringIO
@@ -71,8 +72,12 @@ def internal_server_error(req):
     req.log_error(traceback, LOG_ERR)
     traceback = traceback.split('\n')
 
-    req.content_type = "text/html"
     req.status = HTTP_INTERNAL_SERVER_ERROR
+    if req.body_bytes_sent > 0: # if body is sent
+        return DONE
+
+    req.__reset_buffer__()        # clean buffer for error text
+    req.content_type = "text/html"
     req.headers_out = req.err_headers_out
 
     content = [
@@ -273,10 +278,9 @@ def send_file(req, path, content_type = None):
 
     req.content_type = content_type
 
-    if not os.access(path, os.R_OK):
+    if not access(path, R_OK):
         raise IOError("Could not stat file for reading")
 
-    #req._buffer = os.open(path, os.O_RDONLY)
     req._buffer = file(path, 'r')
     return DONE
 #enddef
@@ -285,14 +289,14 @@ def directory_index(req, path):
     """
     Returns directory index as html page
     """
-    if not os.path.isdir(path):
+    if not path.isdir(path):
         req.log_error (
             "Only directory_index can be send with directory_index handler. "
             "`%s' is not directory.",
             path);
         raise SERVER_RETURN(HTTP_INTERNAL_SERVER_ERROR)
 
-    index = os.listdir(path)
+    index = listdir(path)
     # parent directory
     if cmp(path[:-1], req.document_root()) > 0:
         index.append("..")
@@ -342,13 +346,13 @@ def directory_index(req, path):
             continue
 
         fpath = "%s/%s" % (path, item)
-        if not os.access(fpath, os.R_OK):
+        if not access(fpath, R_OK):
             continue
 
-        fname = item + ('/' if os.path.isdir(fpath) else '')
+        fname = item + ('/' if path.isdir(fpath) else '')
         ftype = "";
 
-        if os.path.isdir(fpath):
+        if path.isdir(fpath):
             ftype = "Directory"
         else:
             (ftype, encoding) = mimetypes.guess_type(fpath)
@@ -361,8 +365,8 @@ def directory_index(req, path):
             "<td class=\"size\">%s</td><td>%s</td></tr>\n" %\
             (diruri + '/' + fname,
             fname,
-            strftime("%d-%b-%Y %H:%M", gmtime(os.path.getctime(fpath))),
-            "%.1f%s" % hbytes(os.path.getsize(fpath)) if os.path.isfile(fpath) else "- ",
+            strftime("%d-%b-%Y %H:%M", gmtime(path.getctime(fpath))),
+            "%.1f%s" % hbytes(path.getsize(fpath)) if path.isfile(fpath) else "- ",
             ftype
             ))
 
@@ -393,7 +397,7 @@ def directory_index(req, path):
     return DONE
 #enddef
 
-def debug_info(req, handlers, dhandlers, shandlers):
+def debug_info(req, app):
     def _human_methods_(m):
         if m == METHOD_ALL:
             return 'ALL'
@@ -421,26 +425,26 @@ def debug_info(req, handlers, dhandlers, shandlers):
     handlers_html = "\n".join(
             ("        <tr><td><a href=\"%s\">%s</a></td><td>%s</td><td>%s</td></tr>" % \
                 (u, u, _human_methods_(m), f.__module__+'.'+f.__name__) \
-                    for u, m, f in handlers_view(handlers) ))
+                    for u, m, f in handlers_view(app.handlers) ))
     # this result function could be called by user, so we need to test req.debug
-    if req.debug and 'debug-info' not in handlers:
+    if req.debug and 'debug-info' not in app.handlers:
         handlers_html += "        <tr><td><a href=\"%s\">%s</a></td><td>%s</td><td>%s</td></tr>" % \
             ('/debug-info', '/debug-info', 'ALL', debug_info.__module__+'.'+debug_info.__name__ )
 
     handlers_html += "\n".join(
             ("        <tr><td>_default_handler_</td><td>%s</td><td>%s</td></tr>" % \
                 (_human_methods_(m), f.__module__+'.'+f.__name__) \
-                    for x, m, f in handlers_view({'x': dhandlers}) ))
+                    for x, m, f in handlers_view({'x': app.dhandlers}) ))
 
     # transform state handlers and default state table to html, users handler
     # from shandlers are preferer 
     _tmp_shandlers = {}
     _tmp_shandlers.update(default_shandlers)
-    for k, v in shandlers.items():
+    for k, v in app.shandlers.items():
         if k in _tmp_shandlers:
-            _tmp_shandlers[k].update(shandlers[k])
+            _tmp_shandlers[k].update(app.shandlers[k])
         else:
-            _tmp_shandlers[k] = shandlers[k]
+            _tmp_shandlers[k] = app.shandlers[k]
     #endfor
     ehandlers_html = "\n".join("        <tr><td>%s</td><td>%s</td><td>%s</td></tr>" % \
                 (c, _human_methods_(m), f.__module__+'.'+f.__name__) \

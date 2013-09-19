@@ -1,8 +1,8 @@
 #!/bin/sh
 
-poorhttp=/srv/poorhttp/poorhttp
-pidfile=/srv/run/poorhttp.pid
-config=/srv/etc/poorhttp.ini
+poorhttp=/usr/bin/poorhttp
+pidfile=/var/run/poorhttp.pid
+config=/etc/poorhttp.ini
 
 python=python
 

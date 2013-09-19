@@ -1,17 +1,20 @@
-#
-# $Id$
-#
+"""
+    Poor Http Server Classes
+
+    Main server classes for handling request and Log class, which works create
+    logs like from Apache.
+"""
 
 from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, ServerHandler
 from SocketServer import ForkingMixIn, ThreadingMixIn
 from time import strftime
-from os import name as osname
 from sys import exc_info
 from traceback import format_exception
 
 import os
 
 import env
+from env import __version__, __author__, __date__
 
 class PoorServer(WSGIServer):
     type = "Single"
@@ -59,7 +62,10 @@ class WebRequestHandler(WSGIRequestHandler):
 
 class PoorServerHandler(ServerHandler):
     
-    server_software = "Poor Http (%s)" % osname
+    server_software = "Poor Http (%s)" % os.name
+
+    def add_poor_vars(self):
+        self.environ.update(env.environ)
 
     def run(self, application, request_object):
         """Invoke the application"""
@@ -70,6 +76,7 @@ class PoorServerHandler(ServerHandler):
         # closing if there might still be output to iterate over.
         try:
             self.setup_environ()
+            self.add_poor_vars()
             self.result = application(self.environ, self.start_response)
             self.finish_response()
         except:
@@ -125,6 +132,13 @@ class Log:
             self.close(self.errorlog)
         if self.accesslog:
             self.close(self.accesslog)
+    #enddef
+
+    def set_chown(self, uid, gid):
+        if self.errorlog:
+            os.fchown(self.errorlog, uid, gid)
+        if self.accesslog:
+            os.fchown(self.accesslog, uid, gid)
     #enddef
 
     def write(self, message):

@@ -1,12 +1,18 @@
-# $Id$
-#
+"""
+    Poor Http Server tools
+
+    This library contains functions for parsing config file, creating pidfile
+    and print usege help.
+"""
 
 from getopt import getopt
-from exceptions import OSError
+from ConfigParser import ConfigParser
+from grp import getgrnam
+from pwd import getpwnam
 
 import sys, os
 
-from classes import Log, ForkingServer, ThreadingServer
+from classes import Log, ForkingServer, ThreadingServer, PoorServer
 
 import env
 
@@ -43,17 +49,21 @@ def usage(err = None):
 #enddef
     
 def configure():
+    env.cfg = ConfigParser()
+
     # set default values
     env.cfg.add_section('http')                 # http section
+    env.cfg.set('http', 'port', '8080')
+    env.cfg.set('http', 'address', '127.0.0.1')
+    env.cfg.set('http', 'pidfile', '/var/run/poorhttp.pid')
+
     env.cfg.set('http', 'webmaster', 'root@localhost')
     env.cfg.set('http', 'errorlog', '/var/log/poorhttp-error.log')
     env.cfg.set('http', 'accesslog', '/var/log/poorhttp-access.log')
     env.cfg.set('http', 'type', 'single')
-    env.cfg.set('http', 'application', '')
     env.cfg.set('http', 'path', './')
-    env.cfg.set('http', 'autoreload', 'False')
     env.cfg.set('http', 'optimize', '1')
-    env.cfg.set('http', 'debug', 'True')
+    env.cfg.set('http', 'debug', 'False')
 
     env.cfg.add_section('environ')              # environ section
     # no default application environment defined
@@ -64,7 +74,7 @@ def configure():
                 ['config=', 'pidfile=', 'address=', 'port=', 'help', 'version']
             )
 
-    opts = {'config': './poorhttp.ini'}
+    opts = {'config': '/etc/poorhttp.ini'}
     for var, val in pairs:
         opts[var[2:]] = val
         if var in ('--help', '-h'):
@@ -91,12 +101,20 @@ def configure():
         env.cfg.set('http', key, val)
     #endfor
 
-    if not env.cfg.has_option('http','pidfile'):
-        usage('pidfile not configure!')
-    if not env.cfg.has_option('http','address'):
-        usage('address not configure!')
-    if not env.cfg.has_option('http','port'):
-        usage('port not configure!')
+    if env.cfg.has_option('http', 'group'):
+        group = env.cfg.get('http', 'group')
+        try:
+            env.gid = getgrnam(group).gr_gid
+        except:
+            usage("Group `%s' not found on system" % group)
+    if env.cfg.has_option('http', 'user'):
+        user = env.cfg.get('http', 'user')
+        try:
+            pw = getpwnam(user)
+        except:
+            usage("User `%s' not found on system" % user)
+        env.uid = pw.pw_uid                                 # set user id
+        env.gid = pw.pw_gid if env.gid == 0 else env.gid    # set users group id
     #endif
 
     try:
@@ -107,46 +125,46 @@ def configure():
     #endtry
 
     # set environment from cfg
-    if env.cfg.has_option('http', 'webmaster'):
-        os.environ['SERVER_ADMIN'] = env.cfg.get('http', 'webmaster')
-    if env.cfg.has_option('http', 'type'):
-        server_type = env.cfg.get('http', 'type')
-        if server_type == "forking":
-            env.server_class = ForkingServer
-        elif server_type == "threading":
-            env.server_class = ThreadingServer
-        os.environ['poor.ServerType'] = server_type
-    if env.cfg.has_option('http', 'application'):
-        appfile = env.cfg.get('http', 'application')
-        if not os.access(appfile, os.R_OK) or not os.path.isfile(appfile):
-            usage('Access denied to %s' % appfile)
-        os.environ['poor.Application'] = os.path.splitext(os.path.basename(appfile))[0]
-        sys.path.insert(0, os.path.abspath(os.path.dirname(appfile)))
+    env.environ['SERVER_ADMIN'] = env.cfg.get('http', 'webmaster')
+    server_type = env.cfg.get('http', 'type')
+    if server_type == "forking":
+        env.server_class = ForkingServer
+    elif server_type == "threading":
+        env.server_class = ThreadingServer
+    else:
+        env.server_class = PoorServer
+    env.environ['poor.ServerType'] = server_type
+
+    if not env.cfg.has_option('http', 'application'):
+        usage('Application must be set')
+
+    appfile = env.cfg.get('http', 'application')
+    if not os.access(appfile, os.R_OK) or not os.path.isfile(appfile):
+        usage('Access denied to %s' % appfile)
+    env.environ['poor.Application'] = os.path.splitext(os.path.basename(appfile))[0]
+    sys.path.insert(0, os.path.abspath(os.path.dirname(appfile)))
+    env.log.error('[I] Inserting python path from application %s' % sys.path[0])
+
     # yes python path could be on the top of path just like uwsgi
-    if env.cfg.has_option('http', 'path'):
-        python_paths = env.cfg.get('http', 'path', './').split(':')
-        python_paths.reverse()
-        for path in python_paths:
-            sys.path.insert(0, os.path.abspath(path))
-        #endfor
-    if env.cfg.has_option('http', 'autoreload'):
-        os.environ['poor.AutoReload'] = env.cfg.get('http', 'autoreload')
-    if env.cfg.has_option('http', 'optimze'):
-        os.environ['poor.Optimze'] = env.cfg.get('http', 'optimize')
-    os.environ['poor.Version'] = str(env.server_version)
-    env.log.error('[I] New python path: %s' % str(sys.path))
-    #endif
+    python_paths = env.cfg.get('http', 'path').split(':')
+    python_paths.reverse()
+    for path in python_paths:
+        sys.path.insert(0, os.path.abspath(path))
+        env.log.error('[I] Inserting python path from path option %s' % sys.path[0])
+    #endfor
+
+    env.environ['poor.Optimze'] = env.cfg.get('http', 'optimize')
+        
+    if env.cfg.get('http', 'debug').lower() in ('true', 'yes', 'on', '1'):
+        env.debug = True
+    env.environ['poor.Debug'] = str(env.debug)
+    env.environ['poor.Version'] = str(env.server_version)
     
     # application environment
-    for option in env.cfg.options('environ'):
-        var = env.cfg.get('environ', option)
-        pos = var.find('=')
-        if pos < 1 or len(var) == pos+1:
-            env.log.error('[E] Wrong variable setting `%s`' % var)
-            continue
-
-        os.environ[var[:pos]] = var[pos+1:]
-        env.log.error('[I] Set variable %s to %s' % (var[:pos], os.environ[var[:pos]]))
+    for var in env.cfg.options('environ'):
+        val = env.cfg.get('environ', var)
+        env.environ[var] = val
+        env.log.error('[I] Set variable %s to %s' % (var, val))
     #endfor
 
     return env.cfg

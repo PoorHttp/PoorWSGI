@@ -37,7 +37,13 @@ class Application:
     #enddef
 
     def pre_process(self):
-        """ wrap function to call before each request """
+        """
+            wrap function to call before each request
+
+                @app.pre_process()
+                def before_each_request(req):
+                    ...
+        """
         def wrapper(fn):
             self._pre.append(fn)
             return fn
@@ -45,19 +51,49 @@ class Application:
     #enddef
 
     def add_pre_process(self, fn):
-        """ adds function to list functions which is call before each request """
+        """
+            adds function to list functions which is call before each request
+
+                app.add_pre_process(before_each_request)
+        """
         self._pre.append(fn)
+    #enddef
 
 
     def post_process(self, req):
         """
         This method is called after each request, if you want to use it, just
         simple redefined it.
+
+            @app.pre_process()
+            def after_each_request(req):
+                ...
         """
-        pass
+        def wrapper(fn):
+            self._post.append(fn)
+            return fn
+        return wrapper
+    #enddef
+
+    def add_post_process(self, fn):
+        """
+            adds function to list functions which is call before each request
+
+                app.add_post_process(after_each_request)
+        """
+        self._pre.append(fn)
 
     def default(self, method = METHOD_HEAD | METHOD_GET):
-        """ wrap default handler (called before error_not_found) by method """
+        """
+            wrap default handler (called before error_not_found) by method
+
+                @app.default(METHOD_GET_POST)
+                def default_get_post(req):
+                    # this function will be called if no uri match in internal
+                    # uri table with method. It's similar like not_found error,
+                    # but without error
+                    ...
+        """
         def wrapper(fn):
             for m in methods.values():
                 if method & m: self.dhandlers[m] = fn
@@ -66,7 +102,11 @@ class Application:
     #enddef
 
     def set_default(self, fn, method = METHOD_HEAD | METHOD_GET):
-        """ set fn as default handler for method """
+        """
+            set fn as default handler for method 
+
+                app.set_default(default_get_post, METHOD_GET_POST)
+        """
         for m in methods.values():
             if method & m: self.dhandlers[m] = fn
     #enddef
@@ -88,7 +128,11 @@ class Application:
     #enddef
 
     def set_route(self, uri, fn, method = METHOD_HEAD | METHOD_GET):
-        """ set fn as handler for uri and method """
+        """
+        set fn as handler for uri and method
+ 
+            app.set_route('/use/post', user_create, METHOD_POST)
+        """
         if not uri in self.handlers: self.handlers[uri] = {}
         for m in methods.values():
             if method & m: self.handlers[uri][m] = fn
@@ -244,5 +288,8 @@ class Application:
 
 #endclass
 
+# application callable instance, which is need by wsgi server
 application = Application()
+
+# alias for less write coding
 app = application

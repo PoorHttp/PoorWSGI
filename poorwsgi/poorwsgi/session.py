@@ -17,9 +17,6 @@ def hidden(text, passwd):
         text    raw data to (en|de)crypt
         passwd  password
         returns string
-
-    Tak a to me zajima jak tohle jako bude dlouhy aby to nevypadalo moc osklive,
-    X to tohle asi zase usekne co ?
     """
     
     passwd = sha1(passwd).digest()
@@ -93,7 +90,6 @@ class PoorSession:
     def write(self, req):
         """Store data to cookie value. This method is called automaticly in
         header method.
-        @param req http.classes.Request
         """
         raw = b64encode(compress(hidden(dumps(self.data),
                                      req.secretkey), 9))
@@ -115,10 +111,9 @@ class PoorSession:
     #enddef
 
     def header(self, req, headers_out = None):
-        """Generate cookie headers and append it to headers_out if it set.
-        @param req http.classes.Request
-        @param headers_out http.classes.Headers object
-        @returns list of cookie header pairs
+        """
+        Generate cookie headers and append it to headers_out if it set.
+            returns list of cookie header pairs
         """
         self.write(req)
         cookies = self.cookie.output().split('\r\n')

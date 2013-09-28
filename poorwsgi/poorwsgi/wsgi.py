@@ -15,11 +15,14 @@ from results import default_shandlers, not_implemented, internal_server_error, \
 
 class Application:
     """ Poor WSGI application which is called by WSGI server, how, is describe
-        in PEP 0333 (http://www.python.org/dev/peps/pep-0333/).
-        This object store route dispatch table, and have methods for it's using
-        and of course __call__ method for use as WSGI application.
+        in PEP 0333. This object store route dispatch table, and have methods
+        for it's using and of course __call__ method for use as WSGI application.
     """
     def __init__(self):
+        # list of pre and post process handlers
+        self._pre = []
+        self._post = []
+
         # dhandlers table for default handers on methods {METHOD_GET: handler}
         self.dhandlers = {}
 
@@ -33,12 +36,18 @@ class Application:
         self.shandlers = {}
     #enddef
 
-    def pre_process(self, req):
-        """
-        This method is called before each request, if you want to use it, just
-        simple redefined it.
-        """
-        pass
+    def pre_process(self):
+        """ wrap function to call before each request """
+        def wrapper(fn):
+            self._pre.append(fn)
+            return fn
+        return wrapper
+    #enddef
+
+    def add_pre_process(self, fn):
+        """ adds function to list functions which is call before each request """
+        self._pre.append(fn)
+
 
     def post_process(self, req):
         """
@@ -63,7 +72,13 @@ class Application:
     #enddef
 
     def route(self, uri, method = METHOD_HEAD | METHOD_GET):
-        """ wrap function to be handler for uri by method """
+        """
+        wrap function to be handler for uri by method
+
+            @app.route('/user/post', method = METHOD_POST)
+            def user_create(req):
+                ...
+        """
         def wrapper(fn):
             if not uri in self.handlers: self.handlers[uri] = {}
             for m in methods.values():
@@ -140,8 +155,12 @@ class Application:
             if req.method_number in self.handlers[req.uri]:
                 handler = self.handlers[req.uri][req.method_number]
                 retval = handler(req)
+                # return text is allowed
+                if isinstance(retval, str) or isinstance(retval, unicode):
+                    req.write(retval, 1)    # write data and flush
+                    retval = DONE
                 if retval != DECLINED:
-                    raise SERVER_RETURN(retval)
+                    raise SERVER_RETURN(retval or DONE)     # could be state.DONE
             else:
                 raise SERVER_RETURN(HTTP_METHOD_NOT_ALLOWED)
             #endif
@@ -190,7 +209,8 @@ class Application:
         req = Request(environ, start_response)
 
         try: # call pre_process
-            self.pre_process(req)
+            for fn in self._pre:
+                fn(req)
         except:
             self.error_from_table(req, 500)
             return req.__end_of_request__()
@@ -213,7 +233,8 @@ class Application:
         #endtry
 
         try: # call post_process handler
-            self.post_process(req)
+            for fn in self._post:
+                fn(req)
         except:
             self.error_from_table(req, 500)
         #endtry

@@ -11,7 +11,7 @@ from traceback import format_exception
 from time import strftime, gmtime
 from sys import version_info
 
-import os, re 
+import os, re
 
 from httplib import responses
 from cStringIO import StringIO
@@ -67,8 +67,8 @@ class Request:
         self.uri = self.environ.get('PATH_INFO')
 
         ## String. The content type. Another way to set content_type is via
-        #  headers_out object property.
-        self.content_type = None
+        #  headers_out object property. Default is text/html; charset=utf-8
+        self.content_type = "text/html; charset=utf-8"
 
         self.clength = 0
 
@@ -133,12 +133,11 @@ class Request:
         # Protocol, as given by the client, or HTTP/0.9. cgi SERVER_PROTOCOL value
         self.protocol = self.environ.get('SERVER_PROTOCOL')
 
-        
         # String, which is used to encrypt session.PoorSession
         self.secretkey = self.poor_environ.get(
                 'poor_SecretKey',
                 'Poor WSGI/%s for Python/%s.%s on %s' % \
-                    (__version__, version_info.major, version_info.minor,
+                    (__version__, version_info[0], version_info[1],
                     self.server_software))
         
         try:
@@ -182,6 +181,9 @@ class Request:
         data was be sent to client via old write method (directly). Otherwhise,
         data was be sent at the end of request as iterable object.
         """
+        if isinstance(data, unicode):
+            data = data.encode('utf-8')
+        
         # FIXME: self._buffer is not FIFO
         self._buffer_len += len(data)
         self._buffer.write(data)
@@ -248,19 +250,20 @@ class Request:
     #enddef
 
     def log_error(self, message, level = LOG_ERR, server = None):
-        """An interface to log error via wsgi.errors.
-        message - string with the error message
-        level - is one of the following flags constants:
-                    LOG_EMERG
-                    LOG_ALERT
-                    LOG_CRIT
-                    LOG_ERR     (default)
-                    LOG_WARNING
-                    LOG_NOTICE
-                    LOG_INFO
-                    LOG_DEBUG
-                    LOG_NOERRNO
-        server - interface only compatibility parameter
+        """
+        An interface to log error via wsgi.errors. 
+            message - string with the error message
+            level - is one of the following flags constants:
+                        LOG_EMERG
+                        LOG_ALERT
+                        LOG_CRIT
+                        LOG_ERR     (default)
+                        LOG_WARNING
+                        LOG_NOTICE
+                        LOG_INFO
+                        LOG_DEBUG
+                        LOG_NOERRNO
+            server - interface only compatibility parameter
         """
 
         if self._log_level[0] >= level[0]:
@@ -334,13 +337,13 @@ class FieldStorage(CgiFieldStorage):
     def __init__(self, fp_or_req = None,
                         headers = None,
                         outerboundary = '',
-                        environ = os.environ,
+                        environ = None,
                         keep_blank_values = 0,
                         strict_parsing = 0,
                         file_callback = None,
                         field_callback = None):
 
-        self.environ = environ
+        self.environ = environ or os.environ
         req = None
         if fp_or_req and isinstance(fp_or_req, Request):
             req = fp_or_req

@@ -12,10 +12,14 @@ from Cookie import SimpleCookie
 from state import __author__, __date__, __version__
 
 def hidden(text, passwd):
-    """(en|de)crypt text with sha hash of passwd via xor.
-    @param  text    raw data to (en|de)crypt
-    @param  passwd  password
-    @returns string
+    """
+    (en|de)crypt text with sha hash of passwd via xor.
+        text    raw data to (en|de)crypt
+        passwd  password
+        returns string
+
+    Tak a to me zajima jak tohle jako bude dlouhy aby to nevypadalo moc osklive,
+    X to tohle asi zase usekne co ?
     """
     
     passwd = sha1(passwd).digest()
@@ -30,11 +34,12 @@ class PoorSession:
     """Self-contained cookie with session data"""
 
     def __init__(self, req, expires = 0, path = '/', SID = 'SESSID'):
-        """Constructor.
-        @param  req     mod_python.apache.request
-        @param  expires cookie expire time in seconds, if it 0, no expire is set
-        @param  path    cookie path
-        @param  SID     cookie key name
+        """
+        Constructor.
+            req     mod_python.apache.request
+            expires cookie expire time in seconds, if it 0, no expire is set
+            path    cookie path
+            SID     cookie key name
         """
 
         # @cond PRIVATE

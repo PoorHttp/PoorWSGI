@@ -2,7 +2,8 @@
 Poor WSGI connector for Python
 
 Current Contents:
-    
+   
+    #!text
     * request - Headers, Request, FieldStorage and SERVER_RETURN classes, which
                 is used for managing requests.
 

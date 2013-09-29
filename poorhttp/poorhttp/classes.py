@@ -32,7 +32,7 @@ class WebRequestHandler(WSGIRequestHandler):
                 env.server_host,
                 self.address_string(),
                 self.log_date_time_string(),
-                format%args)
+                format % args)
         #WSGIRequestHandler.log_message(self, format, *args)
 
     def log_request(self, code='-', size='-'):

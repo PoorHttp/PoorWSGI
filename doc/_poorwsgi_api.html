@@ -1,0 +1,22 @@
+{% set page = 'api' %}{% include "_header.html" %}
+
+{% set api = load_module('poorwsgi') %}
+{% set api = api + load_module('wsgi') %}
+{% set api = api + load_module('request') %}
+{% set api = api + load_module('results') %}
+{% set api = api + load_module('session') %}
+{% set api = api + load_module('state') %}
+
+{% set kw = keywords(api) %}
+      <menu class="sidebar">
+        {% for type, name, args, doc in api %}
+        {% if type == 'module' %}<h2><a href="#{{ name }}">{{ name }}</a></h2>
+        {% elif type =='function' and name[0] != '_' %}<h3><a href="#{{ name }}">{{ name }}</a></h3>
+        {% endif %}
+        {% endfor %}
+      </menu><!-- sidebar --!>
+
+    <div class="content">
+{% include "_reference.html" %}
+    </div><!-- content --!>
+{% include "_footer.html" %}

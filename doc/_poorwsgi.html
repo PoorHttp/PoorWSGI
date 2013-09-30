@@ -1,0 +1,17 @@
+{% set page = 'poorwsgi' %}{% include "_header.html" %}
+
+{% set sects = load_text("readme.txt") %}
+
+{#      need api for keywords yea?      #}
+{% set api = load_module('poorwsgi') %}
+{% set api = api + load_module('wsgi') %}
+{% set api = api + load_module('request') %}
+{% set api = api + load_module('results') %}
+{% set api = api + load_module('session') %}
+{% set api = api + load_module('state') %}
+
+{% set kw = keywords(api, 'poorwsgi_api.html') %}
+
+{% include "_text.html" %}
+      
+{% include "_footer.html" %}

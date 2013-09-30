@@ -1,0 +1,42 @@
+{% set prev = 'none' %}
+{% for type, name, args, doc in api %}
+  {% if type != 'submodule' and prev == 'submodule' %}
+      </div><!-- submodules --!>
+  {% endif%}
+  {% if type == 'module' %}
+    <h2 class="{{ type }}"><i>module</i> {{ name }}
+      <span class="links"> 
+        <a name="{{ name }}" href="#{{ name }}">link</a> |
+        <a href="#">top</a></span></h2>
+  {% elif type == 'submodule' %}
+    {% if prev != type %}
+    <div class="submodules">
+      <small>Module dependences:</small>
+    {% else %},
+    {% endif %}
+      <span class="{{ type }}">{{ wiki(name) }}</span>
+  {% elif type == 'class' %}
+    <h3 class="{{ type }}"><i>def</i> {{ name }}
+      <span class="links">
+        <a name="{{ name }}" href="#{{ name }}">link</a> | 
+        <a href="#">top</a></span></h3>
+  {% elif type == 'method' %}
+    <h4 class="{{ type }}"><i>def</i> {{ local_name(name) }}{{ args|truncate(end='...)') }}
+      <span class="links">
+        <a name="{{ name }}" href="#{{ name }}">link</a> | 
+        <a href="#">top</a></span></h4>
+  {% elif type == 'function' %}
+    <h3 class="{{ type }}"><i>def</i> {{ name }}{{ args|truncate(end='...)') }}
+      <span class="links">
+        <a name="{{ name }}" href="#{{ name }}">link</a> | 
+        <a href="#">top</a></span></h3>
+  {% elif type == 'variable' %}
+    <h4 class="{{ type }}">{{ name }} = {{ args|e|truncate }}
+      <span class="links">
+        <a href="#">top</a></span></h4>
+  {% endif %}
+  {% if type != 'submodule' %}
+    <div class="{{ type }}">{{ wiki(doc) }}</div>
+  {% endif %}
+  {% set prev = type %}
+{% endfor %}

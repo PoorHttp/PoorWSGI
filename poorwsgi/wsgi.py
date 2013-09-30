@@ -215,6 +215,8 @@ class Application:
             rfile = "%s%s" % (req.document_root(), path.normpath("%s" % req.uri))
         
             if not access(rfile, R_OK):
+                if req.debug and req.uri == '/debug-info':      # work if debug
+                    raise SERVER_RETURN(debug_info(req, self))
                 req.log_error("404 File Not Found: %s" % req.uri, LOG_ERR)
                 raise SERVER_RETURN(HTTP_NOT_FOUND)
 

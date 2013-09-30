@@ -85,7 +85,8 @@ def internal_server_error(req):
             "  <head>\n",
             "    <title>500 - Internal Server Error</title>\n",
             "    <style>\n",
-            "      body {width: 80%%; margin: auto; padding-top: 30px;}\n",
+            "      body {width: 80%; margin: auto; padding-top: 30px;}\n",
+            "      h1 {text-align: center; color: #707070;}\n"\
             "      pre .line1 {background: #e0e0e0}\n",
             "    </style>\n",
             "  <head>\n",
@@ -285,20 +286,20 @@ def send_file(req, path, content_type = None):
     return DONE
 #enddef
 
-def directory_index(req, path):
+def directory_index(req, _path):
     """
     Returns directory index as html page
     """
-    if not path.isdir(path):
+    if not path.isdir(_path):
         req.log_error (
             "Only directory_index can be send with directory_index handler. "
             "`%s' is not directory.",
-            path);
+            _path);
         raise SERVER_RETURN(HTTP_INTERNAL_SERVER_ERROR)
 
-    index = listdir(path)
+    index = listdir(_path)
     # parent directory
-    if cmp(path[:-1], req.document_root()) > 0:
+    if cmp(_path[:-1], req.document_root()) > 0:
         index.append("..")
     index.sort()
 
@@ -345,7 +346,7 @@ def directory_index(req, path):
         if item[-1] == "~":
             continue
 
-        fpath = "%s/%s" % (path, item)
+        fpath = "%s/%s" % (_path, item)
         if not access(fpath, R_OK):
             continue
 

@@ -140,19 +140,19 @@ class Application:
 
     def rroute(self, ruri, method = METHOD_HEAD | METHOD_GET):
         """ TODO: routes defined by regular expression """
-        NotImplementedError('Not implement yet')
+        raise NotImplementedError('Not implement yet')
 
     def set_rroute(self, ruri, method = METHOD_HEAD | METHOD_GET):
         """ TODO: routes defined by regular expression """
-        NotImplementedError('Not implement yet')
+        raise NotImplementedError('Not implement yet')
 
     def groute(self, guri, method = METHOD_HEAD | METHOD_GET):
         """ TODO: routes defined by simple group regular expression """
-        NotImplementedError('Not implement yet')
+        raise NotImplementedError('Not implement yet')
 
     def set_groute(self, guri, method = METHOD_HEAD | METHOD_GET):
         """ TODO: routes defined by simple group regular expression """
-        NotImplementedError('Not implement yet')
+        raise NotImplementedError('Not implement yet')
 
     def http_state(self, code, method = METHOD_HEAD | METHOD_GET | METHOD_POST):
         """ wrap function to handle another http status codes like http errors """

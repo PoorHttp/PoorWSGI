@@ -18,7 +18,7 @@ def hidden(text, passwd):
         passwd  password
         returns string
     """
-    
+    # TODO: use smart salt
     passwd = sha1(passwd).digest()
     passlen = len(passwd)
     retval = ''

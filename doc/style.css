@@ -62,7 +62,7 @@ menu {
 .sidebar {
     float: left;
     width: 16em;
-    padding: 1em 0 0 1em;
+    padding: 1em 0 0 0.5em;
 }
 .sidebar a {
 }
@@ -72,12 +72,12 @@ menu {
     font-weight: normal;
 }
 .sidebar h2 {
-    margin: 0 0 0 1em;
+    margin: 0 0 0 0.5em;
     font-size: 100%;
     font-weight: normal;
 }
 .sidebar h3 {
-    margin: 0 0 0 2em;
+    margin: 0 0 0 1em;
     font-size: 90%;
     font-weight: normal;
 }

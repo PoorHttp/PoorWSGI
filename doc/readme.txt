@@ -272,11 +272,94 @@ called, but all code from pre_process and from route handler is called, and
 may be, it could send output to WSGI server, if content is bigger then
 poor_BufferSize.
 
-
 === Input variables / Forms ===
 
-=== Headers and Sessions ===
+User input vairables, which is sent to server are available throw
+FieldStorage class. FieldStorage is child of FieldStorage class from pythons
+cgi module with some WSGI support init and additional functionality in
+getfirst and getlist methods.
 
-== Few word on end ==
+Both of methods have new parameter fce, This function is called on all
+returned value and it is good idea to set it on your requested variable. If
+you want to get number, you will every time got number if fce is int or float.
+
+Before example, that not mind, if request method is get, post or another. You
+can use FieldStorage every time.
+
+    @app.route('/some/uri')
+    def some_uri(req):
+        form = FieldStorage(req)
+        user = form.getfirst('name', '', str)       # because str(None) returns 'None'
+        age  = form.getfirst('age', fce = int)      # there could raise exception
+                                                    # because int(None) raise it
+        children = form.getlist('children', '', str)
+        ...
+
+=== Headers and Sessions ===
+==== Headers ====
+We talk about headers in a few paragraph before. Now is time to more
+information about that. Request object have headers_in attribute, which is
+instance of wshiref.headers.Headers. This headers contains request headers
+from client like in mod_python. You can read it as you can.
+
+Next to it, there are two output attributes headers_out and err_headers_out.
+Both of that are instance of Headers class from request module. The Headers
+class is child of wsgiref.headers.Headers class with little additional. By
+default there is {X-Powered-By} header set to "Poor WSGI for Python" and
+add method raise exception if you try to set more same keys without
+{Set-Cookie}.
+
+Different before headers_out and err_headers_out is, that err_headers_out is
+use in internal http state handlers like in mod_python.
+
+    @app.route('/some/uri')
+    def some_uri(req):
+        xparam = int(req.headers_in.get('X-Param', '0'))
+        req.headers_out.add('My-Param', xparam * 2)
+        ...
+
+==== Sessions ====
+
+Like in mod_python, in poor WSGI is session class PoorSession. It is
+self-contained cookie which have data dictionary. Data are sent to client in
+hidden, bzip2ed, base64 encoded format. In read this session, expires value
+are check from data, so client can't change it in simple way. That is
+important to right set poor_SecretKey variable which is used in class by
+hidden function.
+
+    @app.route('/login')
+    def login(req):
+        if req.method == 'POST':
+            passwd = form.getfirst('passwd', fce = str)
+            if passwd != 'SecretPasswds':
+                req.log_error('Bad password', state.LOG_INFO)
+                redirect(req, '/login', text = 'Bad password')
+
+            cookie = PoorSession(req)
+            cookie.data['passwd'] = passwd
+            cookie.header(req, req.headers_out)
+            redirect(req, '/private/uri')
+        
+        return 'some html login form'
+            
+
+    @app.route('/private/uri')
+    def private_uri(req):
+        cookie = PoorSession(req)
+        if not 'passwd' in cookie.data:         # expires or didn't set
+            req.log_error('Login cookie not found.', LOG_INFO)
+            redirect(req, '/login', text = 'Login required')
+        
+        return 'Some private data'
+
+    @app.route('/logout')
+    def logout(req):
+        cookie = PoorSession(req)
+        cookie.destroy()
+        cookie.header(req, req.headers_out)
+        redirect(req, '/login')
+
+
+== Few word at the end ==
     * kde / proc se vzalo tu se vzalo poorwsgi
     * changelog

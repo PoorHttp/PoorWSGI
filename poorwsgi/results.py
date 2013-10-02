@@ -26,24 +26,9 @@ def redirect(req, uri, permanent = 0, text = None):
     do not support redirection); this text can be overridden by supplying a text
     string.
 
-    If this function is called after the headers have already been sent, an
-    IOError is raised.
-
-    This function raises apache.SERVER_RETURN exception with a value of
-    http.DONE to ensuring that any later phases or stacked handlers do not run.
-    If you do not want this, you can wrap the call to redirect in a try/except
-    block catching the apache.SERVER_RETURN. Redirect server request to url via
-    302 server status.
-
-    @param req http.classes.Request object
-    @param uri string location
-    @param permanent int or boolean
-    @param text plain text string
-    @throw IOError
+    This function raises SERVER_RETURN exception with a value of state.DONE to
+    ensuring that any later phases or stacked handlers do not run.
     """
-    if len(req.headers_out) > 1 or 'X-Powered-By' not in req.headers_out:
-        raise IOError('Headers are set before redirect')
-
     url = req.construct_url(uri)
 
     if permanent:

@@ -16,7 +16,7 @@ test it looks like that:
         httpd = make_server('127.0.0.1', 8080, app)
         httpd.serve_forever()
 
-You can use python wsgiref.simple_server for test it: 
+You can use python wsgiref.simple_server for test it:
 
     ~$ python simple.py
 
@@ -339,9 +339,9 @@ hidden function.
             cookie.data['passwd'] = passwd
             cookie.header(req, req.headers_out)
             redirect(req, '/private/uri')
-        
+
         return 'some html login form'
-            
+
 
     @app.route('/private/uri')
     def private_uri(req):
@@ -349,8 +349,9 @@ hidden function.
         if not 'passwd' in cookie.data:         # expires or didn't set
             req.log_error('Login cookie not found.', LOG_INFO)
             redirect(req, '/login', text = 'Login required')
-        
+
         return 'Some private data'
+
 
     @app.route('/logout')
     def logout(req):
@@ -361,5 +362,114 @@ hidden function.
 
 
 == Few word at the end ==
-    * kde / proc se vzalo tu se vzalo poorwsgi
-    * changelog
+Once upon a time, there was a King. Ok there was a Prince. Oh, may by, there
+was not a prince, but probably, there was a Programmer, hmm ok, programmer.
+And this programmer know apaches mod_python. Yes it was very very bad paragon,
+but before python, he was programing in php. So mod_python was be big movement
+to right direction at that times.
+
+He was founding how he can write, and host on server python applications. And as
+he know some close-source framework, which works right, he write some another,
+similar for his use. That is base of Poor Publisher. But WGSI was coming so he
+had idea, to write some new backend for his applications. That is base of Poor
+HTTP and Poor WSGI.
+
+Some times, Poor HTTP and Poor WSGI was one project. It is better way, but
+that's not right way. After some time, he divide these too projects to Poor WSGI
+and Poor HTTP projects. But there is bad concept in Poor WSGI framework, which
+is not framework in fact. So he look for another projects, and see how could be
+nice to create WSGI application for user. That is time when Poor WSGI is
+rewritten to library type code, and application is callable class with some nice
+route and other methods - decorators.
+
+This is story of one programmer and his WSGI framework, which is not framework
+in fact, because, it knows only handle uri request with some mod_python
+compatibility layer. As you can see, there are some ways, how this project can
+go. It's author, programmer use it on his projects, and it would be so nice, if
+there are more programmers then he, which use this little project, let's call
+it WSGI connector.
+
+If you have any questions, proposals, bug fixes, text corrections, or any
+other things, please send me email to {*mcbig at zeropage.cz*} or send it to
+discussion on SourceForge.Net: http://sourceforge.net/p/poorhttp/discussion/.
+Thank you so much.
+
+=== ChangeLog ===
+==== 0.9 ====
+    * redirect is possible when headers are fill, why not
+    * Bug fix with raiseing errors
+    * Document index bugfix
+    * poorwsgi has it's own repository
+    * some documentation fix
+    * more then one pre and post handlers, some bugfixes ond documentations
+    * Python package with setup.py
+    * Import optimization
+    * application is class instance now
+    * Edit comment about PEP
+    * Some bug fix and new Request member method_number
+    * set functions for route, http_state and default, better pre-import
+    * more methods support, better handlers working, lots of documentations
+    * Library style
+    * Some XXX comment - know bug
+    * Default Python path from application
+    * Change default buffer size to 16KiB
+    * Some changes - obsolete, but commit before move to git
+    * Python 3 pre-support, uWsgi server detection
+    * http HEAD method supported
+
+==== 20121130 ====
+    * Webmaster mail bug fix
+    * Logging bug fix
+    * Poorwsgi could return files or directory index, so no dispatch_table.py
+      could not be error
+    * Poorhttp is simple wsgi server
+    * rename http to phttp
+    * Document Listing and get file support
+    * users handler error calling
+    * Bug fix
+    * Environment fix
+    * Flushing buffer bug fix
+    * Some bug fix for run with uWsgi
+    * Poorhttp is only wsgi server now.
+    * And poorwsgi is python wsgi framework which coud be connect with anotger
+      wsgi servers.
+    * Method setreq is pre_process now.
+    * Another post_process method is available.
+    * Default handler as default_handler is available for other uri which is not
+      in handlers list.
+    * Read method for request in poorhttp.
+    * Cookie bug fix with expire time and multiple cookie header support in
+      poorhttp
+    * fce support for getlist FieldStorage method
+    * Directory listing, more compatible sendfile method and default it works
+      html page.
+    * Example is move to /app as default 'it works' example code.
+
+==== 20120211 ====
+    * File listing support as default handler for directory if new config
+      option index is enabled.
+    * Little bugfix with document config option.
+
+==== 20111208 ====
+    * convertor in FieldStorage
+    * html error update
+    * Doxygen support
+    * example code
+    * comments and documentation
+    * bug fixes
+
+==== 20100729 ====
+    * apache compatibility
+    * single / forking / thrading mode
+    * bugfixing and error handlers captching and loging
+    * more status codes
+
+==== 20091130 ====
+    * cookie session id is generate from expirydate by crypting
+    * new method renew in cookie session
+
+==== 20091126 ====
+    * new configurable value server secret key added
+    * new function hidden in session module for text crypting
+    * handled config error exception
+    * bug fix in loging

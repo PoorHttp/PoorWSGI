@@ -1,10 +1,11 @@
 #!/usr/bin/python
 
 from distutils.core import setup
+from poorwsgi.state import __version__
 
 setup(
     name                = "poorwsgi",
-    version             = "1.0",
+    version             = __version__,
     description         = "Poor WSGI connector for Python",
     author              = "Ondrej Tuma",
     author_email        = "mcbig@zeropage.cz",

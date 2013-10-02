@@ -3,7 +3,7 @@ constants like http status code, log levels and method types
 """
 __author__  = "Ondrej Tuma (McBig) <mcbig@zeropage.cz>"
 __date__    = "20 August 2013"
-__version__ = "1.0"
+__version__ = "0.9"
 
 OK          = 0
 DONE        = 1

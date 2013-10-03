@@ -288,10 +288,13 @@ class Application:
         return req.__end_of_request__()    # private call of request
     #enddef
 
+    def __repr__(self):
+        return 'callable Application class instance'
+
 #endclass
 
 # application callable instance, which is need by wsgi server
 application = Application()
 
-# alias for less write coding
+# short reference to application instance, which is need by wsgi server
 app = application

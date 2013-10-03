@@ -272,7 +272,8 @@ called, but all code from pre_process and from route handler is called, and
 may be, it could send output to WSGI server, if content is bigger then
 poor_BufferSize.
 
-=== Input variables / Forms ===
+=== Input Forms and Application options ===
+==== Input variables / Forms ====
 
 User input vairables, which is sent to server are available throw
 FieldStorage class. FieldStorage is child of FieldStorage class from pythons
@@ -294,6 +295,33 @@ can use FieldStorage every time.
                                                     # because int(None) raise it
         children = form.getlist('children', '', str)
         ...
+
+==== Application / User options ====
+Like in mod_python Request, Poor WSGI Request have get_options method too.
+This method return dictionary of application options or variables, which start
+with {app_} prefix. This prefix is cut from options names.
+
+    #!ini
+    [uwsgi]                                         # uwsgi config example
+    ...
+    env = app_db_file = mywebapp.db                 # variable is db_file
+    env = app_tmp_path = tmp                        # variable is tmp_path
+    env = app_templ = templ                         # variable is templ
+
+And you can get these variables with get_options method:
+
+    @app.route('/options')
+    def app_test(req):
+        options = req.get_options()
+        for key, val in options.items():
+            req.write(key + '\t: '+ val)
+
+Output of application url /options looks like:
+
+    #!text
+    db_file   : mywebapp.db
+    tmp_path  : tmp
+    templ     : templ
 
 === Headers and Sessions ===
 ==== Headers ====
@@ -391,8 +419,8 @@ it WSGI connector.
 
 If you have any questions, proposals, bug fixes, text corrections, or any
 other things, please send me email to {*mcbig at zeropage.cz*} or send it to
-discussion on SourceForge.Net: http://sourceforge.net/p/poorhttp/discussion/.
-Thank you so much.
+discussion on SourceForge.Net:
+https://sourceforge.net/p/poorhttp/discussion/poorwsgi/. Thank you so much.
 
 === ChangeLog ===
 ==== 0.9 ====

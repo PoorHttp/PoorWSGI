@@ -69,6 +69,7 @@ LOG_INFO    = (6, 'I')
 LOG_DEBUG   = (7, 'D')
 LOG_NOERRNO = (8, '0')
 
+# log levels which could be set with poor_LogLevel environment variable
 levels = {
     'emerg' :   LOG_EMERG,
     'alert' :   LOG_ALERT,
@@ -90,9 +91,12 @@ METHOD_OPTIONS  = 64
 METHOD_CONNECT  = 128
 METHOD_PATCH    = 256
 
+# short constant for set METHOD_HEAD | METHOD_GET | METHOD_POST
 METHOD_GET_POST = METHOD_HEAD | METHOD_GET | METHOD_POST
-METHOD_ALL      = 511 # METHOD_HEAD | ... | METHOD_PATCH
+# short constants for set all known method types METHOD_HEAD | ... | METHOD_PATCH
+METHOD_ALL      = 511
 
+# know method types
 methods = {
     'HEAD'      : METHOD_HEAD,
     'GET'       : METHOD_GET,

@@ -33,6 +33,7 @@
   {% elif type == 'variable' %}
     <h4 class="{{ type }}">{{ name }} = {{ args|e|truncate }}
       <span class="links">
+        <a name="{{ name }}"></a>
         <a href="#">top</a></span></h4>
   {% endif %}
   {% if type != 'submodule' %}

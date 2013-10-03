@@ -11,7 +11,7 @@
       <menu class="sidebar">
         {% for type, name, args, doc in api %}
         {% if type == 'module' %}<h2><a href="#{{ name }}">{{ name }}</a></h2>
-        {% elif type =='function' and name[0] != '_' %}<h3><a href="#{{ name }}">{{ name }}</a></h3>
+        {% elif (type == 'function' or type == 'class') and name[0] != '_' %}<h3><a href="#{{ name }}">{{ name }}</a></h3>
         {% endif %}
         {% endfor %}
       </menu><!-- sidebar --!>

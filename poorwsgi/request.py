@@ -20,6 +20,7 @@ from state import __author__, __date__, __version__, methods, \
         HTTP_OK, \
         HTTP_INTERNAL_SERVER_ERROR 
 
+# simple regular expression for construct_url method
 _httpUrlPatern = re.compile(r"^(http|https):\/\/")
 
 class Headers(WHeaders):
@@ -33,15 +34,18 @@ class Headers(WHeaders):
         WHeaders.__init__(self, headers)
 
     def add(self, key, value):
-        """Set header key to value. Duplicate keys are not allowed."""
+        """ Set header key to value. Duplicate keys are not allowed instead of
+            {Set-Cookie}.
+        """
         if key != "Set-Cookie" and key in self:
             raise KeyError("Key %s exist." % key)
         self.add_header(key, value)
 #endclass
 
 class Request:
-    """HTTP request object with all server elements. It could be compatible
-        as soon as posible with mod_python.apache.request."""
+    """ HTTP request object with all server elements. It could be compatible
+        as soon as possible with mod_python.apache.request.
+    """
 
     def __init__(self, environ, start_response):
         #apache compatibility
@@ -216,12 +220,19 @@ class Request:
     #enddef
 
     def add_common_vars(self):
-        """only set \b REQUEST_URI"""
+        """ only set {REQUEST_URI} variable """
         self.subprocess_env['REQUEST_URI'] = self.environ.get('PATH_INFO')
 
     def get_options(self):
-        """Returns a reference to the ConfigParser object containing the
-        server options."""
+        """ Returns dictionary with application variables from server
+            environment. Application variables start with {app_} prefix,
+            but in returned dictionary is set without this prefix.
+
+                #!ini
+                poor_LogeLevel = warn       # Poor WSGI variable
+                app_db_server = localhost   # application variable db_server
+                app_templates = app/templ   # application variable templates
+        """
         options = {}
         for key,val in self.poor_environ.items():
             if key[:4].lower() == 'app_':

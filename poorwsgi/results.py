@@ -44,11 +44,9 @@ def redirect(req, uri, permanent = 0, text = None):
 #enddef
 
 def internal_server_error(req):
-    """More debug 500 Internal Server Error server handler. It was be called
-    automaticly when no handlers are not defined in dispatch_table.errors.
-    If __debug__ is true, Tracaback will be genarated.
-    @param req http.classes.Request object
-    @returns http.DONE
+    """ More debug 500 Internal Server Error server handler. It was be called
+        automaticly when no handlers are not defined in dispatch_table.errors.
+        If poor_Debug variable is to On, Tracaback will be genarated.
     """
     traceback = format_exception(sys.exc_type,
                                  sys.exc_value,
@@ -118,10 +116,7 @@ def internal_server_error(req):
 #enddef
 
 def forbidden(req):
-    """403 - Forbidden Access server error handler.
-    @param req http.classes.Request object
-    @returns http.DONE
-    """
+    """ 403 - Forbidden Access server error handler. """
     content = \
         "<html>\n"\
         "  <head>\n"\
@@ -150,10 +145,7 @@ def forbidden(req):
 
 
 def not_found(req):
-    """404 - Page Not Found server error handler.
-    @param req http.classes.Request object
-    @returns http.DONE
-    """
+    """ 404 - Page Not Found server error handler. """
     content = \
         "<html>\n"\
         "  <head>\n"\
@@ -181,10 +173,7 @@ def not_found(req):
 #enddef
 
 def method_not_allowed(req):
-    """405 Method Not Allowed server error handler.
-    @param req http.classes.Request object
-    @returns http.DONE
-    """
+    """ 405 Method Not Allowed server error handler. """
     content = \
         "<html>\n"\
         "  <head>\n"\
@@ -212,10 +201,7 @@ def method_not_allowed(req):
 #enddef
 
 def not_implemented(req, code = None):
-    """501 Not Implemented server error handler.
-    @param req http.classes.Request object
-    @returns http.DONE
-    """
+    """ 501 Not Implemented server error handler. """
     content = \
             "<html>\n"\
             "  <head>\n"\
@@ -514,6 +500,7 @@ def debug_info(req, app):
     return DONE
 #enddef
 
+# http state handlers, which is called if programmer don't defined his own
 default_shandlers = {}
 
 def __fill_default_shandlers__(code, handler):

@@ -3,7 +3,7 @@ constants like http status code, log levels and method types
 """
 __author__  = "Ondrej Tuma (McBig) <mcbig@zeropage.cz>"
 __date__    = "20 August 2013"
-__version__ = "0.9"
+__version__ = "0.9.1"
 
 OK          = 0
 DONE        = 1
@@ -59,7 +59,7 @@ HTTP_VARIANT_ALSO_VARIES          = 506
 HTTP_INSUFFICIENT_STORAGE         = 507
 HTTP_NOT_EXTENDED                 = 510
 
-LOG_EMERG   = (0, 'S') 
+LOG_EMERG   = (0, 'S')
 LOG_ALERT   = (1, 'A')
 LOG_CRIT    = (2, 'C')
 LOG_ERR     = (3, 'E')

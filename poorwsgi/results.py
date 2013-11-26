@@ -15,7 +15,9 @@ from state import __author__, __date__, __version__, \
         DONE, METHOD_ALL, methods, sorted_methods, levels, LOG_ERR, \
         HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_FORBIDDEN, \
         HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED, HTTP_INTERNAL_SERVER_ERROR, \
-        HTTP_NOT_IMPLEMENTED 
+        HTTP_NOT_IMPLEMENTED
+
+from request import SERVER_RETURN
 
 
 def redirect(req, uri, permanent = 0, text = None):

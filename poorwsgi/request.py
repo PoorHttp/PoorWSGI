@@ -119,6 +119,7 @@ class Request:
 
         self.remote_host = self.environ.get('REMOTE_HOST')
         self.remote_addr = self.environ.get('REMOTE_ADDR')
+        self.referer = self.environ.get('HTTP_REFERER', None)
         self.user_agent = self.environ.get('HTTP_USER_AGENT')
         self.scheme = self.environ.get('wsgi.url_scheme')
 

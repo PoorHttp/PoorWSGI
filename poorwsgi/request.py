@@ -45,6 +45,24 @@ class Headers(WHeaders):
 class Request:
     """ HTTP request object with all server elements. It could be compatible
         as soon as possible with mod_python.apache.request.
+
+        Instance has these variables:
+            subprocess_env  - A table object containing environment information
+                             typically usable for CGI.
+            hostname        - String. Host, as set by full URI or Host: header.
+            method          - A string containing the method - 'GET', 'HEAD',
+                             'POST', etc. Same as CGI REQUEST_METHOD
+            method_number   - method number constant from state module
+            uri             - The path portion of the URI.
+            content_type    - String. The content type. Another way to set
+                             content_type is via headers_out object property.
+                             Default is *{ text/html; charset=utf-8 }*
+            remote_host     - Remote hostname
+            remote_addr     - Remote address
+            referer         - request referer if is available or None
+            user_agent      - Browser user agent string
+            scheme          - request scheme, typical {http} or {https}
+
     """
 
     def __init__(self, environ, start_response):
@@ -221,8 +239,9 @@ class Request:
     #enddef
 
     def add_common_vars(self):
-        """ only set {REQUEST_URI} variable """
-        self.subprocess_env['REQUEST_URI'] = self.environ.get('PATH_INFO')
+        """ only set {REQUEST_URI} variable if not exist """
+        if 'REQUEST_URI' not in self.environ:
+            self.subprocess_env['REQUEST_URI'] = self.environ.get('PATH_INFO')
 
     def get_options(self):
         """ Returns dictionary with application variables from server

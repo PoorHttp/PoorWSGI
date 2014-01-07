@@ -7,7 +7,7 @@
 {% set api = api + load_module('session') %}
 {% set api = api + load_module('state') %}
 
-{% set kw = keywords(api) %}
+{% do keywords(api) %}
       <menu class="sidebar">
         {% for type, name, args, doc in api %}
         {% if type == 'module' %}<h2><a href="#{{ name }}">{{ name }}</a></h2>

@@ -10,7 +10,7 @@
 {% set api = api + load_module('session') %}
 {% set api = api + load_module('state') %}
 
-{% set kw = keywords(api, 'poorwsgi_api.html') %}
+{% do keywords(api, 'poorwsgi_api.html') %}
 
 {% include "_text.html" %}
       

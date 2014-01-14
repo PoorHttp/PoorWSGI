@@ -288,8 +288,36 @@ class Application:
         return req.__end_of_request__()    # private call of request
     #enddef
 
+    def __profile_call__(self, environ, start_response):
+        """
+        Profiler version of call, which is used if set_profile method is call.
+        """
+        def wrapper(rv):
+            rv.append(self.__clear_call__(environ, start_response))
+
+        rv = []
+        uri_dump = self._dump + environ.get('PATH_INFO').replace('/','_') + '.profile'
+        self._runctx('wrapper(rv)', globals(), locals(), filename =  uri_dump)
+        return rv[0]
+    #enddef
+
     def __repr__(self):
         return 'callable Application class instance'
+
+    def set_profile(self, runctx, dump):
+        """ Set profiler for __call__ function.
+            runctx - function from profiler module
+            dump - path and prefix for .profile files
+        """
+        self._runctx = runctx
+        self._dump = dump
+
+        self.__clear_call__ = self.__call__
+        self.__call__ = self.__profile_call__
+    #enddef
+
+    def del_profile(self):
+        self.__call__ = self.__clear_call__
 
 #endclass
 

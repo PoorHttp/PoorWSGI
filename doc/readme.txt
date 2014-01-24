@@ -389,6 +389,63 @@ hidden function.
         redirect(req, '/login')
 
 
+== Debugging ==
+Poor WSGI have few debugging mechanism which you can to use. First, it could
+be good idea to set up poor_Debug variable. If this variable is set, there are
+full traceback on error page internal_server_error with http code 500.
+
+Second property of this variable is enabling special debug page on /debug-info
+url. On this page, you can found:
+    * full handlers table with requests, http methods and handlers which are
+      call to serve this requests.
+    * http state handlers table with http state codes, http methods and handlers
+      which are call when this http state is returned.
+    * request headers table from your browser when you call this debug request
+    * poor request variables, which are setting of actual instance of Poor WSGI
+      configuration variables.
+    * application variables which are set like a connector variables but with
+      app_ prefix.
+    * request environment, which is set from your wsgi server to wsgi
+      application, so to Poor WSGI connector.
+
+=== Profiling ===
+If you want to profile your request code, you can do with profiler. Poor WSGI
+application object have methods to set profiling. You must only prepare runctx
+function, which is call before all your request. From each your request will
+be generate .profile dump file, which you can study.
+
+If you want to profile all process after start your application, you can make
+file, which profile importing your application, which import Poor WSGI
+connector.
+
+    import cProfile
+
+    # this import your application, which import Poor WSGI, so you can profile
+    # first server init, which is do, when server import your application.
+    # don'ŧ forget to import this file instead of simple.py or your
+    # application file
+    cProfile.runctx('from simple import *', globals(), locals(), filename="log/init.profile")
+
+    # and this sets profiling of any request which is server by your
+    # web application
+    app.set_profile(cProfile.runctx, 'log/req')
+
+When you use this file instead of your application file, simple.py for
+example, application create files in log directory. First file will be
+init.profile from first import by WSGI server. Other files will look like
+req_.profile, req_debug-info.profile etc. Second parameter of set_profile
+method is prefix of output file names. File name are create from url path, so
+each url create file.
+
+There is nice tool to view this profile files runsnakerun. You can download
+from http://www.vrplumber.com/programming/runsnakerun/. Use that is very
+simple just open profile file:
+
+    #!text
+    $~ python runsnake.py log/init.profile-
+    $~ python runsnake.py log/req_.profile
+
+
 == Few word at the end ==
 Once upon a time, there was a King. Ok there was a Prince. Oh, may by, there
 was not a prince, but probably, there was a Programmer, hmm ok, programmer.
@@ -423,6 +480,17 @@ discussion on SourceForge.Net:
 https://sourceforge.net/p/poorhttp/discussion/poorwsgi/. Thank you so much.
 
 === ChangeLog ===
+==== 0.9.1 rc ====
+    * Profiler support for Application __call__ method
+    * request_uri and some documentation update
+    * do extensin in jinja24doc
+    * up version of last bug fix
+    * Request.referer variable
+    * Bug fix
+    * Documentation edit
+    * Last part of main documentation
+    * Part of documentation
+
 ==== 0.9 ====
     * redirect is possible when headers are fill, why not
     * Bug fix with raiseing errors

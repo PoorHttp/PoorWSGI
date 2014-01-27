@@ -442,7 +442,7 @@ from http://www.vrplumber.com/programming/runsnakerun/. Use that is very
 simple just open profile file:
 
     #!text
-    $~ python runsnake.py log/init.profile-
+    $~ python runsnake.py log/init.profile
     $~ python runsnake.py log/req_.profile
 
 

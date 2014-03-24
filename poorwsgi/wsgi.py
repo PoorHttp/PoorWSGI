@@ -103,7 +103,7 @@ class Application:
 
     def set_default(self, fn, method = METHOD_HEAD | METHOD_GET):
         """
-            set fn as default handler for method 
+            set fn as default handler for method
 
                 app.set_default(default_get_post, METHOD_GET_POST)
         """
@@ -130,7 +130,7 @@ class Application:
     def set_route(self, uri, fn, method = METHOD_HEAD | METHOD_GET):
         """
         set fn as handler for uri and method
- 
+
             app.set_route('/use/post', user_create, METHOD_POST)
         """
         if not uri in self.handlers: self.handlers[uri] = {}
@@ -188,6 +188,13 @@ class Application:
             not_implemented(req)
     #enddef
 
+    def handler_from_default(self, req):
+        if req.method_number in self.dhandlers:
+            retval = self.dhandlers[req.method_number](req)
+            if retval != DECLINED:
+                raise SERVER_RETURN(retval)
+    #enddef
+
     def handler_from_table(self, req):
         """ call right handler from handlers table (fill with route function). If no
             handler is fined, try to find directory or file if Document Root, resp.
@@ -209,37 +216,34 @@ class Application:
                 raise SERVER_RETURN(HTTP_METHOD_NOT_ALLOWED)
             #endif
         #endif
-   
+
         # try file or index
         if req.document_root():
             rfile = "%s%s" % (req.document_root(), path.normpath("%s" % req.uri))
-        
-            if not access(rfile, R_OK):
+
+            if not path.exists(rfile):
                 if req.debug and req.uri == '/debug-info':      # work if debug
                     raise SERVER_RETURN(debug_info(req, self))
-                req.log_error("404 File Not Found: %s" % req.uri, LOG_ERR)
-                raise SERVER_RETURN(HTTP_NOT_FOUND)
+                self.handler_from_default(req)                  # try default
+                raise SERVER_RETURN(HTTP_NOT_FOUND)             # not found
 
-            if path.isfile(rfile):
+            # return file
+            if path.isfile(rfile) and access(rfile, R_OK):
                 req.log_error("Return file: %s" % req.uri, LOG_INFO);
                 raise SERVER_RETURN(send_file(req, rfile))
 
-            # try directory index
-            if req.document_index and path.isdir(rfile):
+            # return directory index
+            if req.document_index and path.isdir(rfile) and access(rfile, R_OK):
                 req.log_error("Return directory: %s" % req.uri, LOG_INFO);
                 raise SERVER_RETURN(directory_index(req, rfile))
-            else:
-                raise SERVER_RETURN(HTTP_FORBIDDEN)
+
+            raise SERVER_RETURN(HTTP_FORBIDDEN)
         #endif
 
         if req.debug and req.uri == '/debug-info':
             raise SERVER_RETURN(debug_info(req, self))
 
-        # default handler is at the end of request - before 404 error
-        if req.method_number in self.dhandlers:
-            retval = self.dhandlers[req.method_number](req)
-            if retval != DECLINED:
-                raise SERVER_RETURN(retval)
+        self.handler_from_default(req)
 
         req.log_error("404 Not Found: %s" % req.uri, LOG_ERR);
         raise SERVER_RETURN(HTTP_NOT_FOUND)
@@ -247,7 +251,7 @@ class Application:
 
 
     def __call__(self, environ, start_response):
-        """ This method create Request object, call pre_process function, 
+        """ This method create Request object, call pre_process function,
             handler_from_table, and post_process function. pre_process and
             post_process functions are not in try except block !
         """

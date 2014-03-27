@@ -18,6 +18,8 @@ from state import __author__, __date__, __version__, methods, \
         HTTP_OK, \
         HTTP_INTERNAL_SERVER_ERROR 
 
+from results import SERVER_RETURN as SERVER_RETURN_RIGHT
+
 # simple regular expression for construct_url method
 _httpUrlPatern = re.compile(r"^(http|https):\/\/")
 
@@ -425,7 +427,7 @@ class FieldStorage(CgiFieldStorage):
 
 #endclass
 
-class SERVER_RETURN(Exception):
+class SERVER_RETURN(SERVER_RETURN_RIGHT):
     """Compatible with mod_python.apache exception."""
     def __init__(self, code = HTTP_INTERNAL_SERVER_ERROR):
         """deprecated location, use results.SERVER_RETURN"""
@@ -438,5 +440,5 @@ class SERVER_RETURN(Exception):
         stderr.write(" requests.SERVER_RETURN.\n\n")
         stderr.flush()
 
-        Exception.__init__(self, code)
+        SERVER_RETURN_RIGHT.__init__(self, code)
 #endclass

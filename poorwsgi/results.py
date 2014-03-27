@@ -17,8 +17,12 @@ from state import __author__, __date__, __version__, \
         HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED, HTTP_INTERNAL_SERVER_ERROR, \
         HTTP_NOT_IMPLEMENTED
 
-from request import SERVER_RETURN
-
+class SERVER_RETURN(Exception):
+    """Compatible with mod_python.apache exception."""
+    def __init__(self, code = HTTP_INTERNAL_SERVER_ERROR):
+        """code is one of HTTP_* status from state module"""
+        Exception.__init__(self, code)
+#endclass
 
 def redirect(req, uri, permanent = 0, text = None):
     """This is a convenience function to redirect the browser to another

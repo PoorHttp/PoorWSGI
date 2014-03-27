@@ -4,11 +4,12 @@ Poor WSGI connector for Python
 Current Contents:
    
     #!text
-    * request - Headers, Request, FieldStorage and SERVER_RETURN classes, which
+    * request - Headers, Request and FieldStorage classes, which
                 is used for managing requests.
 
     * results - default result handlers of connector like: directory index,
-                send_file, redirect, servers errors or debug output handler.
+                send_file, SERVER_RETURN, redirect, servers errors or debug
+                output handler.
 
     * session - self-contained cookie based session class
 
@@ -18,9 +19,9 @@ Current Contents:
                 dispatch table
 """
 
-from request import FieldStorage, SERVER_RETURN
+from request import FieldStorage
 
-from results import redirect
+from results import redirect, SERVER_RETURN
 
 from state import __author__, __date__, __version__
 

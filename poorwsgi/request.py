@@ -1,15 +1,13 @@
 """
-Headers, Request, FieldStorage and SERVER_RETURN classes
-
-This classes is used for managing requests.
+Headers, Request and FieldStorage classes, which is used for managing requests.
 """
 
 
 from wsgiref.headers import Headers as WHeaders
 from cgi import FieldStorage as CgiFieldStorage
-from traceback import format_exception
 from time import strftime, gmtime
-from sys import version_info
+from sys import version_info, stderr
+from inspect import stack
 
 import os, re
 
@@ -430,6 +428,15 @@ class FieldStorage(CgiFieldStorage):
 class SERVER_RETURN(Exception):
     """Compatible with mod_python.apache exception."""
     def __init__(self, code = HTTP_INTERNAL_SERVER_ERROR):
-        """code is one of HTTP_* status from state module"""
+        """deprecated location, use results.SERVER_RETURN"""
+
+        stderr.write("[W] Using deprecated location of SERVER_RETURN in\n")
+        for s in stack()[1:]:
+            stderr.write("  File %s, line %s, in %s\n" % s[1:4])
+            stderr.write(s[4][0])
+        stderr.write("  Use results.SERVER_RETURN insead of")
+        stderr.write(" requests.SERVER_RETURN.\n\n")
+        stderr.flush()
+
         Exception.__init__(self, code)
 #endclass

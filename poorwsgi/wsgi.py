@@ -9,9 +9,9 @@ from state import OK, DONE, DECLINED, HTTP_ERROR, HTTP_OK, \
             METHOD_GET, METHOD_POST, METHOD_HEAD, methods, LOG_INFO, LOG_ERR, \
             HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, \
             __author__, __date__, __version__
-from request import Request, SERVER_RETURN
+from request import Request
 from results import default_shandlers, not_implemented, internal_server_error, \
-            send_file, directory_index, debug_info
+            SERVER_RETURN, send_file, directory_index, debug_info
 
 class Application:
     """ Poor WSGI application which is called by WSGI server, how, is describe

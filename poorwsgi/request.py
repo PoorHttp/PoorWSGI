@@ -23,6 +23,12 @@ from results import SERVER_RETURN as SERVER_RETURN_RIGHT
 # simple regular expression for construct_url method
 _httpUrlPatern = re.compile(r"^(http|https):\/\/")
 
+def uni(text):
+    """ automatic conversion from str to unicode with utf-8 encoding """
+    if isinstance(text, str):
+        return unicode(text, encoding = 'utf-8')
+    return unicode(text)
+
 class Headers(WHeaders):
     """Class inherited from wsgiref.headers.Headers."""
 
@@ -54,6 +60,7 @@ class Request:
                              'POST', etc. Same as CGI REQUEST_METHOD
             method_number   - method number constant from state module
             uri             - The path portion of the URI.
+            uri_rule        - Rule from one of handler table.
             content_type    - String. The content type. Another way to set
                              content_type is via headers_out object property.
                              Default is *{ text/html; charset=utf-8 }*
@@ -86,7 +93,8 @@ class Request:
         self.method_number = methods[self.method]
 
         ## The path portion of the URI.
-        self.uri = self.environ.get('PATH_INFO')
+        self.uri = uni(self.environ.get('PATH_INFO'))
+        self.uri_rule = None
 
         ## String. The content type. Another way to set content_type is via
         #  headers_out object property. Default is text/html; charset=utf-8

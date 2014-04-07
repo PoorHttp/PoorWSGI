@@ -4,14 +4,18 @@ main application function, and functions for working with dispatch table
 
 from socket import error as SocketError
 from os import path, access, R_OK
+from collections import OrderedDict
+import re
 
 from state import OK, DONE, DECLINED, HTTP_ERROR, HTTP_OK, \
             METHOD_GET, METHOD_POST, METHOD_HEAD, methods, LOG_INFO, LOG_ERR, \
             HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, \
             __author__, __date__, __version__
-from request import Request
+from request import Request, uni
 from results import default_shandlers, not_implemented, internal_server_error, \
             SERVER_RETURN, send_file, directory_index, debug_info
+
+re_filter = re.compile(r'<(\w+)(:[^>]+)?>')
 
 class Application:
     """ Poor WSGI application which is called by WSGI server, how, is describe
@@ -20,21 +24,71 @@ class Application:
     """
     def __init__(self):
         # list of pre and post process handlers
-        self._pre = []
-        self._post = []
+        self.__pre = []
+        self.__post = []
 
         # dhandlers table for default handers on methods {METHOD_GET: handler}
-        self.dhandlers = {}
+        self.__dhandlers = {}
 
         # handlers table of simple paths: {'/path': {METHOD_GET: handler}}
-        self.handlers = {}
+        self.__handlers = {}
+
+        self.__filters = {
+            ':int'      : (r'-?\d+', int),
+            ':float'    : (r'-?\d+(\.\d+)?', float),
+            ':word'     : (r'\w+', uni),
+            ':re:'      : (None, uni),
+            'none'      : (r'[^/]+', uni)
+        }
 
         # handlers table of regex paths: {r'/user/([a-z]?)': {METHOD_GET: handler}}
-        self.rhandlers = {}
+        self.__rhandlers = OrderedDict()
 
         # http state handlers table : {HTTP_NOT_FOUND: {METHOD_GET: my_404_handler}}
-        self.shandlers = {}
+        self.__shandlers = {}
     #enddef
+
+    def __regex(self, match):
+        groups = match.groups()
+        _filter = str(groups[1]).lower()
+
+        if _filter in self.__filters:
+            regex = self.__filters[_filter][0]
+        elif _filter[:4] == ':re:':     # :re: filter have user defined regex
+            regex = _filter[4:]
+        else:
+            try:
+                regex = self.__filters[_filter][0]
+            except KeyError:
+                raise RuntimeError("Undefined route group filter '%s'" % _filter)
+
+        return "(?P<%s>%s)" % (groups[0], regex)
+    #enddef
+
+    def __convertor(self, _filter):
+        _filter = str(_filter).lower()
+        _filter = ':re:' if _filter[:4] == ':re:' else _filter
+        try:
+            return self.__filters[_filter][1]
+        except KeyError:
+            raise RuntimeError("Undefined route group filter '%s'" % _filter)
+
+    @property
+    def filters(self):
+        return self.__filters.copy()
+
+    def set_filter(self, name, regex, convertor = uni):
+        """
+        Set filter - create new or overwrite some builtin.
+            name      - name of filter which is used in route or set_route method
+            regex     - regular expression which used for filter
+            convertor - convertor function or class, which gets unicode in input.
+                        Default is uni function.
+
+            app.set_filter('uint', r'\d+', int)
+        """
+        name = ':'+name if name[0] != ':' else name
+        self.__filters[name] = (regex, convertor)
 
     def pre_process(self):
         """
@@ -45,7 +99,7 @@ class Application:
                     ...
         """
         def wrapper(fn):
-            self._pre.append(fn)
+            self.__pre.append(fn)
             return fn
         return wrapper
     #enddef
@@ -56,7 +110,7 @@ class Application:
 
                 app.add_pre_process(before_each_request)
         """
-        self._pre.append(fn)
+        self.__pre.append(fn)
     #enddef
 
 
@@ -70,7 +124,7 @@ class Application:
                 ...
         """
         def wrapper(fn):
-            self._post.append(fn)
+            self.__post.append(fn)
             return fn
         return wrapper
     #enddef
@@ -79,9 +133,34 @@ class Application:
         """
             adds function to list functions which is call before each request
 
-                app.add_post_process(after_each_request)
+                app.add__post_process(after_each_request)
         """
-        self._pre.append(fn)
+        self.__post.append(fn)
+
+    @property
+    def pre(self):
+        return self.__pre.copy()
+
+    @property
+    def post(self):
+        return self.__post.copy()
+
+    @property
+    def dhandlers(self):
+        return self.__dhandlers.copy()
+
+    @property
+    def handlers(self):
+        return self.__handlers.copy()
+
+    @property
+    def rhandlers(self):
+        return self.__rhandlers.copy()
+
+    @property
+    def shandlers(self):
+        return self.__shandlers.copy()
+
 
     def default(self, method = METHOD_HEAD | METHOD_GET):
         """
@@ -96,7 +175,7 @@ class Application:
         """
         def wrapper(fn):
             for m in methods.values():
-                if method & m: self.dhandlers[m] = fn
+                if method & m: self.__dhandlers[m] = fn
             return fn
         return wrapper
     #enddef
@@ -108,76 +187,131 @@ class Application:
                 app.set_default(default_get_post, METHOD_GET_POST)
         """
         for m in methods.values():
-            if method & m: self.dhandlers[m] = fn
+            if method & m: self.__dhandlers[m] = fn
     #enddef
 
     def route(self, uri, method = METHOD_HEAD | METHOD_GET):
         """
-        wrap function to be handler for uri by method
+        Wrap function to be handler for uri and specified method. You can define
+        uri as static path or as groups which are hand to handler as next
+        parameters.
 
+            # static uri
             @app.route('/user/post', method = METHOD_POST)
             def user_create(req):
                 ...
+
+            # group regular expression
+            @app.route('/user/<name>')
+            def user_detail(req, name):
+                ...
+
+            # group regular expression with filter
+            @app.route('/<surname:word>'/<age:int>)
+            def surnames_by_age(req, surname, age):
+                ...
+
+            # group with own regular expression filter
+            @app.route('/<car:re:\w+>/<color:re:#[\da-fA-F]+>')
+            def car(req, car, color):
+                ...
+
+        If you can use some name of group which is python keyword, like class,
+        you can use **kwargs syntax:
+
+            @app.route('/<class>/<len:int>')
+            def classes(req, **kwargs):
+                return "'%s' class is %d lenght." % (kwargs['class'], kwargs['len'])
+
+
         """
         def wrapper(fn):
-            if not uri in self.handlers: self.handlers[uri] = {}
-            for m in methods.values():
-                if method & m: self.handlers[uri][m] = fn
+            self.set_route(uri, fn, method)
             return fn
         return wrapper
     #enddef
 
     def set_route(self, uri, fn, method = METHOD_HEAD | METHOD_GET):
         """
-        set fn as handler for uri and method
+        Another way to add fn as handler for uri. See route documentation for
+        details.
 
             app.set_route('/use/post', user_create, METHOD_POST)
         """
-        if not uri in self.handlers: self.handlers[uri] = {}
-        for m in methods.values():
-            if method & m: self.handlers[uri][m] = fn
+        uri = uni(uri)
+
+        if re_filter.search(uri):
+            r_uri = re_filter.sub(self.__regex, uri) + '$'
+            convertors = tuple((g[0], self.__convertor(g[1])) \
+                                     for g in (m.groups() for m in re_filter.finditer(uri)))
+            self.set_rroute(r_uri, fn, method, convertors)
+        else:
+            if not uri in self.__handlers: self.__handlers[uri] = {}
+            for m in methods.values():
+                if method & m: self.__handlers[uri][m] = fn
     #enddef
 
     def rroute(self, ruri, method = METHOD_HEAD | METHOD_GET):
-        """ TODO: routes defined by regular expression """
-        raise NotImplementedError('Not implement yet')
+        """
+        Wrap function to be handler for uri defined by regular expression and
+        specified method.
 
-    def set_rroute(self, ruri, method = METHOD_HEAD | METHOD_GET):
-        """ TODO: routes defined by regular expression """
-        raise NotImplementedError('Not implement yet')
+            @app.rroute(r'/user/\w+')               # simple regular expression
+            def any_user(req):
+                ...
 
-    def groute(self, guri, method = METHOD_HEAD | METHOD_GET):
-        """ TODO: routes defined by simple group regular expression """
-        raise NotImplementedError('Not implement yet')
+            @app.rroute(r'/user/(?P<user>\w+)')     # regular expression with groups
+            def user_detail(req, user):
+                ...
+                
+        Be sure with ordering of call this decorator or set_rroute function.
+        Regular expression routes are check with the same ordering, as you
+        create internal table of them. First match stops any other searching.
+        """
+        def wrapper(fn):
+            self.set_rroute(ruri, fn, method)
+            return fn
+        return wrapper
+    #enddef
 
-    def set_groute(self, guri, method = METHOD_HEAD | METHOD_GET):
-        """ TODO: routes defined by simple group regular expression """
-        raise NotImplementedError('Not implement yet')
+    def set_rroute(self, r_uri, fn, method = METHOD_HEAD | METHOD_GET, convertors = ()):
+        """
+        Another way to add fn as handler for uri defined by regular expression.
+        See rroute documentation for details.
+
+            app.set_rroute('/use/\w+/post', user_create, METHOD_POST)
+        """
+        r_uri = re.compile(r_uri, re.U)
+        if not r_uri in self.__rhandlers: self.__rhandlers[r_uri] = {}
+        for m in methods.values():
+            if method & m: self.__rhandlers[r_uri][m] = (fn, convertors)
+    #enddef
+
 
     def http_state(self, code, method = METHOD_HEAD | METHOD_GET | METHOD_POST):
         """ wrap function to handle another http status codes like http errors """
         def wrapper(fn):
-            if not code in self.shandlers: self.shandlers[code] = {}
+            if not code in self.__shandlers: self.__shandlers[code] = {}
             for m in methods.values():
-                if method & m: self.shandlers[code][m] = fn
+                if method & m: self.__shandlers[code][m] = fn
             return fn
         return wrapper
     #enddef
 
     def set_http_state(self, code, fn, method = METHOD_HEAD | METHOD_GET | METHOD_POST):
         """ set fn as handler for http state code and method """
-        if not code in self.shandlers: self.shandlers[code] = {}
+        if not code in self.__shandlers: self.__shandlers[code] = {}
         for m in methods.values():
-            if method & m: self.shandlers[code][m] = fn
+            if method & m: self.__shandlers[code][m] = fn
     #enddef
 
     def error_from_table(self, req, code):
         """ this function is called if error was accured. If status code is in
             shandlers (fill with http_state function), call this handler.
         """
-        if code in self.shandlers and req.method_number in self.shandlers[code]:
+        if code in self.__shandlers and req.method_number in self.__shandlers[code]:
             try:
-                handler = self.shandlers[code][req.method_number]
+                handler = self.__shandlers[code][req.method_number]
                 handler(req)
             except:
                 internal_server_error(req)
@@ -189,8 +323,9 @@ class Application:
     #enddef
 
     def handler_from_default(self, req):
-        if req.method_number in self.dhandlers:
-            retval = self.dhandlers[req.method_number](req)
+        if req.method_number in self.__dhandlers:
+            req.uri_rule = '_default_handler_'
+            retval = self.__dhandlers[req.method_number](req)
             if retval != DECLINED:
                 raise SERVER_RETURN(retval)
     #enddef
@@ -202,9 +337,11 @@ class Application:
             or call handler for status code 404 - not found.
         """
 
-        if req.uri in self.handlers:
-            if req.method_number in self.handlers[req.uri]:
-                handler = self.handlers[req.uri][req.method_number]
+        # static routes
+        if req.uri in self.__handlers:
+            if req.method_number in self.__handlers[req.uri]:
+                handler = self.__handlers[req.uri][req.method_number]
+                req.uri_rule = req.uri
                 retval = handler(req)
                 # return text is allowed
                 if isinstance(retval, str) or isinstance(retval, unicode):
@@ -216,6 +353,28 @@ class Application:
                 raise SERVER_RETURN(HTTP_METHOD_NOT_ALLOWED)
             #endif
         #endif
+
+        # regular expression
+        for ruri in self.__rhandlers.keys():
+            match = ruri.match(req.uri)
+            if match and req.method_number in self.__rhandlers[ruri]:
+                handler, convertors = self.__rhandlers[ruri][req.method_number]
+                req.uri_rule = ruri.pattern
+                if len(convertors):
+                    # create OrderedDict from match insead of dict for convertors applying
+                    req.groups = OrderedDict( (g, c(v)) for ((g, c), v) in zip(convertors, match.groups()) )
+                    retval = handler(req, *req.groups.values())
+                else:
+                    req.groups = match.groupdict()
+                    retval = handler(req, *match.groups())
+                # return text is allowed
+                if isinstance(retval, str) or isinstance(retval, unicode):
+                    req.write(retval, 1)    # write data and flush
+                    retval = DONE
+                if retval != DECLINED:
+                    raise SERVER_RETURN(retval or DONE)     # could be state.DONE
+            #endif - no METHOD_NOT_ALLOWED here
+        #endfor
 
         # try file or index
         if req.document_root():
@@ -259,7 +418,7 @@ class Application:
         req = Request(environ, start_response)
 
         try: # call pre_process
-            for fn in self._pre:
+            for fn in self.__pre:
                 fn(req)
         except:
             self.error_from_table(req, 500)
@@ -283,7 +442,7 @@ class Application:
         #endtry
 
         try: # call post_process handler
-            for fn in self._post:
+            for fn in self.__post:
                 fn(req)
         except:
             self.error_from_table(req, 500)

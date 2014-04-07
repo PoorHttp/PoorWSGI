@@ -20,12 +20,12 @@
       <span class="links">
         <a name="{{ name }}" href="#{{ name }}">link</a> | 
         <a href="#">top</a></span></h3>
-  {% elif type == 'method' %}
+  {% elif type == 'method' and not (local_name(name)[:2] == '__' and name[-2:] != '__' ) %}
     <h4 class="{{ type }}"><i>def</i> {{ local_name(name) }}{{ args|truncate(end='...)') }}
       <span class="links">
         <a name="{{ name }}" href="#{{ name }}">link</a> | 
         <a href="#">top</a></span></h4>
-  {% elif type == 'function' %}
+  {% elif type == 'function' and not (local_name(name)[:2] == '__' and name[-2:] != '__' ) %}
     <h3 class="{{ type }}"><i>def</i> {{ name }}{{ args|truncate(end='...)') }}
       <span class="links">
         <a name="{{ name }}" href="#{{ name }}">link</a> | 
@@ -35,6 +35,12 @@
       <span class="links">
         <a name="{{ name }}"></a>
         <a href="#">top</a></span></h4>
+  {#% else %}
+    <h4 class="{{ type }}"> {{ name }}
+      <span class="links">
+        <a name="{{ name }}"></a>
+        <a href="#">top</a></span></h4></h4>
+    <small>odpad</small> #}
   {% endif %}
   {% if type != 'submodule' %}
     <div class="{{ type }}">{{ wiki(doc) }}</div>

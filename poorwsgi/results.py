@@ -382,11 +382,17 @@ def debug_info(req, app):
         return ' | '.join(key for key, val in sorted_methods if val & m)
     #enddef
 
+    def _html_escape_(s):
+        s = s.replace('&', '&amp;')
+        s = s.replace('>', '&gt;')
+        s = s.replace('<', '&lt;')
+        return s
+    #enddef
 
-    def handlers_view(handlers):
+    def handlers_view(handlers, sort = True):
         rv = []
-        for u, d in sorted(handlers.items()):
-            mm = sorted(d.keys())
+        for u, d in sorted(handlers.items()) if sort else handlers.items():
+            mm = sorted(d.keys()) if sort else d.keys()
 
             vt = {}
             for m, h in d.items():
@@ -400,17 +406,27 @@ def debug_info(req, app):
     #enddef
 
     # transform handlers table to html
-    handlers_html = "\n".join(
-            ("        <tr><td><a href=\"%s\">%s</a></td><td>%s</td><td>%s</td></tr>" % \
+    handlers_html  = "\n<tr><th>Static:</th></tr>"
+    handlers_html += "\n".join(
+            ("        <tr><td colspan=\"2\"><a href=\"%s\">%s</a></td><td>%s</td><td>%s</td></tr>" % \
                 (u, u, _human_methods_(m), f.__module__+'.'+f.__name__) \
                     for u, m, f in handlers_view(app.handlers) ))
+
+    handlers_html += "\n<tr><th>Regular expression:</th></tr>"
+    # regular expression handlers
+    handlers_html += "\n".join(
+            ("        <tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % \
+                (_html_escape_(u.pattern), ', '.join(tuple("%s:<b>%s</b>" % (G, C.__name__) for G,C in c)), _human_methods_(m), f.__module__+'.'+f.__name__) \
+                    for u, m, (f, c) in handlers_view(app.rhandlers, False) ))
+
+    handlers_html += "\n<tr><th>Default:</th></tr>"
     # this result function could be called by user, so we need to test req.debug
     if req.debug and 'debug-info' not in app.handlers:
-        handlers_html += "        <tr><td><a href=\"%s\">%s</a></td><td>%s</td><td>%s</td></tr>" % \
+        handlers_html += "        <tr><td colspan=\"2\"><a href=\"%s\">%s</a></td><td>%s</td><td>%s</td></tr>" % \
             ('/debug-info', '/debug-info', 'ALL', debug_info.__module__+'.'+debug_info.__name__ )
 
     handlers_html += "\n".join(
-            ("        <tr><td>_default_handler_</td><td>%s</td><td>%s</td></tr>" % \
+            ("        <tr><td colspan=\"2\">_default_handler_</td><td>%s</td><td>%s</td></tr>" % \
                 (_human_methods_(m), f.__module__+'.'+f.__name__) \
                     for x, m, f in handlers_view({'x': app.dhandlers}) ))
 
@@ -427,6 +443,9 @@ def debug_info(req, app):
     ehandlers_html = "\n".join("        <tr><td>%s</td><td>%s</td><td>%s</td></tr>" % \
                 (c, _human_methods_(m), f.__module__+'.'+f.__name__) \
                     for c, m, f in handlers_view(_tmp_shandlers))
+
+    filters_html = "\n".join("        <tr><td>%s</td><td>%s</td><td>%s</td></tr>" % \
+                (f, str(r), c.__name__) for f, (r, c) in app.filters.items() )
 
     # transform actual request headers to hml
     headers_html = "\n".join(("        <tr><td>%s:</td><td>%s</td></tr>" %\
@@ -469,6 +488,7 @@ def debug_info(req, app):
       h2 { font-family: monospace; }
       table { width: 100%%; font-family: monospace; }
       table tr:nth-child(odd) { background: #e0e0e0; }
+      th { padding: 10px 4px 0; text-align: left; background: #fff; }
       td { word-break:break-word; }
       td:first-child { white-space: nowrap; word-break:keep-all; }
     </style>
@@ -478,6 +498,8 @@ def debug_info(req, app):
       <h2>Handlers Tanble</h2>
       <table>%s</table>
       <h2>Http State Handlers Tanble</h2>
+      <table>%s</table>
+      <h2>Routing regular expression filters</h2>
       <table>%s</table>
       <h2>Request Headers</h2>
       <table>%s</table>
@@ -493,6 +515,7 @@ def debug_info(req, app):
 </html>""" % (
         handlers_html,
         ehandlers_html,
+        filters_html,
         headers_html,
         poor_html,
         app_html,

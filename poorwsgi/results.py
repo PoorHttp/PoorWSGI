@@ -5,13 +5,16 @@ default Poor WSGI handlers
 from traceback import format_exception
 from time import strftime, gmtime
 from os import path, access, listdir, R_OK
+from operator import itemgetter
 
 import sys, mimetypes
 
-from httplib import responses
-from cStringIO import StringIO
+if sys.version_info.major < 3:      # python 2.x
+    from httplib import responses
+else:                           # python 3.x
+    from http.client import responses
 
-from state import __author__, __date__, __version__, \
+from poorwsgi.state import __author__, __date__, __version__, \
         DONE, METHOD_ALL, methods, sorted_methods, levels, LOG_ERR, \
         HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_FORBIDDEN, \
         HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED, HTTP_INTERNAL_SERVER_ERROR, \
@@ -259,7 +262,7 @@ def send_file(req, path, content_type = None):
     if not access(path, R_OK):
         raise IOError("Could not stat file for reading")
 
-    req._buffer = file(path, 'r')
+    req._buffer = open(path, 'rb')
     return DONE
 #enddef
 
@@ -399,7 +402,7 @@ def debug_info(req, app):
                 if not h in vt: vt[h] = 0
                 vt[h] ^= m
 
-            for h,m in sorted(vt.items(), key = lambda (k,v): (v,k)):
+            for h,m in sorted(vt.items(), key = itemgetter(1)):
                 rv.append((u, m, h))
 
         return rv

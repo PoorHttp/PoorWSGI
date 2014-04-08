@@ -11,23 +11,38 @@ from inspect import stack
 
 import os, re
 
-from httplib import responses
-from cStringIO import StringIO
-from state import __author__, __date__, __version__, methods, \
+if version_info.major < 3:      # python 2.x
+    from httplib import responses
+    from cStringIO import StringIO as BytesIO
+
+    _unicode_exist = True
+else:                           # python 3.x
+    from http.client import responses
+    from io import BytesIO
+
+    _unicode_exist = False
+
+from poorwsgi.state import __author__, __date__, __version__, methods, \
         levels, LOG_ERR, LOG_WARNING, LOG_INFO, \
         HTTP_OK, \
         HTTP_INTERNAL_SERVER_ERROR 
 
-from results import SERVER_RETURN as SERVER_RETURN_RIGHT
+from poorwsgi.results import SERVER_RETURN as SERVER_RETURN_RIGHT
 
 # simple regular expression for construct_url method
 _httpUrlPatern = re.compile(r"^(http|https):\/\/")
 
-def uni(text):
-    """ automatic conversion from str to unicode with utf-8 encoding """
-    if isinstance(text, str):
-        return unicode(text, encoding = 'utf-8')
-    return unicode(text)
+if _unicode_exist:
+    def uni(text):
+        """ automatic conversion from str to unicode with utf-8 encoding """
+        if isinstance(text, str):
+            return unicode(text, encoding = 'utf-8')
+        return unicode(text)
+else:
+    def uni(text):
+        """ automatic conversion from str to unicode with utf-8 encoding """
+        return str(text)
+
 
 class Headers(WHeaders):
     """Class inherited from wsgiref.headers.Headers."""
@@ -139,7 +154,7 @@ class Request:
 
         self._file = self.environ.get("wsgi.input")
         self._errors = self.environ.get("wsgi.errors")
-        self._buffer = StringIO()
+        self._buffer = BytesIO()
         self._buffer_len = 0
         self._buffer_offset = 0
 
@@ -212,7 +227,8 @@ class Request:
         data was be sent to client via old write method (directly). Otherwhise,
         data was be sent at the end of request as iterable object.
         """
-        if isinstance(data, unicode):
+        if (not _unicode_exist and isinstance(data, str)) or \
+            (_unicode_exist and isinstance(data, unicode)):
             data = data.encode('utf-8')
         
         # FIXME: self._buffer is not FIFO
@@ -323,7 +339,7 @@ class Request:
             self._call_start_response()
             self._buffer_offset = self._buffer_len
             self._buffer.seek(0)    # na zacatek !!
-            return self._buffer     # return buffer (StringIO)
+            return self._buffer     # return buffer (StringIO or BytesIO)
         else:
             self._buffer.seek(self._buffer_offset)
             self.__write(self._buffer.read())   # flush all from buffer

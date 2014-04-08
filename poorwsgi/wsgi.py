@@ -5,17 +5,23 @@ main application function, and functions for working with dispatch table
 from socket import error as SocketError
 from os import path, access, R_OK
 from collections import OrderedDict
+from sys import version_info
 import re
 
-from state import OK, DONE, DECLINED, HTTP_ERROR, HTTP_OK, \
+from poorwsgi.state import OK, DONE, DECLINED, HTTP_ERROR, HTTP_OK, \
             METHOD_GET, METHOD_POST, METHOD_HEAD, methods, LOG_INFO, LOG_ERR, \
             HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, \
             __author__, __date__, __version__
-from request import Request, uni
-from results import default_shandlers, not_implemented, internal_server_error, \
+from poorwsgi.request import Request, uni
+from poorwsgi.results import default_shandlers, not_implemented, internal_server_error, \
             SERVER_RETURN, send_file, directory_index, debug_info
 
 re_filter = re.compile(r'<(\w+)(:[^>]+)?>')
+
+if version_info.major < 3:      # python 2.x
+    _unicode_exist = True
+else:                           # python 3.x
+    _unicode_exist = False
 
 class Application:
     """ Poor WSGI application which is called by WSGI server, how, is describe
@@ -344,7 +350,7 @@ class Application:
                 req.uri_rule = req.uri
                 retval = handler(req)
                 # return text is allowed
-                if isinstance(retval, str) or isinstance(retval, unicode):
+                if isinstance(retval, str) or (_unicode_exist and isinstance(retval, unicode)):
                     req.write(retval, 1)    # write data and flush
                     retval = DONE
                 if retval != DECLINED:
@@ -368,7 +374,7 @@ class Application:
                     req.groups = match.groupdict()
                     retval = handler(req, *match.groups())
                 # return text is allowed
-                if isinstance(retval, str) or isinstance(retval, unicode):
+                if isinstance(retval, str) or (_unicode_exist and isinstance(retval, unicode)):
                     req.write(retval, 1)    # write data and flush
                     retval = DONE
                 if retval != DECLINED:

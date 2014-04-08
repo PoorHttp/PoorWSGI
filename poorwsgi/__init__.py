@@ -19,10 +19,10 @@ Current Contents:
                 dispatch table
 """
 
-from request import FieldStorage
+from poorwsgi.request import FieldStorage
 
-from results import redirect, SERVER_RETURN
+from poorwsgi.results import redirect, SERVER_RETURN
 
-from state import __author__, __date__, __version__
+from poorwsgi.state import __author__, __date__, __version__
 
-from wsgi import application, app
+from poorwsgi.wsgi import application, app

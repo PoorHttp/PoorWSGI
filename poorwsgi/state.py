@@ -109,4 +109,5 @@ methods = {
     'PATCH'     : METHOD_PATCH
 }
 
-sorted_methods = sorted(methods.items(), key = lambda (k,v): (v,k))
+from operator import itemgetter
+sorted_methods = sorted(methods.items(), key = itemgetter(1))

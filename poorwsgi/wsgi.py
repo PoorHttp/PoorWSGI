@@ -27,6 +27,22 @@ class Application:
     """ Poor WSGI application which is called by WSGI server, how, is describe
         in PEP 0333. This object store route dispatch table, and have methods
         for it's using and of course __call__ method for use as WSGI application.
+
+        Properties:
+            filters - copy of filter table with regular expressions and convert
+                    functions, see Application.set_filter and Application.route
+            pre - tuple of table with preprocess handlers, see
+                    Application.pre_process
+            post - tuple of table with postprocess handlers, see
+                    Application.post_process
+            dhandlers - copy of table with default handlers, see
+                    Application.set_default
+            handlers - copy of table with static handlers, see
+                    Application.route
+            rhandlers - copy of table with regular expression handlers, see
+                    Application.route and Application.rroute
+            shandlers - copy of table with http state aka error handlers, see
+                    Application.http_state
     """
     def __init__(self):
         # list of pre and post process handlers
@@ -81,7 +97,41 @@ class Application:
 
     @property
     def filters(self):
+        """
+        Return copy of filter table with regular expressions and convert
+        functions.
+        """
         return self.__filters.copy()
+
+    @property
+    def pre(self):
+        """ return tuple of table with preprocess handlers """
+        return tuple(self.__pre)
+
+    @property
+    def post(self):
+        """ return tuple of table with postprocess handlers """
+        return tuple(self.__post)
+
+    @property
+    def dhandlers(self):
+        """ return copy of table with default handlers """
+        return self.__dhandlers.copy()
+
+    @property
+    def handlers(self):
+        """ return copy of table with static handlers """
+        return self.__handlers.copy()
+
+    @property
+    def rhandlers(self):
+        """ return copy of table with regular expression handlers """
+        return self.__rhandlers.copy()
+
+    @property
+    def shandlers(self):
+        """ return copy of table with http state aka error handlers """
+        return self.__shandlers.copy()
 
     def set_filter(self, name, regex, convertor = uni):
         """
@@ -89,7 +139,7 @@ class Application:
             name      - name of filter which is used in route or set_route method
             regex     - regular expression which used for filter
             convertor - convertor function or class, which gets unicode in input.
-                        Default is uni function.
+                        Default is uni function, which is wrapper to unicode string.
 
             app.set_filter('uint', r'\d+', int)
         """
@@ -120,7 +170,7 @@ class Application:
     #enddef
 
 
-    def post_process(self, req):
+    def post_process(self):
         """
         This method is called after each request, if you want to use it, just
         simple redefined it.
@@ -142,30 +192,7 @@ class Application:
                 app.add__post_process(after_each_request)
         """
         self.__post.append(fn)
-
-    @property
-    def pre(self):
-        return self.__pre.copy()
-
-    @property
-    def post(self):
-        return self.__post.copy()
-
-    @property
-    def dhandlers(self):
-        return self.__dhandlers.copy()
-
-    @property
-    def handlers(self):
-        return self.__handlers.copy()
-
-    @property
-    def rhandlers(self):
-        return self.__rhandlers.copy()
-
-    @property
-    def shandlers(self):
-        return self.__shandlers.copy()
+    #enddef
 
 
     def default(self, method = METHOD_HEAD | METHOD_GET):
@@ -180,9 +207,7 @@ class Application:
                     ...
         """
         def wrapper(fn):
-            for m in methods.values():
-                if method & m: self.__dhandlers[m] = fn
-            return fn
+            self.set_default(fn, method)
         return wrapper
     #enddef
 
@@ -213,7 +238,7 @@ class Application:
                 ...
 
             # group regular expression with filter
-            @app.route('/<surname:word>'/<age:int>)
+            @app.route('/<surname:word>/<age:int>')
             def surnames_by_age(req, surname, age):
                 ...
 
@@ -229,7 +254,12 @@ class Application:
             def classes(req, **kwargs):
                 return "'%s' class is %d lenght." % (kwargs['class'], kwargs['len'])
 
-
+        Be sure with ordering of call this decorator or set_route function with
+        groups regular expression. Regular expression routes are check with the
+        same ordering, as you create internal table of them. First match stops
+        any other searching. In fact, if groups are detect, they will be
+        transfer to normal regular expression, and will be add to second
+        internal table.
         """
         def wrapper(fn):
             self.set_route(uri, fn, method)
@@ -260,7 +290,8 @@ class Application:
     def rroute(self, ruri, method = METHOD_HEAD | METHOD_GET):
         """
         Wrap function to be handler for uri defined by regular expression and
-        specified method.
+        specified method. Both of function, rroute and set_rroute store routes
+        to special internal table, which is another to table of static routes.
 
             @app.rroute(r'/user/\w+')               # simple regular expression
             def any_user(req):
@@ -286,6 +317,9 @@ class Application:
         See rroute documentation for details.
 
             app.set_rroute('/use/\w+/post', user_create, METHOD_POST)
+
+        This method is internally use, when groups are found in static route,
+        adding by route or set_route method.
         """
         r_uri = re.compile(r_uri, re.U)
         if not r_uri in self.__rhandlers: self.__rhandlers[r_uri] = {}
@@ -297,10 +331,7 @@ class Application:
     def http_state(self, code, method = METHOD_HEAD | METHOD_GET | METHOD_POST):
         """ wrap function to handle another http status codes like http errors """
         def wrapper(fn):
-            if not code in self.__shandlers: self.__shandlers[code] = {}
-            for m in methods.values():
-                if method & m: self.__shandlers[code][m] = fn
-            return fn
+            self.set_http_state(code, fn, method)
         return wrapper
     #enddef
 

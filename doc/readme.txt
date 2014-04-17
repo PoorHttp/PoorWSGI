@@ -214,12 +214,76 @@ http state HTTP_METHOD_NOT_ALLOWED is return.
         return 'Data of other uri'
     app.set_route('/some/other/uri', other_uri, state.METHOD_GET_POST)
 
-==== rRoute and gRoute ====
+==== Group regular expression routes ====
 
-As I wrote, at this time is support only simple routes. But regular
-expression routes and group regular expressions routes are planned. There are
-decorator app.rroute and app.groute and methods app.set_rroute and
-app.set_groute which raise NotImplementedError exceptions.
+As in other wsgi connectors, or frameworks if you want, there are way how to
+define routes with getting part of url path as parameter of handler. I call
+them *group regular expression routes*. You can use it in nice human-readable
+form or in your own regular expressions. Basic use is define by group name.
+
+    # group regular expression
+    @app.route('/user/<name>')
+    def user_detail(req, name):
+        return 'Name is %s' % name
+
+There are use filters define by regular expression from table app.filters. This
+filter is use to transport to regular expression define by group. Default
+filter is {r'[^/]+'} with uni convert function. You can use any filter from
+table filters.
+
+    # group regular expression with filter
+    @app.route('/<surname:word>/<age:int>')
+    def surnames_by_age(req, surname, age):
+        return 'Surname is: %s and age is: %d' % (surname, age)
+
+Filter int is define by {r'-?\d+'} with convert "function" int. So age must be
+number and the input parameter is int instance.
+
+There are fifth predefined filters: *:int*, *:float*, *:word*, *:re:* and
+*none* as default filter. Word is define as {r'\w+'} regular expression, and
+poorwsgi use re.U flag, so it match any Unicode string. That means UTF-8
+string.
+
+You can get copy of filters table calling app.filters property. And this
+filters table is output to debug-info page. Adding your own filter is possible
+with function set_filter with name, regular expression and convert function
+which is uni by default. Next you can use this filter in group regular
+expression.
+
+    app.set_filter('email', r'[a-zA-Z\.\-]+@[a-zA-Z\.\-]+', str)
+
+    @app.route('/user/<login:email>')
+    def user_by_login(req, login):
+        return 'Users email is %s' % login
+
+In other way, you can use filters define by inline regular expression. That is
+{:re:} filter. This filter have regular expression which you write in, and
+allways uni convert function, so parametr is allways unicode.
+
+    @app.route('/<number:re:[a-fA-F\d]+>')
+    def hex_number(req, number):
+        return 'Number is %s that is %d so %x' % (number, int(number,16), int(number,16))
+
+==== Regular expression group naming ====
+
+Group names *must be unique*. They are store in ordered dictionary, to do wrap
+by their convert functions. You can named them in route definition how you can,
+and they can't be named same in handler parameters, but they must be only in the
+same ordering. Be careful to named parameters in handler with some python
+keyword, like class for example. If you can, you can use python "varargs" syntax
+to get any count of parameters in your handler function.
+
+    @app.route('/test/<variable0>/<variable1>/<variable2>')
+    def test_varargs(req, *args):
+        return "Parse %d parameters %s" % (len(args), str(args))
+
+At last future of group regular expression routes is direct access to dictionary
+with req.groups variable. This variable is set from any regular expression
+route.
+
+    @app.route('/test/<variable0>/<variable1>/<variable2>')
+    def test_varargs(req, *args):
+        return "All input variables from url path: %s" % str(req.groups)
 
 === Default and http state handler ===
 
@@ -267,34 +331,83 @@ anything, resp. their return values are ignored. If they crash with error,
 internal_server_error was return and http state handler was called.
 
 Second list contains functions, which is called after each request. If they
-crass with error, internal_server_error was return and http state handler is
+crash with error, internal_server_error was return and http state handler is
 called, but all code from pre_process and from route handler is called, and
 may be, it could send output to WSGI server, if content is bigger then
 poor_BufferSize.
 
-=== Input Forms and Application options ===
-==== Input variables / Forms ====
-
-User input vairables, which is sent to server are available throw
-FieldStorage class. FieldStorage is child of FieldStorage class from pythons
-cgi module with some WSGI support init and additional functionality in
-getfirst and getlist methods.
-
-Both of methods have new parameter fce, This function is called on all
-returned value and it is good idea to set it on your requested variable. If
-you want to get number, you will every time got number if fce is int or float.
-
-Before example, that not mind, if request method is get, post or another. You
-can use FieldStorage every time.
-
-    @app.route('/some/uri')
-    def some_uri(req):
-        form = FieldStorage(req)
-        user = form.getfirst('name', '', str)       # because str(None) returns 'None'
-        age  = form.getfirst('age', fce = int)      # there could raise exception
-                                                    # because int(None) raise it
-        children = form.getlist('children', '', str)
+    @app.pre_process()
+    def before_each_request(req):
         ...
+
+    @app.pre_process()
+    def after_each_request(req):
+        ...
+
+You can use standard methods of app object, add_pre_process and
+add_post_process too.
+
+
+=== Request variables ===
+
+PoorWSGI has two extra classes for get arguments. From request uri, typical
+for GET method and from request body, typical for POST method. Both of classes
+parse input variables by default configurable with poor environment variables 
+*poor_AutoArgs* and *poor_AutoForm*. Parsing of these request variables are
+configurable with *poor_KeepBlankValues* and *poor_StrictParsing*. See
+FieldStorage, cgi.FieldStorage, Args or urlparse.parse_qs to more details.
+
+==== Automatic convert to unicode ====
+
+As variables from uri, gets with group regular expression routes, which must
+be in unicode to right working regular expression, all other input variables
+are convert to unicode by default. You can call get method on each class with
+your convert function of course. If you want to use internal convert function,
+its name is uni. Uni is function define in depend on python version. If python
+2.x is use, uni encode unicode from utf-8. If python 3.x is use, default new
+str class is use.
+
+
+==== Request uri arguments ====
+
+Request uri arguments are stored to Args class, define in poorwsgi.request
+module. Args is dict base class, with interface compatible methods getfirst
+and getlist. You can access to variables with args parameters at all time when
+poor_AutoArgs is set to On, which is default.
+
+    @app.route('/test/get')
+    def test_get(req)
+        name = req.args.getfirst('name')
+        colors = req.args.getlist('color', fce = int)
+        return "Get arguments are %s" % uni(req.args)
+
+If no arguments are parsed, or if poor_AutoArgs is set to Off, req.args is
+EmptyForm instance, which is dict base class too with both of methods.
+
+==== Request body arguments ====
+
+Request body areguments are stored to FieldStorage class, define in
+poorwsgi.request module.. This class is based on FieldStorage from standard
+cgi module. And variables are parsed every time, when poor_AutoForm is set to
+On, which is default and request method is POST, PUT or PATCH. You can call it
+on any other methods of course, but it must exist wsgi.input in request
+environment from wsgi server.
+
+req.form instance is create with poor_KeepBlankValues and poor_StrictParsing
+variables as Args class is create, but FieldStorage have file_callback
+variable, which is configurable by XXX.
+
+    @app.route('/test/post', methods = state.METHOD_GET_POST)
+    def test_get(req)
+        id = req.args.getfirst('id', 0, int) # id is get from request uri and it
+                                             # is convert to number with zero
+                                             # as default
+        name = req.form.getfirst('name')
+        colors = req.form.getlist('color', fce = int)
+        return "Post arguments for id are %s" % (id, uni(req.args))
+
+As like Args class, if poor_AutoForm is set to Off, or if method is no POST,
+PUT or PATCH, req.form is EmptyForm is instance instead of FieldStorage.
 
 ==== Application / User options ====
 Like in mod_python Request, Poor WSGI Request have get_options method too.
@@ -310,10 +423,20 @@ with {app_} prefix. This prefix is cut from options names.
 
 And you can get these variables with get_options method:
 
+    config = None
+
+    @app.pre_process()
+    def load_options(req):
+        global config
+
+        if config is None:
+            config = req.get_options()
+        
+        req.config = config
+
     @app.route('/options')
-    def app_test(req):
-        options = req.get_options()
-        for key, val in options.items():
+    def list_options(req):
+        for key, val in req.config.items():
             req.write(key + '\t: '+ val)
 
 Output of application url /options looks like:
@@ -322,6 +445,32 @@ Output of application url /options looks like:
     db_file   : mywebapp.db
     tmp_path  : tmp
     templ     : templ
+
+As you can see, you can store your variables to request object. There are few
+reserved variables for you, which poorwsgi never use, and which are None by
+default:
+    req.config - for your config object
+    req.logger - for your special logger object or logger function
+    req.user   - for user object, who is login
+    req.app_   - as prefix for any your application variable
+
+So if you want to add any other variable, be careful to named it.
+
+    from time import ctime
+
+    log = open('app.log', 'w+')
+    def my_logger(msg)
+         log.write(ctime() + ': ' + msg + '\n')
+
+    @app.pre_process()
+    def set_logger(req):
+        req.logger = my_logger
+
+    @app.route('/test')
+    def test(req):
+        req.logger('test call')
+        ...
+        
 
 === Headers and Sessions ===
 ==== Headers ====
@@ -355,10 +504,10 @@ are check from data, so client can't change it in simple way. That is
 important to right set poor_SecretKey variable which is used in class by
 hidden function.
 
-    @app.route('/login')
+    @app.route('/login', method = state.METHOD_GET_POST)
     def login(req):
         if req.method == 'POST':
-            passwd = form.getfirst('passwd', fce = str)
+            passwd = req.form.getfirst('passwd', fce = str)
             if passwd != 'SecretPasswds':
                 req.log_error('Bad password', state.LOG_INFO)
                 redirect(req, '/login', text = 'Bad password')
@@ -375,7 +524,7 @@ hidden function.
     def private_uri(req):
         cookie = PoorSession(req)
         if not 'passwd' in cookie.data:         # expires or didn't set
-            req.log_error('Login cookie not found.', LOG_INFO)
+            req.log_error('Login cookie not found.', state.LOG_INFO)
             redirect(req, '/login', text = 'Login required')
 
         return 'Some private data'

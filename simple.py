@@ -3,7 +3,9 @@
 from wsgiref.simple_server import make_server
 from base64 import decodestring
 from poorwsgi import *
+from poorwsgi.request import uni
 from inspect import stack
+from collections import OrderedDict
 
 import os
 
@@ -18,7 +20,7 @@ def get_crumbnav(req):
 
 
 def html(s):
-    s = str(s)
+    s = uni(s)
     s = s.replace('&', '&amp;')
     s = s.replace('>', '&gt;')
     s = s.replace('<', '&lt;')
@@ -45,7 +47,7 @@ def get_footer():
         "</body>",
         "</html>"
     )
-        
+
 
 def get_variables(req):
     usable = ("REQUEST_METHOD", "QUERY_STRING", "SERVER_NAME", "SERVER_PORT",
@@ -69,6 +71,8 @@ def root(req):
             '<li><a href="/test/word">/test/&lt;variable:word&gt;</a> - Testing regular:word Page</li>',
             '<li><a href="/test/user@example.net">/test/&lt;variable:user&gt;</a> - Testing regular:user Page</li>',
             '<li><a href="/test/[grr]">/test/&lt;variable:re:.*&gt;</a> - Testing regular:re Page</li>',
+            '<li><a href="/test/one/too/three">/test/&lt;variable0&gt;&lt;variable1&gt;&lt;variable2&gt;</a> - Testing variable args</li>',
+            '<li><a href="/test/form">/test/form</a> - Testing http form</li>',
             '<li><a href="/debug-info">/debug-info</a> - Debug Page (only if poor_Debug is set)</li>',
             '<li><a href="/no-page">/no-page</a> - No Exist Page</li>',
             "</ul>",
@@ -123,9 +127,6 @@ def style(req):
     return state.OK
 
 
-
-
-@app.route('/test/<variable:re:.*>')
 @app.route('/test/<variable:email>')
 @app.route('/test/<variable:word>')
 @app.route('/test/<variable:float>')
@@ -136,7 +137,7 @@ def test_dynamic(req, variable = None):
                 'value': variable,
                 'uri_rule': req.uri_rule
                }
-    
+
     title = "Variable" if variable is not None else "Static"
 
     buff = get_header(title + " test") + (
@@ -162,6 +163,93 @@ def test_dynamic(req, variable = None):
         req.write(line + '\n')
     return state.OK
 
+@app.route('/test/<variable:re:.*>')
+@app.route('/test/<variable0>/<variable1>/<variable2>')
+def test_varargs(req, *args):
+    var_info = {'len': len(args),
+               }
+    var_info.update(req.groups)
+
+    buff = get_header("Variable args test") + (
+        get_crumbnav(req),
+        "<h2>Variables</h2>",
+        "<table>"
+    ) + tuple( "<tr><td>%s:</td><td>%s</td></tr>" % \
+                            (key, html(val)) for key, val in var_info.items()
+    ) + ("</table>",
+        "<h2>Browser Headers</h2>",
+        "<table>"
+    ) + tuple( "<tr><td>%s:</td><td>%s</td></tr>" % \
+                            (key, val) for key, val in req.headers_in.items()
+    ) + ("</table>",
+        "<h2>Request Variables </h2>",
+        "<table>"
+    ) + tuple( "<tr><td>%s:</td><td>%s</td></tr>" % \
+                            (key, val) for key, val in get_variables(req)
+    ) + ("</table>",
+    ) + get_footer()
+
+    for line in buff:
+        req.write(line + '\n')
+    return state.OK
+
+@app.route('/test/form', method = state.METHOD_GET_POST)
+def test_form(req):
+
+    #get_var_info = {'len': len(args)}
+    var_info = OrderedDict((
+                ('form_keys', req.form.keys()),
+                ('form_values', ', '.join(tuple(uni(req.form.getvalue(key)) for key in req.form.keys()))),
+                ('form_getfirst', '%s,%s' % (req.form.getfirst('pname'), req.form.getfirst('px')) ),
+                ('form_getlist', '%s,%s' % ( req.form.getlist('pname'), req.form.getlist('px') )),
+                ('',''),
+                ('args_keys', req.args.keys()),
+                ('args_values', ', '.join(tuple(uni(req.args[key]) for key in req.args.keys())) ),
+                ('args_getfirst', '%s,%s' % (req.args.getfirst('gname'), req.args.getfirst('gx')) ),
+                ('args_getlist', '%s,%s' % ( req.args.getlist('gname'), req.args.getlist('gx') )),
+                ))
+    
+
+    buff = get_header("HTTP Form args test") + (
+        get_crumbnav(req),
+        "<h2>Get Form</hs>",
+        '<form method="get">',
+        '<input type="text" name="gname" value="Ondřej"><br/>',
+        '<input type="text" name="gsurname" value="Tůma"><br/>',
+        '<input type="text" name="gx" value="1">'
+        '<input type="text" name="gx" value="2">'
+        '<input type="text" name="gx" value="3"><br/>',
+        '<input type="submit" name="btn" value="Send">'
+        '</form>',
+        "<h2>Post Form</hs>",
+        '<form method="post">',
+        '<input type="text" name="pname" value="Ondřej"><br/>',
+        '<input type="text" name="psurname" value="Tůma"><br/>',
+        '<input type="text" name="px" value="8">'
+        '<input type="text" name="px" value="7">'
+        '<input type="text" name="px" value="6"><br/>',
+        '<input type="submit" name="btn" value="Send">'
+        '</form>',
+        "<h2>Variables</h2>",
+        "<table>"
+    ) + tuple( "<tr><td>%s:</td><td>%s</td></tr>" % \
+                            (key, html(val)) for key, val in var_info.items()
+    ) + ("</table>",
+        "<h2>Browser Headers</h2>",
+        "<table>"
+    ) + tuple( "<tr><td>%s:</td><td>%s</td></tr>" % \
+                            (key, val) for key, val in req.headers_in.items()
+    ) + ("</table>",
+        "<h2>Request Variables </h2>",
+        "<table>"
+    ) + tuple( "<tr><td>%s:</td><td>%s</td></tr>" % \
+                            (key, val) for key, val in get_variables(req)
+    ) + ("</table>",
+    ) + get_footer()
+
+    for line in buff:
+        req.write(line + '\n')
+    return state.OK
 
 @app.http_state(state.HTTP_NOT_FOUND)
 def not_found(req):
@@ -184,6 +272,14 @@ def not_found(req):
         req.write(line + '\n')
     return state.DONE
 
+@app.pre_process()
+@app.post_process()
+def log(req):
+    print "Log this point"
+
+@app.post_process()
+def post(req):
+    pass
 
 if __name__ == '__main__':
     httpd = make_server('127.0.0.1', 8080, app)

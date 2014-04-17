@@ -19,7 +19,7 @@ Current Contents:
                 dispatch table
 """
 
-from poorwsgi.request import FieldStorage
+from poorwsgi.request import uni
 
 from poorwsgi.results import redirect, SERVER_RETURN
 

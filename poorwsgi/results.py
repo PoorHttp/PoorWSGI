@@ -447,6 +447,19 @@ def debug_info(req, app):
                 (c, _human_methods_(m), f.__module__+'.'+f.__name__) \
                     for c, m, f in handlers_view(_tmp_shandlers))
 
+    # pre and post table
+    pre, post = app.pre, app.post
+    if len(pre) >= len(post):
+        post += (len(pre)-len(post)) * (None, )
+    else:
+        pre += (len(post)-len(pre)) * (None, )
+
+    pre_post_html = "\n".join("        <tr><td>%s</td><td>%s</td></tr>" % \
+                (f0.__module__+'.'+f0.__name__ if f0 is not None else '',
+                 f1.__module__+'.'+f1.__name__ if f1 is not None else '',) \
+                    for f0, f1 in zip(pre, post))
+
+    # filters
     filters_html = "\n".join("        <tr><td>%s</td><td>%s</td><td>%s</td></tr>" % \
                 (f, str(r), c.__name__) for f, (r, c) in app.filters.items() )
 
@@ -502,6 +515,10 @@ def debug_info(req, app):
       <table>%s</table>
       <h2>Http State Handlers Tanble</h2>
       <table>%s</table>
+      <h2>Pre process and Post process Handlers Tanble</h2>
+      <table>
+        <tr><th>Pre</th><th>Post</th></tr>
+      %s</table>
       <h2>Routing regular expression filters</h2>
       <table>%s</table>
       <h2>Request Headers</h2>
@@ -518,6 +535,7 @@ def debug_info(req, app):
 </html>""" % (
         handlers_html,
         ehandlers_html,
+        pre_post_html,
         filters_html,
         headers_html,
         poor_html,
@@ -526,7 +544,7 @@ def debug_info(req, app):
         req.server_software,
         req.server_admin
     )
-        
+
     req.content_type = "text/html"
     req.write(content_html)
     return DONE
@@ -535,13 +553,14 @@ def debug_info(req, app):
 # http state handlers, which is called if programmer don't defined his own
 default_shandlers = {}
 
-def __fill_default_shandlers__(code, handler):
+def __fill_default_shandlers(code, handler):
     default_shandlers[code] = {}
     for m in methods.values():
         default_shandlers[code][m] = handler
-__fill_default_shandlers__(HTTP_INTERNAL_SERVER_ERROR, internal_server_error)
-__fill_default_shandlers__(HTTP_NOT_FOUND, not_found)
-__fill_default_shandlers__(HTTP_METHOD_NOT_ALLOWED, method_not_allowed)
-__fill_default_shandlers__(HTTP_FORBIDDEN, forbidden)
-__fill_default_shandlers__(HTTP_NOT_IMPLEMENTED, not_implemented)
+
+__fill_default_shandlers(HTTP_INTERNAL_SERVER_ERROR, internal_server_error)
+__fill_default_shandlers(HTTP_NOT_FOUND, not_found)
+__fill_default_shandlers(HTTP_METHOD_NOT_ALLOWED, method_not_allowed)
+__fill_default_shandlers(HTTP_FORBIDDEN, forbidden)
+__fill_default_shandlers(HTTP_NOT_IMPLEMENTED, not_implemented)
 

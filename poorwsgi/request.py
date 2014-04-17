@@ -5,6 +5,7 @@ Headers, Request and FieldStorage classes, which is used for managing requests.
 
 from wsgiref.headers import Headers as WHeaders
 from cgi import FieldStorage as CgiFieldStorage
+from urlparse import parse_qs
 from time import strftime, gmtime
 from sys import version_info, stderr
 from inspect import stack
@@ -24,6 +25,7 @@ else:                           # python 3.x
 
 from poorwsgi.state import __author__, __date__, __version__, methods, \
         levels, LOG_ERR, LOG_WARNING, LOG_INFO, \
+        METHOD_POST, METHOD_PUT, METHOD_PATCH, \
         HTTP_OK, \
         HTTP_INTERNAL_SERVER_ERROR 
 
@@ -67,24 +69,69 @@ class Request:
     """ HTTP request object with all server elements. It could be compatible
         as soon as possible with mod_python.apache.request.
 
-        Instance has these variables:
-            subprocess_env  - A table object containing environment information
-                             typically usable for CGI.
-            hostname        - String. Host, as set by full URI or Host: header.
-            method          - A string containing the method - 'GET', 'HEAD',
-                             'POST', etc. Same as CGI REQUEST_METHOD
-            method_number   - method number constant from state module
-            uri             - The path portion of the URI.
-            uri_rule        - Rule from one of handler table.
-            content_type    - String. The content type. Another way to set
-                             content_type is via headers_out object property.
-                             Default is *{ text/html; charset=utf-8 }*
+        Instance has these information variables for reading:
+            environ         - a table object containing request environment information
+                             from wsgi server.
+            subprocess_env  - apache compatible variable for environ
+            scheme          - request scheme, typical {http} or {https}
+            hostname        - string. Host, as set by full URI or Host: header.
+            port            -
+            protocol        -
             remote_host     - Remote hostname
             remote_addr     - Remote address
             referer         - request referer if is available or None
             user_agent      - Browser user agent string
-            scheme          - request scheme, typical {http} or {https}
+            server_hostname - server name variable
+            server_software -
+            server_admin    -
+            poor_environ    -
+            document_index  -
+            debug           -
+            auto_args       -
+            auto_form       -
+            keep_blank_values - 
+            strict_parsing  -
+            secretkey       -
+            method          - a string containing the method - {GET}, {HEAD},
+                             {POST}, etc.
+            method_number   - method number constant from state module
+            uri             - The path portion of the URI.
+            uri_rule        - Rule from one of application handler table.
+            headers_in      -
+            is_xhr          -
+            headers_out     -
+            err_headers_out -
+            args            - extended dictionary (Args instance) of request
+                             arguments from QUERY_STRING, which is typical, but
+                             not only for GET method. Arguments are parsed when
+                             poor_AutoArgs is set which is default.
+            forms           - dictionary like class (FieldStorage instance) of
+                             method arguments which are send in request body,
+                             which is typical for POST, PUT or PATCH method.
+                             Request body is parsed when poor_AutoForm is set
+                             which default and when method is POST, PUT or PATCH.
+            clength         -
+            body_bytes_sent -
 
+        Only two variables for writing.
+            content_type    - String. The content type. Another way to set
+                             content_type is via headers_out object property.
+                             Default is *{ text/html; charset=utf-8 }*
+            status          - http status code, which is state.HTTP_OK (200) by
+                             default. If you want to set this variable (which
+                             is very good idea in http_state handlers), it is
+                             good solution to use some of HTTP_ constant from
+                             state module.
+
+        Special variables for user use:
+            config          - for config object (default None)
+            logger          - for special logger object or logger function
+                              (default req.log_error)
+            user            - for user object, who is login for example (default
+                              None)
+            app_            - as prefix for any your application variable (not
+                              defined)
+        
     """
 
     def __init__(self, environ, start_response):
@@ -133,6 +180,7 @@ class Request:
                 tmp.append((key, val))
 
         self.headers_in = WHeaders(tmp)
+        self.is_xhr = (self.headers_in.get('X-Requested-With','XMLHttpRequest') == 'XMLHttpRequest')
 
         ## A Headers object representing the headers to be sent to the client.
         self.headers_out = Headers()
@@ -146,6 +194,20 @@ class Request:
         else:
             self.poor_environ = self.environ
         #endif
+
+        self.auto_args = self.poor_environ.get('poor_AutoArgs', 'On').lower() == 'on'
+        self.auto_form = self.poor_environ.get('poor_AutoForm', 'On').lower() == 'on'
+        self.keep_blank_values = int(self.poor_environ.get('poor_KeepBlankValues', 'Off').lower() == 'on')
+        self.strict_parsing = int(self.poor_environ.get('poor_StrictParsing', 'Off').lower() == 'on')
+
+        ## args
+        if self.auto_args:
+            self.args = Args(self, self.keep_blank_values, self.strict_parsing)
+        else: self.args = EmptyForm()
+
+        if self.auto_form and self.method_number & (METHOD_POST | METHOD_PUT | METHOD_PATCH):
+            self.form = FieldStorage(self, '', self.keep_blank_values, self.strict_parsing)
+        else: self.form = EmptyForm()
 
         self.debug = self.poor_environ.get('poor_Debug', 'Off').lower() == 'on'
 
@@ -201,6 +263,11 @@ class Request:
         #endtry
 
         self.document_index = self.poor_environ.get('poor_DocumentIndex', 'Off').lower() == 'on'
+
+        ### variables for user use
+        self.config = None
+        self.logger = self.log_error
+        self.user = None
     #enddef
 
     def _read(self, length = -1):
@@ -388,33 +455,88 @@ class Request:
 
 #endclass
 
+class EmptyForm(dict):
+    """ 
+    Compatibility class as fallback, for poor_AutoArgs or poor_AutoForm is set
+    to Off.
+    """
+    def getfirst(self, name, default = None, fce = uni):
+        return None
+    
+    def getlist(self, name, fce = uni):
+        return []
+
+
+class Args(dict):
+    """
+    Compatibility class for read values from QUERY_STRING based on dictionary.
+    It has getfirst and getlist methods, which can call function on values.
+    """
+    def __init__(self, req, keep_blank_values=0, strict_parsing=0):
+        qs = req.environ.get('QUERY_STRING', '').strip()
+        args = parse_qs(qs, keep_blank_values, strict_parsing) if qs else {}
+        dict.__init__(self, ((key, val[0] if len(val) < 2 else val) \
+                                    for key, val in args.items() ))
+
+
+    def getfirst(self, name, default = None, fce = uni):
+        """ 
+        Returns first variable value for key or default, if key not exist.
+        fce - function which processed value, str is default.
+        """
+        val = self.get(name, default)
+        if val is None: return None
+
+        if isinstance(val, list):
+            return fce(val[0])
+        return fce(val)
+    #enddef
+
+    def getlist(self, name, fce = uni):
+        """
+        Returns list of variable values for key or empty list, if key not exist.
+        fce - function which processed value, str is default.
+        """
+        val = self.get(name, None)
+        if val is None: return []
+
+        if isinstance(val, list):
+            return map(fce, val)
+        return [fce(val),]
+
+
 class FieldStorage(CgiFieldStorage):
-    def __init__(self, fp_or_req = None,
-                        headers = None,
-                        outerboundary = '',
-                        environ = None,
-                        keep_blank_values = 0,
-                        strict_parsing = 0,
-                        file_callback = None,
-                        field_callback = None):
+    """
+    Class based of cgi.FieldStorage. Instead of FieldStorage from cgi module,
+    can have better getfirst and getlist methods which can call function on
+    values and can set file_callback.
 
-        self.environ = environ or os.environ
-        req = None
-        if fp_or_req and isinstance(fp_or_req, Request):
-            req = fp_or_req
-            fp_or_req = None
-            environ = req.environ
+    Constructor post special environment to base class, which do POST emulation
+    for any request, because base cgi.FieldStorage know only GET, HEAD and POST
+    methods an read from all variables, which we don't want.
+    """
+    def __init__(self, req,
+                       outerboundary = '',
+                       keep_blank_values = 0,
+                       strict_parsing = 0,
+                       file_callback = None):
 
+        if req.environ.get('wsgi.input', None) is None:
+            raise ValueError('No wsgi input File in request environment.')
+
+        environ = {'REQUEST_METHOD': 'POST'}
+        if 'CONTENT_TYPE' in req.environ:
+            environ['CONTENT_TYPE'] = req.environ['CONTENT_TYPE']
+        if 'CONTENT_LENGTH' in req.environ:
+            environ['CONTENT_LENGTH'] = req.environ['CONTENT_LENGTH']
         if file_callback:
             environ['wsgi.file_callback'] = file_callback
 
-        if req and req.method == 'POST':
-            fp_or_req = environ.get('wsgi.input')
 
         CgiFieldStorage.__init__(
                     self,
-                    fp = fp_or_req,
-                    headers = headers,
+                    fp = req.environ.get('wsgi.input'),
+                    headers = req.headers_in,
                     outerboundary = outerboundary,
                     environ = environ,
                     keep_blank_values = keep_blank_values,
@@ -428,25 +550,24 @@ class FieldStorage(CgiFieldStorage):
             return CgiFieldStorage.make_file(self, binary)
     #enddef
 
-    def getfirst(self, name, default = None, fce = None):
-        """Returns variable value from request (like POST form).
-        name    - key
-        default - default value if is not set
-        fce     - function which processed value. For example str or int
+    def getfirst(self, name, default = None, fce = uni):
+        """ 
+        Returns first variable value for key or default, if key not exist.
+        fce - function which processed value, str is default.
         """
-        if fce:
-            return fce(CgiFieldStorage.getfirst(self, name, default))
-        return CgiFieldStorage.getfirst(self, name, default)
+        val = CgiFieldStorage.getfirst(self, name, default)
+        if val is None: return None
+        
+        return fce(val)
     #enddef
 
-    def getlist(self, name, fce = None):
-        """Returns list of variable values from requests (like POST form).
-        name - key
-        fce  - function which processed value. For example str or int
+    def getlist(self, name, fce = uni):
         """
-        if fce:
-            return map(fce, CgiFieldStorage.getlist(self, name))
-        return CgiFieldStorage.getlist(self, name)
+        Returns list of variable values for key or empty list, if key not exist.
+        fce - function which processed value, str is default.
+        """
+        val = CgiFieldStorage.getlist(self, name)
+        return map(fce, val)
     #enddef
 
 #endclass

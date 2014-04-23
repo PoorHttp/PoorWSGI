@@ -642,7 +642,7 @@ For release history or difference of releases, you can use git diff, diff log,
 git2cl tool or you can see ChangeLog from source code or on git repository
 web. See:
 
-    http://sourceforge.net/p/poorhttp/poorwsgi/ci/master/tree/doc/ChangeLog.txt
+    http://sourceforge.net/p/poorhttp/poorwsgi/ci/master/tree/doc/ChangeLog
     
 === Simple.py ===
 It is published simple.py application test file. You can download it, study it

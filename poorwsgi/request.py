@@ -5,7 +5,6 @@ Headers, Request and FieldStorage classes, which is used for managing requests.
 
 from wsgiref.headers import Headers as WHeaders
 from cgi import FieldStorage as CgiFieldStorage
-from urlparse import parse_qs
 from time import strftime, gmtime
 from sys import version_info, stderr
 from inspect import stack
@@ -15,11 +14,13 @@ import os, re
 if version_info.major < 3:      # python 2.x
     from httplib import responses
     from cStringIO import StringIO as BytesIO
+    from urlparse import parse_qs
 
     _unicode_exist = True
 else:                           # python 3.x
     from http.client import responses
     from io import BytesIO
+    from urllib.parse import parse_qs
 
     _unicode_exist = False
 
@@ -75,32 +76,43 @@ class Request:
             subprocess_env  - apache compatible variable for environ
             scheme          - request scheme, typical {http} or {https}
             hostname        - string. Host, as set by full URI or Host: header.
-            port            -
-            protocol        -
-            remote_host     - Remote hostname
-            remote_addr     - Remote address
+            port            - server port
+            protocol        - server protocol
+            remote_host     - remote hostname
+            remote_addr     - remote address
             referer         - request referer if is available or None
-            user_agent      - Browser user agent string
+            user_agent      - browser user agent string
             server_hostname - server name variable
-            server_software -
-            server_admin    -
-            poor_environ    -
-            document_index  -
-            debug           -
-            auto_args       -
-            auto_form       -
-            keep_blank_values - 
-            strict_parsing  -
-            secretkey       -
+            server_software - server software
+            server_admin    - server admin if set, or webmaster@hostname
+            poor_environ    - environ with poor_ variables. It is environ from
+                             request, or os.environ
+            document_index  - value of poor_DocumentIndex variable, which is used
+                             to generate index html page, when poor_DocumentRoot
+                             is set.
+            debug           - value of poor_Debug variable
+            auto_args       - value of poor_AutoArgs variable, which is used for
+                             automatic parsing request uri to args variable.
+            auto_form       - value of poor_AutoForm variable, which is used for
+                             automatic parsed request body to form variable.
+            keep_blank_values - value of poor_KeepBlankValues variable, which is
+                             used as Args and FieldStorage input parameter for
+                             automatic parsing values.
+            strict_parsing  - value of poor_StrictParsing variable, which is used
+                             for as Args and FieldStorage input parameter for
+                             automatic parsing values.
+            secretkey       - value of poor_SecretKey variable, which is used for
+                             PoorSession class.
             method          - a string containing the method - {GET}, {HEAD},
                              {POST}, etc.
             method_number   - method number constant from state module
-            uri             - The path portion of the URI.
+            uri             - the path portion of the URI.
             uri_rule        - Rule from one of application handler table.
-            headers_in      -
-            is_xhr          -
-            headers_out     -
-            err_headers_out -
+            headers_in      - input headers object
+            is_xhr          - If X-Requested-With header is set and have
+                             XMLHttpRequest value, then is true.
+            headers_out     - output headers object
+            err_headers_out - output headers object for error pages.
             args            - extended dictionary (Args instance) of request
                              arguments from QUERY_STRING, which is typical, but
                              not only for GET method. Arguments are parsed when
@@ -110,8 +122,10 @@ class Request:
                              which is typical for POST, PUT or PATCH method.
                              Request body is parsed when poor_AutoForm is set
                              which default and when method is POST, PUT or PATCH.
-            clength         -
-            body_bytes_sent -
+            clength         - variable to store output content length. To set this
+                             variable, use set_content_lenght method.
+            body_bytes_sent - internal variable to store count of bytes which are
+                             really sent to wsgi server.
 
         Only two variables for writing.
             content_type    - String. The content type. Another way to set
@@ -134,7 +148,11 @@ class Request:
         
     """
 
-    def __init__(self, environ, start_response):
+    def __init__(self, environ, start_response, file_callback = None):
+        """ Object was created automatically in wsgi module. It's input parameters
+            are the same, which Application object gets from WSGI server plus
+            file callback for auto request body parsing.
+        """
         #apache compatibility
 
         self.environ = environ
@@ -206,7 +224,8 @@ class Request:
         else: self.args = EmptyForm()
 
         if self.auto_form and self.method_number & (METHOD_POST | METHOD_PUT | METHOD_PATCH):
-            self.form = FieldStorage(self, '', self.keep_blank_values, self.strict_parsing)
+            self.form = FieldStorage(self, '', self.keep_blank_values,
+                                     self.strict_parsing, file_callback)
         else: self.form = EmptyForm()
 
         self.debug = self.poor_environ.get('poor_Debug', 'Off').lower() == 'on'
@@ -236,7 +255,7 @@ class Request:
         self.server_hostname = self.environ.get('SERVER_NAME')
 
         # Integer. TCP/IP port number. CGI SERVER PORT value
-        self.port = self.environ.get('SERVER_PORT')
+        self.port = int(self.environ.get('SERVER_PORT'))
 
         # Protocol, as given by the client, or HTTP/0.9. cgi SERVER_PROTOCOL value
         self.protocol = self.environ.get('SERVER_PROTOCOL')
@@ -270,7 +289,7 @@ class Request:
         self.user = None
     #enddef
 
-    def _read(self, length = -1):
+    def __read(self, length = -1):
         return self._file.read(length)
 
     def read(self, length = -1):
@@ -283,7 +302,7 @@ class Request:
             self.log_error("No Content-Length found, read was failed!", LOG_ERR)
             return '';
         if length > -1 and length < content_length:
-            self.read = self._read
+            self.read = self.__read
             return self.read(length)
         return self._file.read(content_length)
     #enddef
@@ -303,7 +322,7 @@ class Request:
         self._buffer.write(data)
         if self._buffer_len - self._buffer_offset > self._buffer_size:
             if not self._start_response:
-                self._call_start_response()
+                self.__call_start_response()
             #endif
             self._buffer.seek(self._buffer_offset)
             self.__write(self._buffer.read(self._buffer_size))
@@ -314,7 +333,7 @@ class Request:
             self.flush()
     #enddef
 
-    def _call_start_response(self):
+    def __call_start_response(self):
         if self.content_type and not self.headers_out.get('Content-Type'):
             self.headers_out.add('Content-Type', self.content_type)
         elif not self.content_type and not self.headers_out.get('Content-Type'):
@@ -340,7 +359,7 @@ class Request:
             but in returned dictionary is set without this prefix.
 
                 #!ini
-                poor_LogeLevel = warn       # Poor WSGI variable
+                poor_LogLevel = warn       # Poor WSGI variable
                 app_db_server = localhost   # application variable db_server
                 app_templates = app/templ   # application variable templates
         """
@@ -392,18 +411,26 @@ class Request:
             self._errors.write("<%s> %s\n" % (level[1], message))
 
     def __reset_buffer__(self):
-        """ Clean _buffer - for internal server error use """
-        self._buffer.reset()
-        self._buffer.truncate()
+        """ Clean _buffer - for internal server error use. It could be used in
+            error pages, typical in internal_server_error. But be careful,
+            this method not help you, when any data was sent to wsgi server.
+        """
+        self._buffer = BytesIO()    # reset method not exist in python3.x
+        #self._buffer.reset()
+        #self._buffer.truncate()
         self._buffer_len = 0
         self._buffer_offset = 0
         self.body_bytes_sent = 0
     #enddef
 
     def __end_of_request__(self):
+        """
+        Method for internal use only!. This method was called from Application
+        object at the end of request for returning right value to wsgi server.
+        """
         if not self._start_response:
             self.set_content_lenght(self._buffer_len)
-            self._call_start_response()
+            self.__call_start_response()
             self._buffer_offset = self._buffer_len
             self._buffer.seek(0)    # na zacatek !!
             return self._buffer     # return buffer (StringIO or BytesIO)
@@ -419,7 +446,7 @@ class Request:
     def flush(self):
         """Flushes the output buffer."""
         if not self._start_response:
-            self._call_start_response()
+            self.__call_start_response()
 
         self._buffer.seek(self._buffer_offset)
         self.__write(self._buffer.read())       # flush all from buffer
@@ -450,6 +477,9 @@ class Request:
     #enddef
 
     def set_content_lenght(self, length):
+        """ Sets Content-Length value for output header. This value was set
+            automatically when size of output data are less then buffer size.
+        """
         self.clength = length
     #enddef
 

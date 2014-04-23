@@ -3,7 +3,7 @@
 from wsgiref.simple_server import make_server
 from base64 import decodestring
 from poorwsgi import *
-from poorwsgi.request import uni
+from poorwsgi.session import PoorSession
 from inspect import stack
 from collections import OrderedDict
 
@@ -56,8 +56,18 @@ def get_variables(req):
         (key, html(val)) for key, val in req.environ.items() \
             if key.startswith("wsgi.") or key.startswith("poor_") or key in usable ))
 
-
 app.set_filter('email', r'[\w\.\-]+@[\w\.\-]+', request.uni)
+
+def check_login(fn):
+    def handler(req):
+        cookie = PoorSession(req)
+        print (cookie.data)
+        if not 'login' in cookie.data:
+            req.log_error('Login cookie not found.', state.LOG_INFO)
+            redirect(req, '/', text = 'Login required')
+
+        return fn(req)
+    return handler
 
 @app.route('/')
 def root(req):
@@ -72,7 +82,9 @@ def root(req):
             '<li><a href="/test/user@example.net">/test/&lt;variable:user&gt;</a> - Testing regular:user Page</li>',
             '<li><a href="/test/[grr]">/test/&lt;variable:re:.*&gt;</a> - Testing regular:re Page</li>',
             '<li><a href="/test/one/too/three">/test/&lt;variable0&gt;&lt;variable1&gt;&lt;variable2&gt;</a> - Testing variable args</li>',
-            '<li><a href="/test/form">/test/form</a> - Testing http form</li>',
+            '<li><a href="/login">/login</a> - Create login session</li>',
+            '<li><a href="/logout">/logout</a> - Destroy login session</li>',
+            '<li><a href="/test/form">/test/form</a> - Testing http form (only if you have login cookie / session)</li>',
             '<li><a href="/debug-info">/debug-info</a> - Debug Page (only if poor_Debug is set)</li>',
             '<li><a href="/no-page">/no-page</a> - No Exist Page</li>',
             "</ul>",
@@ -193,9 +205,23 @@ def test_varargs(req, *args):
         req.write(line + '\n')
     return state.OK
 
-@app.route('/test/form', method = state.METHOD_GET_POST)
-def test_form(req):
+@app.route('/login')
+def login(req):
+    cookie = PoorSession(req)
+    cookie.data['login'] = True
+    cookie.header(req, req.headers_out)
+    redirect(req, '/')
 
+@app.route('/logout')
+def logout(req):
+    cookie = PoorSession(req)
+    cookie.destroy()
+    cookie.header(req, req.headers_out)
+    redirect(req, '/')
+    
+@app.route('/test/form', method = state.METHOD_GET_POST)
+@check_login
+def test_form(req):
     #get_var_info = {'len': len(args)}
     var_info = OrderedDict((
                 ('form_keys', req.form.keys()),
@@ -275,7 +301,7 @@ def not_found(req):
 @app.pre_process()
 @app.post_process()
 def log(req):
-    print "Log this point"
+    print("Log this point")
 
 @app.post_process()
 def post(req):

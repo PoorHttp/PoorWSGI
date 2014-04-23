@@ -43,6 +43,10 @@ class Application:
                     Application.route and Application.rroute
             shandlers - copy of table with http state aka error handlers, see
                     Application.http_state
+            file_callback - if you want to use your own file object for automatically
+                    FieldStorage parsing, you must set this callback. You must
+                    set it before in top of application, so in your first module
+                    which is read.
     """
     def __init__(self):
         # list of pre and post process handlers
@@ -68,6 +72,9 @@ class Application:
 
         # http state handlers table : {HTTP_NOT_FOUND: {METHOD_GET: my_404_handler}}
         self.__shandlers = {}
+
+        ### Variables to override poorWSGI configuration.
+        self.file_callback = None
     #enddef
 
     def __regex(self, match):
@@ -340,7 +347,7 @@ class Application:
         if not code in self.__shandlers: self.__shandlers[code] = {}
         for m in methods.values():
             if method & m: self.__shandlers[code][m] = fn
-    #enddef
+    #enddef   
 
     def error_from_table(self, req, code):
         """ this function is called if error was accured. If status code is in
@@ -452,7 +459,7 @@ class Application:
             post_process functions are not in try except block !
         """
 
-        req = Request(environ, start_response)
+        req = Request(environ, start_response, self.file_callback)
 
         try: # call pre_process
             for fn in self.__pre:

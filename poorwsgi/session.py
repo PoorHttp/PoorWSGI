@@ -7,22 +7,43 @@ from time import time
 from pickle import dumps, loads
 from base64 import b64decode, b64encode
 from bz2 import compress, decompress
-from Cookie import SimpleCookie
+from sys import version_info
 
-from state import __author__, __date__, __version__
+if version_info.major < 3:      # python 2.x
+    from Cookie import SimpleCookie
+else:                           # python 3.x
+    from http.cookies import SimpleCookie
+    xrange = range
+
+from poorwsgi.state import __author__, __date__, __version__, LOG_INFO
+from poorwsgi.request import uni
 
 def hidden(text, passwd):
     """
     (en|de)crypt text with sha hash of passwd via xor.
-        text    raw data to (en|de)crypt
+        text    raw data to (en|de)crypt. Could be str, unicode or bytes
         passwd  password
         returns string
     """
-    passwd = sha1(passwd).digest()
+    passwd = sha1(uni(passwd).encode("utf-8")).digest()
     passlen = len(passwd)
-    retval = ''
-    for i in xrange(len(text)):
-        retval += chr(ord(text[i]) ^ ord(passwd[i % passlen]))
+    
+    # text must be str on python 2.x (like bytes in python 3.x)
+    if version_info.major < 3 and isinstance(text, unicode):
+        text = text.encode("utf-8")
+    # text must be bytes
+    elif version_info.major >= 3 and isinstance(text, str):
+        text = text.encode("utf-8")
+
+    if isinstance(text, str):       # text is str, we are in python 2.x
+        retval = ''
+        for i in xrange(len(text)):
+            retval += chr(ord(text[i]) ^ ord(passwd[i % passlen]))
+    else:                           # text is bytes, we are in python 3.x
+        retval = bytearray()
+        for i in xrange(len(text)):
+            retval.append(text[i] ^ passwd[i % passlen])
+
     return retval
 #enddef
 
@@ -52,24 +73,25 @@ class PoorSession:
         raw = None
 
         # get SID from cookie
-        if req.subprocess_env.has_key("HTTP_COOKIE"):
+        if "HTTP_COOKIE" in req.subprocess_env:
             self.cookie.load(req.subprocess_env["HTTP_COOKIE"])
-            if self.cookie.has_key(SID):
+            if SID in self.cookie:
                 raw = self.cookie[SID].value
         #endif
 
         if raw:
             try:
-                self.data = loads(hidden(decompress(b64decode(raw)),
+                self.data = loads(hidden(decompress(b64decode(raw.encode())),
                                     req.secretkey))
                 if not isinstance(self.data, dict):
                     raise RuntimeError()
-            except:
+            except Exception as e:
+                req.log_error(e, LOG_INFO)
                 req.log_error('Bad session data.')
             #endtry
 
             if 'expires' in self.data and self.data['expires'] < int(time()):
-                req.log.error('I: Session was expired, generating new.')
+                req.log_error('I: Session was expired, generating new.')
                 self.data = {}
             #endif
         #endif
@@ -92,6 +114,9 @@ class PoorSession:
         """
         raw = b64encode(compress(hidden(dumps(self.data),
                                      req.secretkey), 9))
+        raw = raw if isinstance(raw, str) else raw.decode()
+        print(raw)
+        print(type(raw))
         self.cookie[self.SID] = raw
         self.cookie[self.SID]['path'] = self.path
 
@@ -106,7 +131,8 @@ class PoorSession:
         """Destroy session. In fact, set cookie expires value to past (-1)."""
         self.data = {}
         self.data['expires'] = -1
-        self.cookie[self.SID]['expires'] = -1
+        if self.SID in self.cookie:
+            self.cookie[self.SID]['expires'] = -1
     #enddef
 
     def header(self, req, headers_out = None):

@@ -504,6 +504,18 @@ are check from data, so client can't change it in simple way. That is
 important to right set poor_SecretKey variable which is used in class by
 hidden function.
 
+    from poorwsgi import *
+    from poorwsgi.session import PoorSession
+
+    def check_login(fn):
+        def handler(req):
+            cookie = PoorSession(req)
+            if not 'passwd' in cookie.data:         # expires or didn't set
+                req.log_error('Login cookie not found.', state.LOG_INFO)
+                redirect(req, '/login', text = 'Login required')
+            return fn(req)
+        return handler
+
     @app.route('/login', method = state.METHOD_GET_POST)
     def login(req):
         if req.method == 'POST':
@@ -521,12 +533,8 @@ hidden function.
 
 
     @app.route('/private/uri')
+    @check_login
     def private_uri(req):
-        cookie = PoorSession(req)
-        if not 'passwd' in cookie.data:         # expires or didn't set
-            req.log_error('Login cookie not found.', state.LOG_INFO)
-            redirect(req, '/login', text = 'Login required')
-
         return 'Some private data'
 
 
@@ -629,92 +637,14 @@ discussion on SourceForge.Net:
 https://sourceforge.net/p/poorhttp/discussion/poorwsgi/. Thank you so much.
 
 === ChangeLog ===
-==== 0.9.1 rc ====
-    * Profiler support for Application __call__ method
-    * request_uri and some documentation update
-    * do extensin in jinja24doc
-    * up version of last bug fix
-    * Request.referer variable
-    * Bug fix
-    * Documentation edit
-    * Last part of main documentation
-    * Part of documentation
+For release history or difference of releases, you can use git diff, diff log,
+git2cl tool or you can see ChangeLog from source code or on git repository
+web. See:
 
-==== 0.9 ====
-    * redirect is possible when headers are fill, why not
-    * Bug fix with raiseing errors
-    * Document index bugfix
-    * poorwsgi has it's own repository
-    * some documentation fix
-    * more then one pre and post handlers, some bugfixes ond documentations
-    * Python package with setup.py
-    * Import optimization
-    * application is class instance now
-    * Edit comment about PEP
-    * Some bug fix and new Request member method_number
-    * set functions for route, http_state and default, better pre-import
-    * more methods support, better handlers working, lots of documentations
-    * Library style
-    * Some XXX comment - know bug
-    * Default Python path from application
-    * Change default buffer size to 16KiB
-    * Some changes - obsolete, but commit before move to git
-    * Python 3 pre-support, uWsgi server detection
-    * http HEAD method supported
+    http://sourceforge.net/p/poorhttp/poorwsgi/ci/master/tree/doc/ChangeLog.txt
+    
+=== Simple.py ===
+It is published simple.py application test file. You can download it, study it
+test or use it as you can. See:
 
-==== 20121130 ====
-    * Webmaster mail bug fix
-    * Logging bug fix
-    * Poorwsgi could return files or directory index, so no dispatch_table.py
-      could not be error
-    * Poorhttp is simple wsgi server
-    * rename http to phttp
-    * Document Listing and get file support
-    * users handler error calling
-    * Bug fix
-    * Environment fix
-    * Flushing buffer bug fix
-    * Some bug fix for run with uWsgi
-    * Poorhttp is only wsgi server now.
-    * And poorwsgi is python wsgi framework which coud be connect with anotger
-      wsgi servers.
-    * Method setreq is pre_process now.
-    * Another post_process method is available.
-    * Default handler as default_handler is available for other uri which is not
-      in handlers list.
-    * Read method for request in poorhttp.
-    * Cookie bug fix with expire time and multiple cookie header support in
-      poorhttp
-    * fce support for getlist FieldStorage method
-    * Directory listing, more compatible sendfile method and default it works
-      html page.
-    * Example is move to /app as default 'it works' example code.
-
-==== 20120211 ====
-    * File listing support as default handler for directory if new config
-      option index is enabled.
-    * Little bugfix with document config option.
-
-==== 20111208 ====
-    * convertor in FieldStorage
-    * html error update
-    * Doxygen support
-    * example code
-    * comments and documentation
-    * bug fixes
-
-==== 20100729 ====
-    * apache compatibility
-    * single / forking / thrading mode
-    * bugfixing and error handlers captching and loging
-    * more status codes
-
-==== 20091130 ====
-    * cookie session id is generate from expirydate by crypting
-    * new method renew in cookie session
-
-==== 20091126 ====
-    * new configurable value server secret key added
-    * new function hidden in session module for text crypting
-    * handled config error exception
-    * bug fix in loging
+    http://sourceforge.net/p/poorhttp/poorwsgi/ci/master/tree/simple.py

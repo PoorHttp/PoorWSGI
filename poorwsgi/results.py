@@ -6,13 +6,15 @@ from traceback import format_exception
 from time import strftime, gmtime
 from os import path, access, listdir, R_OK
 from operator import itemgetter
+from sys import version_info, version, exc_info
 
-import sys, mimetypes
+import mimetypes
 
-if sys.version_info.major < 3:      # python 2.x
+if version_info.major < 3:      # python 2.x
     from httplib import responses
 else:                           # python 3.x
     from http.client import responses
+    xrange = range
 
 from poorwsgi.state import __author__, __date__, __version__, \
         DONE, METHOD_ALL, methods, sorted_methods, levels, LOG_ERR, \
@@ -57,9 +59,10 @@ def internal_server_error(req):
         automaticly when no handlers are not defined in dispatch_table.errors.
         If poor_Debug variable is to On, Tracaback will be genarated.
     """
-    traceback = format_exception(sys.exc_type,
-                                 sys.exc_value,
-                                 sys.exc_traceback)
+    exc_type, exc_value, exc_traceback = exc_info()
+    traceback = format_exception(exc_type,
+                                 exc_value,
+                                 exc_traceback)
     traceback = ''.join(traceback)
     req.log_error(traceback, LOG_ERR)
     traceback = traceback.split('\n')
@@ -473,7 +476,7 @@ def debug_info(req, app):
                     ('SecretKey', req.secretkey),
                     ('Debug', req.debug),
                     ('Version', "%s (%s)" % (__version__, __date__)),
-                    ('Python Version', sys.version),
+                    ('Python Version', version),
                     ('Server Software', req.server_software),
                     ('Server Hostname', req.server_hostname),
                     ('Server Port', req.port),

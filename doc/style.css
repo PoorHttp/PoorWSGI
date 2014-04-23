@@ -82,6 +82,18 @@ menu {
     font-weight: normal;
 }
 
+.linebar {
+    float: left;
+    width: 5em;
+    padding: 1em 0 0 0em;
+}
+.linebar h3 {
+    margin: 0 0 0 0em;
+    font-size: 90%;
+    font-weight: normal;
+    text-align: right;
+}
+
 a:link,
 a:visited,
 a:hover,

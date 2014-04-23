@@ -8,6 +8,7 @@
     * form and args classes are set in request object by default
     * code cleaning
     * documentation update
+    * ChangeLog is extra file in doc
 
 ==== 0.9.1 rc ====
     * Profiler support for Application __call__ method

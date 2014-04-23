@@ -22,7 +22,7 @@ You can use python wsgiref.simple_server for test it:
 
 It has base error pages like 403, 404, 405, 500 or 501. When 500 internal server
 error have debug output if poor_Debug is set. And there is special debug page
-on /debug-info uri, which is available when poor_Debug is set too.
+on {/debug-info} uri, which is available when poor_Debug is set too.
 
     ~$ poor_Debug=On python simple.py
 
@@ -551,7 +551,8 @@ Poor WSGI have few debugging mechanism which you can to use. First, it could
 be good idea to set up poor_Debug variable. If this variable is set, there are
 full traceback on error page internal_server_error with http code 500.
 
-Second property of this variable is enabling special debug page on /debug-info
+Second property of this variable is enabling special debug page on
+{/debug-info}
 url. On this page, you can found:
     * full handlers table with requests, http methods and handlers which are
       call to serve this requests.

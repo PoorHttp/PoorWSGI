@@ -11,7 +11,6 @@ menu {
 .header {
     display: table;
     width: 100%;
-    max-width: 60em;
     min-width: 10em;
 }
 
@@ -62,7 +61,7 @@ menu {
 .sidebar {
     float: left;
     width: 16em;
-    padding: 1em 0 0 0.5em;
+    padding: 1em 0 0 1em;
 }
 .sidebar a {
 }
@@ -72,23 +71,28 @@ menu {
     font-weight: normal;
 }
 .sidebar h2 {
-    margin: 0 0 0 0.5em;
+    margin: 0 0 0 1em;
     font-size: 100%;
     font-weight: normal;
 }
 .sidebar h3 {
-    margin: 0 0 0 1em;
+    margin: 0 0 0 2em;
     font-size: 90%;
     font-weight: normal;
 }
 
 .linebar {
     float: left;
-    width: 5em;
-    padding: 1em 0 0 0em;
+    margin: 0.5em 0 1.5em 0;
+    padding: 0.5em;
+    font-size: 11pt;
+    background-color: #ddd;
+    border: 1px dotted gray;
+    border-radius: 6px 6px 6px;
+    border-right: none;
 }
 .linebar h3 {
-    margin: 0 0 0 0em;
+    margin: 0;
     font-size: 90%;
     font-weight: normal;
     text-align: right;
@@ -103,7 +107,7 @@ a:active {
 
 .page {
     clear: both;
-    max-width: 60em;
+    max-width: 62em;
     margin: 0 auto;
     padding: 0 1em 0 1em;
 }
@@ -238,6 +242,10 @@ pre > u {
 }
 pre > i {
     color: #005089;
+    font-style: normal;
+}
+pre > em {
+    color: #0000B0;
     font-style: normal;
 }
 code {

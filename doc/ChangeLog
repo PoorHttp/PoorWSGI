@@ -1,0 +1,100 @@
+==== 0.9.5 rc2 ====
+    * try call default handler if file not exist
+    * SERVER_RETURN exception was moved to results module
+    * Deprecated class SERVER_RETURN is child of right SERVER_RETURN
+    * Regular expression routing
+    * Simple example app
+    * python 3.x support
+    * form and args classes are set in request object by default
+    * code cleaning
+    * documentation update
+
+==== 0.9.1 rc ====
+    * Profiler support for Application __call__ method
+    * request_uri and some documentation update
+    * do extensin in jinja24doc
+    * up version of last bug fix
+    * Request.referer variable
+    * Bug fix
+    * Documentation edit
+    * Last part of main documentation
+    * Part of documentation
+
+==== 0.9 ====
+    * redirect is possible when headers are fill, why not
+    * Bug fix with raiseing errors
+    * Document index bugfix
+    * poorwsgi has it's own repository
+    * some documentation fix
+    * more then one pre and post handlers, some bugfixes ond documentations
+    * Python package with setup.py
+    * Import optimization
+    * application is class instance now
+    * Edit comment about PEP
+    * Some bug fix and new Request member method_number
+    * set functions for route, http_state and default, better pre-import
+    * more methods support, better handlers working, lots of documentations
+    * Library style
+    * Some XXX comment - know bug
+    * Default Python path from application
+    * Change default buffer size to 16KiB
+    * Some changes - obsolete, but commit before move to git
+    * Python 3 pre-support, uWsgi server detection
+    * http HEAD method supported
+
+==== 20121130 ====
+    * Webmaster mail bug fix
+    * Logging bug fix
+    * Poorwsgi could return files or directory index, so no dispatch_table.py
+      could not be error
+    * Poorhttp is simple wsgi server
+    * rename http to phttp
+    * Document Listing and get file support
+    * users handler error calling
+    * Bug fix
+    * Environment fix
+    * Flushing buffer bug fix
+    * Some bug fix for run with uWsgi
+    * Poorhttp is only wsgi server now.
+    * And poorwsgi is python wsgi framework which coud be connect with anotger
+      wsgi servers.
+    * Method setreq is pre_process now.
+    * Another post_process method is available.
+    * Default handler as default_handler is available for other uri which is not
+      in handlers list.
+    * Read method for request in poorhttp.
+    * Cookie bug fix with expire time and multiple cookie header support in
+      poorhttp
+    * fce support for getlist FieldStorage method
+    * Directory listing, more compatible sendfile method and default it works
+      html page.
+    * Example is move to /app as default 'it works' example code.
+
+==== 20120211 ====
+    * File listing support as default handler for directory if new config
+      option index is enabled.
+    * Little bugfix with document config option.
+
+==== 20111208 ====
+    * convertor in FieldStorage
+    * html error update
+    * Doxygen support
+    * example code
+    * comments and documentation
+    * bug fixes
+
+==== 20100729 ====
+    * apache compatibility
+    * single / forking / thrading mode
+    * bugfixing and error handlers captching and loging
+    * more status codes
+
+==== 20091130 ====
+    * cookie session id is generate from expirydate by crypting
+    * new method renew in cookie session
+
+==== 20091126 ====
+    * new configurable value server secret key added
+    * new function hidden in session module for text crypting
+    * handled config error exception
+    * bug fix in loging

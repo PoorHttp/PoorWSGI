@@ -224,8 +224,10 @@ class Request:
         else: self.args = EmptyForm()
 
         if self.auto_form and self.method_number & (METHOD_POST | METHOD_PUT | METHOD_PATCH):
-            self.form = FieldStorage(self, '', self.keep_blank_values,
-                                     self.strict_parsing, file_callback)
+            self.form = FieldStorage(self,
+                                     keep_blank_values = self.keep_blank_values,
+                                     strict_parsing = self.strict_parsing,
+                                     file_callback = file_callback)
         else: self.form = EmptyForm()
 
         self.debug = self.poor_environ.get('poor_Debug', 'Off').lower() == 'on'
@@ -545,39 +547,42 @@ class FieldStorage(CgiFieldStorage):
     for any request, because base cgi.FieldStorage know only GET, HEAD and POST
     methods an read from all variables, which we don't want.
     """
-    def __init__(self, req,
-                       outerboundary = '',
-                       keep_blank_values = 0,
-                       strict_parsing = 0,
-                       file_callback = None):
+    def __init__(self, req, headers = None, outerboundary = b'', environ = {},
+                 keep_blank_values = 0, strict_parsing = 0, limit = None,
+                 encoding = 'utf-8', errors = 'replace', file_callback = None):
+        
+        if isinstance(req, Request):
+            if req.environ.get('wsgi.input', None) is None:
+                raise ValueError('No wsgi input File in request environment.')
 
-        if req.environ.get('wsgi.input', None) is None:
-            raise ValueError('No wsgi input File in request environment.')
+            environ = {'REQUEST_METHOD': 'POST'}
+            if 'CONTENT_TYPE' in req.environ:
+                environ['CONTENT_TYPE'] = req.environ['CONTENT_TYPE']
+            if 'CONTENT_LENGTH' in req.environ:
+                environ['CONTENT_LENGTH'] = req.environ['CONTENT_LENGTH']
+            if file_callback:
+                environ['wsgi.file_callback'] = file_callback
+            
+            headers = req.headers_in
+            req = req.environ.get('wsgi.input')
 
-        environ = {'REQUEST_METHOD': 'POST'}
-        if 'CONTENT_TYPE' in req.environ:
-            environ['CONTENT_TYPE'] = req.environ['CONTENT_TYPE']
-        if 'CONTENT_LENGTH' in req.environ:
-            environ['CONTENT_LENGTH'] = req.environ['CONTENT_LENGTH']
-        if file_callback:
-            environ['wsgi.file_callback'] = file_callback
-
-
-        CgiFieldStorage.__init__(
-                    self,
-                    fp = req.environ.get('wsgi.input'),
-                    headers = req.headers_in,
-                    outerboundary = outerboundary,
-                    environ = environ,
-                    keep_blank_values = keep_blank_values,
-                    strict_parsing = strict_parsing)
+        self.environ = environ
+        if version_info.major < 3:
+            CgiFieldStorage.__init__( self, req, headers, outerboundary, environ,
+                    keep_blank_values, strict_parsing)
+        else:
+            CgiFieldStorage.__init__( self, req, headers, outerboundary, environ,
+                    keep_blank_values, strict_parsing, limit, encoding, errors)
     #enddef
 
     def make_file(self, binary = None):
+        """ Return readable and writable temporary file.
+                binary - unused. Here is only for backward compatibility
+        """
         if 'wsgi.file_callback' in self.environ:
             return self.environ['wsgi.file_callback'](self.filename)
         else:
-            return CgiFieldStorage.make_file(self, binary)
+            return CgiFieldStorage.make_file(self)
     #enddef
 
     def getfirst(self, name, default = None, fce = uni):

@@ -1,7 +1,19 @@
 # -*- coding: utf-8 -*-
+#
+# This is example and test application for PoorWSGI connector. As PoorWSGI is
+# write for both pythons major versions (2.x and 3.x), this example is write
+# for both pythons major versions too. So if you will study this code, you will
+# found some useless operations for python 2.x, but they are need for
+# python 3.x. For example, some decode methods calling or using uni instead of
+# str. That is, because there is no unicode and str in python 3.x, but there is
+# str, which is unicode, and many functions and methods works with bytes, which
+# is near to pythons 2.x str.
+#
+# This sample testing example is free to use, modify and study under same BSD
+# licence as PoorWSGI. So enjoy it ;)
 
 from wsgiref.simple_server import make_server
-from base64 import decodestring
+from base64 import decodestring, encodestring
 from poorwsgi import *
 from poorwsgi.session import PoorSession
 from inspect import stack
@@ -85,6 +97,7 @@ def root(req):
             '<li><a href="/login">/login</a> - Create login session</li>',
             '<li><a href="/logout">/logout</a> - Destroy login session</li>',
             '<li><a href="/test/form">/test/form</a> - Testing http form (only if you have login cookie / session)</li>',
+            '<li><a href="/test/upload">/test/upload</a> - Testing file upload (only if you have login cookie / session)</li>',
             '<li><a href="/debug-info">/debug-info</a> - Debug Page (only if poor_Debug is set)</li>',
             '<li><a href="/no-page">/no-page</a> - No Exist Page</li>',
             "</ul>",
@@ -128,6 +141,7 @@ def style(req):
         "body { width: 90%; max-width: 900px; margin: auto; padding-top: 30px; }",
         "h1 { text-align: center; color: #707070; }",
         "p { text-indent: 30px; margin-top: 30px; margin-bottom: 30px; }",
+        "pre { font-size: 90%; background: #ddd; overflow: auto; }",
         "table { width: 100%; font-family: monospace; }",
         "td { word-break:break-word; }",
         "td:first-child { white-space: nowrap; word-break:keep-all; }",
@@ -238,7 +252,7 @@ def test_form(req):
 
     buff = get_header("HTTP Form args test") + (
         get_crumbnav(req),
-        "<h2>Get Form</hs>",
+        "<h2>Get Form</h2>",
         '<form method="get">',
         '<input type="text" name="gname" value="Ondřej"><br/>',
         '<input type="text" name="gsurname" value="Tůma"><br/>',
@@ -247,7 +261,7 @@ def test_form(req):
         '<input type="text" name="gx" value="3"><br/>',
         '<input type="submit" name="btn" value="Send">'
         '</form>',
-        "<h2>Post Form</hs>",
+        "<h2>Post Form</h2>",
         '<form method="post">',
         '<input type="text" name="pname" value="Ondřej"><br/>',
         '<input type="text" name="psurname" value="Tůma"><br/>',
@@ -272,6 +286,49 @@ def test_form(req):
                             (key, val) for key, val in get_variables(req)
     ) + ("</table>",
     ) + get_footer()
+
+    for line in buff:
+        req.write(line + '\n')
+    return state.OK
+
+@app.route('/test/upload', method = state.METHOD_GET_POST)
+@check_login
+def test_upload(req):
+    var_info = OrderedDict((
+                ('form_keys', req.form.keys()),
+                ('form_value_names', ', '.join( tuple(req.form[key].name for key in req.form.keys()) )),
+                ('form_value_types', ', '.join( tuple(req.form[key].type for key in req.form.keys()) )),
+                ('form_value_fnames', ', '.join( tuple(uni(req.form[key].filename) for key in req.form.keys()) )),
+                ('form_value_lenghts', ', '.join( tuple(uni(req.form[key].length) for key in req.form.keys()) )),
+                ('form_value_files', ', '.join( tuple(uni(req.form[key].file) for key in req.form.keys()) )),
+                ('form_value_lists', ', '.join( tuple('Yes' if req.form[key].list else 'No' for key in req.form.keys()) )),
+                ))
+
+    files = []
+    for key in req.form.keys():
+        if req.form[key].filename:
+            files.append("<h2>%s</h2>" % req.form[key].filename)
+            files.append("<i>%s</i>" % req.form[key].type)
+            if req.form[key].type.startswith('text/'):
+                files.append("<pre>%s</pre>" % html(req.form.getvalue(key).decode('utf-8')))
+            else:
+                files.append("<pre>%s</pre>" % encodestring(req.form.getvalue(key)).decode())
+
+    buff = get_header('HTTP file upload test') + (
+        get_crumbnav(req),
+        "<h2>Upload Form</h2>",
+        '<form method="post" enctype="multipart/form-data">',
+        '<input type="file" name="file_0"><br/>',
+        '<input type="file" name="file_1"><br/>',
+        '<input type="file" name="file_2"><br/>',
+        '<input type="submit" name="btn" value="Upload">'
+        '</form>',
+        "<h2>Uploaded File</h2>",
+        "<table>"
+    ) + tuple( "<tr><td>%s:</td><td>%s</td></tr>" % \
+                            (key, html(val)) for key, val in var_info.items()
+    ) + ("</table>",
+    ) + tuple(files) + get_footer()
 
     for line in buff:
         req.write(line + '\n')

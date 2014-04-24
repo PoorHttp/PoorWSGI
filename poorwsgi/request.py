@@ -28,7 +28,7 @@ from poorwsgi.state import __author__, __date__, __version__, methods, \
         levels, LOG_ERR, LOG_WARNING, LOG_INFO, \
         METHOD_POST, METHOD_PUT, METHOD_PATCH, \
         HTTP_OK, \
-        HTTP_INTERNAL_SERVER_ERROR 
+        HTTP_INTERNAL_SERVER_ERROR
 
 from poorwsgi.results import SERVER_RETURN as SERVER_RETURN_RIGHT
 
@@ -91,16 +91,6 @@ class Request:
                              to generate index html page, when poor_DocumentRoot
                              is set.
             debug           - value of poor_Debug variable
-            auto_args       - value of poor_AutoArgs variable, which is used for
-                             automatic parsing request uri to args variable.
-            auto_form       - value of poor_AutoForm variable, which is used for
-                             automatic parsed request body to form variable.
-            keep_blank_values - value of poor_KeepBlankValues variable, which is
-                             used as Args and FieldStorage input parameter for
-                             automatic parsing values.
-            strict_parsing  - value of poor_StrictParsing variable, which is used
-                             for as Args and FieldStorage input parameter for
-                             automatic parsing values.
             secretkey       - value of poor_SecretKey variable, which is used for
                              PoorSession class.
             method          - a string containing the method - {GET}, {HEAD},
@@ -145,10 +135,10 @@ class Request:
                               None)
             app_            - as prefix for any your application variable (not
                               defined)
-        
+
     """
 
-    def __init__(self, environ, start_response, file_callback = None):
+    def __init__(self, environ, start_response, app_config):
         """ Object was created automatically in wsgi module. It's input parameters
             are the same, which Application object gets from WSGI server plus
             file callback for auto request body parsing.
@@ -213,21 +203,16 @@ class Request:
             self.poor_environ = self.environ
         #endif
 
-        self.auto_args = self.poor_environ.get('poor_AutoArgs', 'On').lower() == 'on'
-        self.auto_form = self.poor_environ.get('poor_AutoForm', 'On').lower() == 'on'
-        self.keep_blank_values = int(self.poor_environ.get('poor_KeepBlankValues', 'Off').lower() == 'on')
-        self.strict_parsing = int(self.poor_environ.get('poor_StrictParsing', 'Off').lower() == 'on')
-
         ## args
-        if self.auto_args:
-            self.args = Args(self, self.keep_blank_values, self.strict_parsing)
+        if app_config['auto_args']:
+            self.args = Args(self, app_config['keep_blank_values'],
+                                   app_config['strict_parsing'])
         else: self.args = EmptyForm()
 
-        if self.auto_form and self.method_number & (METHOD_POST | METHOD_PUT | METHOD_PATCH):
+        if app_config['auto_form'] and self.method_number & (METHOD_POST | METHOD_PUT | METHOD_PATCH):
             self.form = FieldStorage(self,
-                                     keep_blank_values = self.keep_blank_values,
-                                     strict_parsing = self.strict_parsing,
-                                     file_callback = file_callback)
+                            keep_blank_values = app_config['keep_blank_values'],
+                            strict_parsing = app_config['strict_parsing'])
         else: self.form = EmptyForm()
 
         self.debug = self.poor_environ.get('poor_Debug', 'Off').lower() == 'on'
@@ -268,7 +253,7 @@ class Request:
                 'Poor WSGI/%s for Python/%s.%s on %s' % \
                     (__version__, version_info[0], version_info[1],
                     self.server_software))
-        
+
         try:
             self._log_level = levels[self.poor_environ.get('poor_LogLevel', 'warn').lower()]
         except:
@@ -318,7 +303,7 @@ class Request:
         if (not _unicode_exist and isinstance(data, str)) or \
             (_unicode_exist and isinstance(data, unicode)):
             data = data.encode('utf-8')
-        
+
         # FIXME: self._buffer is not FIFO
         self._buffer_len += len(data)
         self._buffer.write(data)
@@ -394,7 +379,7 @@ class Request:
 
     def log_error(self, message, level = LOG_ERR, server = None):
         """
-        An interface to log error via wsgi.errors. 
+        An interface to log error via wsgi.errors.
             message - string with the error message
             level - is one of the following flags constants:
                         LOG_EMERG
@@ -488,13 +473,13 @@ class Request:
 #endclass
 
 class EmptyForm(dict):
-    """ 
+    """
     Compatibility class as fallback, for poor_AutoArgs or poor_AutoForm is set
     to Off.
     """
     def getfirst(self, name, default = None, fce = uni):
         return None
-    
+
     def getlist(self, name, fce = uni):
         return []
 
@@ -512,7 +497,7 @@ class Args(dict):
 
 
     def getfirst(self, name, default = None, fce = uni):
-        """ 
+        """
         Returns first variable value for key or default, if key not exist.
         fce - function which processed value, str is default.
         """
@@ -546,11 +531,34 @@ class FieldStorage(CgiFieldStorage):
     Constructor post special environment to base class, which do POST emulation
     for any request, because base cgi.FieldStorage know only GET, HEAD and POST
     methods an read from all variables, which we don't want.
+
+    There are some usable variables, which you can use, if you want to test what
+    variable it is:
+        name - variable name, the same name from input attribute.
+        type - content-type of variable. All variables have internal
+              content-type, if that is no file, content-type is text/plain.
+        filename - if variable is file, filename is its name from form.
+        file - file type instance, from you can read variable. This instance
+              could be TemporaryFile as default for files, StringIO for normal
+              variables or instance of your own file type class, create from
+              file_callback.
+        lists - if variable is list of variables, this contains instances of
+              FieldStorage.
     """
     def __init__(self, req, headers = None, outerboundary = b'', environ = {},
                  keep_blank_values = 0, strict_parsing = 0, limit = None,
                  encoding = 'utf-8', errors = 'replace', file_callback = None):
-        
+        """ Many of input parameters are need only for next internal use, because
+            FieldStorage parse variables recursive. You need add only:
+                req             - Request object.
+                keep_blank_values - if you want to parse blank values as right
+                                 empty values.
+                strict_parsing  - if you want to raise exception on parsing
+                                 error.
+                file_callback   - callback for creating instance of uploading
+                                 files.
+        """
+
         if isinstance(req, Request):
             if req.environ.get('wsgi.input', None) is None:
                 raise ValueError('No wsgi input File in request environment.')
@@ -562,7 +570,7 @@ class FieldStorage(CgiFieldStorage):
                 environ['CONTENT_LENGTH'] = req.environ['CONTENT_LENGTH']
             if file_callback:
                 environ['wsgi.file_callback'] = file_callback
-            
+
             headers = req.headers_in
             req = req.environ.get('wsgi.input')
 
@@ -586,13 +594,13 @@ class FieldStorage(CgiFieldStorage):
     #enddef
 
     def getfirst(self, name, default = None, fce = uni):
-        """ 
+        """
         Returns first variable value for key or default, if key not exist.
         fce - function which processed value, str is default.
         """
         val = CgiFieldStorage.getfirst(self, name, default)
         if val is None: return None
-        
+
         return fce(val)
     #enddef
 

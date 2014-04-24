@@ -18,8 +18,44 @@ from poorwsgi import *
 from poorwsgi.session import PoorSession
 from inspect import stack
 from collections import OrderedDict
+from sys import version_info
 
 import os
+
+if version_info.major >= 3:
+    from io import FileIO
+    file = FileIO
+
+class Storage(file):
+    def __init__(self, directory, filename):
+        self.path = directory + '/' + filename
+
+        if os.access(self.path, os.F_OK):
+            raise Exception("File %s exist yet" % filename)
+
+        super(Storage, self).__init__(self.path, 'w+b')
+
+class StorageFactory:
+    def __init__(self, directory):
+        self.directory = directory
+        if not os.access(directory, os.R_OK):
+            os.mkdir(directory)
+
+    def create(self, filename):
+        return Storage(self.directory, filename)
+
+app.auto_form = False
+@app.pre_process()
+def auto_form(req):
+    """ This is own implementation of req.form paring before any POST request
+        with own file_callback.
+    """
+    if req.method_number == state.METHOD_POST:
+        factory = StorageFactory('./upload')
+        req.form = request.FieldStorage(req,
+                        keep_blank_values = app.keep_blank_values,
+                        strict_parsing = app.strict_parsing,
+                        file_callback = factory.create)
 
 def get_crumbnav(req):
     navs = [req.hostname]
@@ -73,7 +109,6 @@ app.set_filter('email', r'[\w\.\-]+@[\w\.\-]+', request.uni)
 def check_login(fn):
     def handler(req):
         cookie = PoorSession(req)
-        print (cookie.data)
         if not 'login' in cookie.data:
             req.log_error('Login cookie not found.', state.LOG_INFO)
             redirect(req, '/', text = 'Login required')
@@ -232,7 +267,7 @@ def logout(req):
     cookie.destroy()
     cookie.header(req, req.headers_out)
     redirect(req, '/')
-    
+
 @app.route('/test/form', method = state.METHOD_GET_POST)
 @check_login
 def test_form(req):
@@ -248,7 +283,7 @@ def test_form(req):
                 ('args_getfirst', '%s,%s' % (req.args.getfirst('gname'), req.args.getfirst('gx')) ),
                 ('args_getlist', '%s,%s' % ( req.args.getlist('gname'), req.args.getlist('gx') )),
                 ))
-    
+
 
     buff = get_header("HTTP Form args test") + (
         get_crumbnav(req),

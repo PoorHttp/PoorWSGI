@@ -23,12 +23,12 @@ if version_info.major < 3:      # python 2.x
 else:                           # python 3.x
     _unicode_exist = False
 
-class Application:
+class Application(object):
     """ Poor WSGI application which is called by WSGI server, how, is describe
         in PEP 0333. This object store route dispatch table, and have methods
         for it's using and of course __call__ method for use as WSGI application.
 
-        Properties:
+        Read only properties:
             filters - copy of filter table with regular expressions and convert
                     functions, see Application.set_filter and Application.route
             pre - tuple of table with preprocess handlers, see
@@ -43,10 +43,18 @@ class Application:
                     Application.route and Application.rroute
             shandlers - copy of table with http state aka error handlers, see
                     Application.http_state
-            file_callback - if you want to use your own file object for automatically
-                    FieldStorage parsing, you must set this callback. You must
-                    set it before in top of application, so in your first module
-                    which is read.
+
+        Settable properties:
+            auto_args       - value of poor_AutoArgs variable, which is used for
+                             automatic parsing request uri to args variable.
+            auto_form       - value of poor_AutoForm variable, which is used for
+                             automatic parsed request body to form variable.
+            keep_blank_values - value of poor_KeepBlankValues variable, which is
+                             used as Args and FieldStorage input parameter for
+                             automatic parsing values.
+            strict_parsing  - value of poor_StrictParsing variable, which is used
+                             for as Args and FieldStorage input parameter for
+                             automatic parsing values.
     """
     def __init__(self):
         # list of pre and post process handlers
@@ -73,8 +81,13 @@ class Application:
         # http state handlers table : {HTTP_NOT_FOUND: {METHOD_GET: my_404_handler}}
         self.__shandlers = {}
 
-        ### Variables to override poorWSGI configuration.
-        self.file_callback = None
+        ### Application variable
+        self.__config = {
+            'auto_args': True,
+            'auto_form': True,
+            'keep_blank_values': 0,
+            'strict_parsing': 0
+        }
     #enddef
 
     def __regex(self, match):
@@ -139,6 +152,34 @@ class Application:
     def shandlers(self):
         """ return copy of table with http state aka error handlers """
         return self.__shandlers.copy()
+
+    @property
+    def auto_args(self):
+        return self.__config['auto_args']
+    @auto_args.setter
+    def auto_args(self, value):
+        self.__config['auto_args'] = bool(value)
+
+    @property
+    def auto_form(self):
+        return self.__config['auto_form']
+    @auto_form.setter
+    def auto_form(self, value):
+        self.__config['auto_form'] = bool(value)
+
+    @property
+    def keep_blank_values(self):
+        return self.__config['keep_blank_values']
+    @keep_blank_values.setter
+    def keep_blank_values(self, value):
+        self.__config['keep_blank_values'] = int(value)
+
+    @property
+    def strict_parsing(self):
+        return self.__config['strict_parsing']
+    @strict_parsing.setter
+    def strict_parsing(self, value):
+        self.__config['strict_parsing'] = int(value)
 
     def set_filter(self, name, regex, convertor = uni):
         """
@@ -307,7 +348,7 @@ class Application:
             @app.rroute(r'/user/(?P<user>\w+)')     # regular expression with groups
             def user_detail(req, user):
                 ...
-                
+
         Be sure with ordering of call this decorator or set_rroute function.
         Regular expression routes are check with the same ordering, as you
         create internal table of them. First match stops any other searching.
@@ -347,7 +388,7 @@ class Application:
         if not code in self.__shandlers: self.__shandlers[code] = {}
         for m in methods.values():
             if method & m: self.__shandlers[code][m] = fn
-    #enddef   
+    #enddef
 
     def error_from_table(self, req, code):
         """ this function is called if error was accured. If status code is in
@@ -459,7 +500,7 @@ class Application:
             post_process functions are not in try except block !
         """
 
-        req = Request(environ, start_response, self.file_callback)
+        req = Request(environ, start_response, self.__config)
 
         try: # call pre_process
             for fn in self.__pre:

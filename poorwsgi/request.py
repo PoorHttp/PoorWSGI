@@ -477,6 +477,9 @@ class EmptyForm(dict):
     Compatibility class as fallback, for poor_AutoArgs or poor_AutoForm is set
     to Off.
     """
+    def getvalue(self, name, default = None):
+        return None
+
     def getfirst(self, name, default = None, fce = uni):
         return None
 
@@ -495,6 +498,9 @@ class Args(dict):
         dict.__init__(self, ((key, val[0] if len(val) < 2 else val) \
                                     for key, val in args.items() ))
 
+    def getvalue(self, name, default = None):
+        """ compatibility methods with FieldStorage, alias for get """
+        return self.get(name, default)
 
     def getfirst(self, name, default = None, fce = uni):
         """
@@ -592,6 +598,10 @@ class FieldStorage(CgiFieldStorage):
         else:
             return CgiFieldStorage.make_file(self)
     #enddef
+
+    def get(self, key, default = None):
+        """ compatibility methods with dict, alias for getvalue """
+        return self.getvalue(key, default)
 
     def getfirst(self, name, default = None, fce = uni):
         """

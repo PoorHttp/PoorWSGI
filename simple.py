@@ -45,6 +45,7 @@ class StorageFactory:
         return Storage(self.directory, filename)
 
 app.auto_form = False
+
 @app.pre_process()
 def auto_form(req):
     """ This is own implementation of req.form paring before any POST request
@@ -52,10 +53,13 @@ def auto_form(req):
     """
     if req.method_number == state.METHOD_POST:
         factory = StorageFactory('./upload')
-        req.form = request.FieldStorage(req,
+        try:
+            req.form = request.FieldStorage(req,
                         keep_blank_values = app.keep_blank_values,
                         strict_parsing = app.strict_parsing,
                         file_callback = factory.create)
+        except Exception as e:
+            req.log_error(e)
 
 def get_crumbnav(req):
     navs = [req.hostname]

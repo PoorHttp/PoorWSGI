@@ -397,7 +397,7 @@ def not_found(req):
 @app.pre_process()
 @app.post_process()
 def log(req):
-    print("Log this point")
+    req.logger("Log this point")
 
 @app.post_process()
 def post(req):

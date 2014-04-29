@@ -90,6 +90,7 @@ If you want to use PoorSession class, as self-contained cookie, it is
 call from PoorSession class. Default value is stupid string from versions and
 server software which is really insufficient.
 
+
 === Poor HTTP server example ===
 Poor WSGI variables are system environment variables, which could be set in
 {environ} section in poorhttp.ini file. Only python file with {application}
@@ -351,11 +352,58 @@ add_post_process too.
 === Request variables ===
 
 PoorWSGI has two extra classes for get arguments. From request uri, typical
-for GET method and from request body, typical for POST method. Both of classes
-parse input variables by default configurable with poor environment variables 
-*poor_AutoArgs* and *poor_AutoForm*. Parsing of these request variables are
-configurable with *poor_KeepBlankValues* and *poor_StrictParsing*. See
-FieldStorage, cgi.FieldStorage, Args or urlparse.parse_qs to more details.
+for GET method and from request body, typical for POST method.ore details. If
+this automatic parsing is disabled, a EmptyForm class is use.
+
+==== app.auto_args ====
+If auto_args is set to {True}, which is default, Request object parse input
+arguments from request uri at initialisation. There will be {args} variable in
+Request object, which is instance of Args class. If you want to off this
+functionality, set this property to {False}.
+
+==== app.auto_form ====
+If auto_form is set to {True}, which is default, Request object parse input
+arguments from request body at initialisation when request type is POST, PUT
+or PATCH. There will be {form} variable which is instance of FieldStorage class.
+If you want to off this functionality, set this property to {False}.
+
+You must do it, if you want to set your own file_callback for FieldStorage.
+
+==== app.keep_blank_values ====
+This property is set for input parameters to automatically calling Args and
+FieldStorage classes, when auto_args resp. auto_form is set. By default this
+property is set to {0}. If it set to {1}, blank values should be interpret as
+empty strings.
+
+==== app.strict_parsing ====
+This property is set for input parameter to automatically calling Args and
+FieldStorage classes. when auto_args resp. auto_form is set. By default this
+variable is set to {0}. If is set to {1}, ValueError exception
+could raise on parsing error. I'm sure, that you never want to set this
+variable to {1}. If so, use it in your own parsing.
+
+    app.auto_form = False
+    app.auto_args = False
+    app.strict_parsing = 1
+
+    @app.pre_process()
+    def auto_form_and_args(req):
+    """ This is own implementation of req.form and req.args paring """
+
+    try:
+        req.args = request.Args(req,
+                        keep_blank_values = app.keep_blank_values,
+                        strict_parsing = app.strict_parsing)
+    except Exception as e:
+        req.log_error("Bad request uri: %s", e)
+
+    if req.method_number == state.METHOD_POST:
+        try:
+            req.form = request.FieldStorage(req,
+                        keep_blank_values = app.keep_blank_values,
+                        strict_parsing = app.strict_parsing)
+        except Exception as e:
+            req.log_error("Bad request body: %s", e)
 
 ==== Automatic convert to unicode ====
 
@@ -366,7 +414,6 @@ your convert function of course. If you want to use internal convert function,
 its name is uni. Uni is function define in depend on python version. If python
 2.x is use, uni encode unicode from utf-8. If python 3.x is use, default new
 str class is use.
-
 
 ==== Request uri arguments ====
 
@@ -398,7 +445,7 @@ variables as Args class is create, but FieldStorage have file_callback
 variable, which is configurable by XXX.
 
     @app.route('/test/post', methods = state.METHOD_GET_POST)
-    def test_get(req)
+    def test_post(req)
         id = req.args.getfirst('id', 0, int) # id is get from request uri and it
                                              # is convert to number with zero
                                              # as default
@@ -408,6 +455,94 @@ variable, which is configurable by XXX.
 
 As like Args class, if poor_AutoForm is set to Off, or if method is no POST,
 PUT or PATCH, req.form is EmptyForm is instance instead of FieldStorage.
+
+==== File uploading ====
+
+By default, pythons FieldStorage, so poorwsgi.FieldStorage too, store files
+somewhere to /tmp dictionary. This works in FieldStorage, which calls
+TemporaryFile. Uploaded files are accessible like another form variables, but.
+
+Any variables from FieldStorage is accessible with __getitem__ method. So you
+can get variable by {req.form[key]}, which gets FieldStorage instance. This
+instance have some another variables, which you can test, what type of
+variable is.
+
+    @app.route('/test/upload', methods = state.METHOD_GET_POST)
+    def test_upload(req):
+        # store file from upload variable to my_file_storage file
+        if 'upload' in req.form and req.form['upload'].filename:
+            with open('my_file_storage', 'w+b') as f:
+                f.write(req.form['upload'].file.read())
+
+==== Your own file callback ====
+
+Sometimes, you want to use your own file_callback, because you don't want to
+use TemporaryFile as storage for this upload files. You can do it with simple
+adding {file} class. But if you want to do in Python 3.x, you must add
+io.FileIO class, cause file class not exist in Python 3.x.
+
+    from poorwsgi import *
+    from sys import version_info
+
+    if version_info.major >= 3:
+        from io import FileIO
+        file = FileIO
+
+    app.auto_form = False   # disable automatic request body parsing - IMPORTANT !
+
+    @app.pre_process()
+    def auto_form(req):
+        if req.method_number == state.METHOD_POST:
+            # store upload files permanently with their right file names
+            req.form = request.FieldStorage(req,
+                        keep_blank_values = app.keep_blank_values,
+                        strict_parsing = app.strict_parsing,
+                        file_callback = file)
+
+As you can see, this example works, but it is so bad solution of your problem.
+Little bit better solution will be, if you store files only if exist and only
+to special separate dictionary, which could be configurable. That you need use
+factory to create file_callback.
+
+    from poorwsgi import *
+    from sys import version_info
+
+    if version_info.major >= 3:
+        from io import FileIO
+        file = FileIO
+
+    class Storage(file):
+        def __init__(self, directory, filename):
+            self.path = directory + '/' + filename
+            if os.access(self.path, os.F_OK):
+                raise Exception("File %s exist yet" % filename)
+            super(Storage, self).__init__(self.path, 'w+b')
+
+    class StorageFactory:
+        def __init__(self, directory):
+            self.directory = directory
+            if not os.access(directory, os.R_OK):
+                os.mkdir(directory)
+
+        def create(self, filename):
+            return Storage(self.directory, filename)
+
+    app.auto_form = False   # disable automatic request body parsing - IMPORTANT !
+
+    @app.pre_process()
+    def auto_form(req):
+    """ Own implementation of req.form paring before any POST request
+        with own file_callback.
+    """
+    if req.method_number == state.METHOD_POST:
+        factory = StorageFactory('./upload')
+        try:
+            req.form = request.FieldStorage(req,
+                        keep_blank_values = app.keep_blank_values,
+                        strict_parsing = app.strict_parsing,
+                        file_callback = factory.create)
+        except Exception as e:
+            req.log_error(e)
 
 ==== Application / User options ====
 Like in mod_python Request, Poor WSGI Request have get_options method too.
@@ -431,7 +566,7 @@ And you can get these variables with get_options method:
 
         if config is None:
             config = req.get_options()
-        
+
         req.config = config
 
     @app.route('/options')

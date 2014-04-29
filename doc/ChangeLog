@@ -9,6 +9,10 @@
     * code cleaning
     * documentation update
     * ChangeLog is extra file in doc
+    * Working field storage with files on python 2.x and python 3.x
+    * auto_args, auto_form and other configuration of Application object
+    * compatibility aliases for EmptyForm, Args and FieldStorage
+    * using properties in Request and Application object
 
 ==== 0.9.1 rc ====
     * Profiler support for Application __call__ method

@@ -66,73 +66,11 @@ class Headers(WHeaders):
         self.add_header(key, value)
 #endclass
 
-class Request:
+class Request(object):
     """ HTTP request object with all server elements. It could be compatible
         as soon as possible with mod_python.apache.request.
 
-        Instance has these information variables for reading:
-            environ         - a table object containing request environment information
-                             from wsgi server.
-            subprocess_env  - apache compatible variable for environ
-            scheme          - request scheme, typical {http} or {https}
-            hostname        - string. Host, as set by full URI or Host: header.
-            port            - server port
-            protocol        - server protocol
-            remote_host     - remote hostname
-            remote_addr     - remote address
-            referer         - request referer if is available or None
-            user_agent      - browser user agent string
-            server_hostname - server name variable
-            server_software - server software
-            server_admin    - server admin if set, or webmaster@hostname
-            poor_environ    - environ with poor_ variables. It is environ from
-                             request, or os.environ
-            document_index  - value of poor_DocumentIndex variable, which is used
-                             to generate index html page, when poor_DocumentRoot
-                             is set.
-            debug           - value of poor_Debug variable
-            secretkey       - value of poor_SecretKey variable, which is used for
-                             PoorSession class.
-            method          - a string containing the method - {GET}, {HEAD},
-                             {POST}, etc.
-            method_number   - method number constant from state module
-            uri             - the path portion of the URI.
-            uri_rule        - Rule from one of application handler table.
-            headers_in      - input headers object
-            is_xhr          - If X-Requested-With header is set and have
-                             XMLHttpRequest value, then is true.
-            headers_out     - output headers object
-            err_headers_out - output headers object for error pages.
-            args            - extended dictionary (Args instance) of request
-                             arguments from QUERY_STRING, which is typical, but
-                             not only for GET method. Arguments are parsed when
-                             poor_AutoArgs is set which is default.
-            forms           - dictionary like class (FieldStorage instance) of
-                             method arguments which are send in request body,
-                             which is typical for POST, PUT or PATCH method.
-                             Request body is parsed when poor_AutoForm is set
-                             which default and when method is POST, PUT or PATCH.
-            clength         - variable to store output content length. To set this
-                             variable, use set_content_lenght method.
-            body_bytes_sent - internal variable to store count of bytes which are
-                             really sent to wsgi server.
-
-        Only two variables for writing.
-            content_type    - String. The content type. Another way to set
-                             content_type is via headers_out object property.
-                             Default is *{ text/html; charset=utf-8 }*
-            status          - http status code, which is state.HTTP_OK (200) by
-                             default. If you want to set this variable (which
-                             is very good idea in http_state handlers), it is
-                             good solution to use some of HTTP_ constant from
-                             state module.
-
         Special variables for user use:
-            config          - for config object (default None)
-            logger          - for special logger object or logger function
-                              (default req.log_error)
-            user            - for user object, who is login for example (default
-                              None)
             app_            - as prefix for any your application variable (not
                               defined)
 
@@ -143,43 +81,27 @@ class Request:
             are the same, which Application object gets from WSGI server plus
             file callback for auto request body parsing.
         """
-        #apache compatibility
-
-        self.environ = environ
-
-        ## A table object containing environment information typically usable
-        #  for CGI.
-        self.subprocess_env = self.environ
-
-        ## String. Host, as set by full URI or Host: header.
-        self.hostname = self.environ.get('HTTP_HOST')
-
-        ## A string containing the method - 'GET', 'HEAD', 'POST', etc. Same as
-        #  CGI REQUEST_METHOD
-        self.method = self.environ.get('REQUEST_METHOD')
-        if not self.method in methods:
-            self.method = 'HEAD'
-
-        self.method_number = methods[self.method]
+        self.__environ = environ
+        if 'REQUEST_URI' not in environ:
+            self.__environ['REQUEST_URI'] = environ.get('PATH_INFO')
 
         ## The path portion of the URI.
-        self.uri = uni(self.environ.get('PATH_INFO'))
-        self.uri_rule = None
+        self.__uri_rule = None
 
         ## String. The content type. Another way to set content_type is via
         #  headers_out object property. Default is text/html; charset=utf-8
-        self.content_type = "text/html; charset=utf-8"
+        self.__content_type = "text/html; charset=utf-8"
 
-        self.clength = 0
+        self.__clength = 0
 
-        self.body_bytes_sent = 0
+        self.__body_bytes_sent = 0
 
         ## Status. One of http.enums.HTTP_* values.
-        self.status = HTTP_OK
+        self.__status = HTTP_OK
 
         ## A table object containing headers sent by the client.
         tmp = []
-        for key, val in self.environ.items():
+        for key, val in self.__environ.items():
             if key[:5] == 'HTTP_':
                 key = '-'.join(map(lambda x: x.capitalize() ,key[5:].split('_')))
                 tmp.append((key, val))
@@ -187,95 +109,327 @@ class Request:
                 key = '-'.join(map(lambda x: x.capitalize() ,key.split('_')))
                 tmp.append((key, val))
 
-        self.headers_in = WHeaders(tmp)
-        self.is_xhr = (self.headers_in.get('X-Requested-With','XMLHttpRequest') == 'XMLHttpRequest')
+        self.__headers_in = WHeaders(tmp)
 
         ## A Headers object representing the headers to be sent to the client.
-        self.headers_out = Headers()
+        self.__headers_out = Headers()
 
         ## These headers get send with the error response, instead of headers_out.
-        self.err_headers_out = Headers()
+        self.__err_headers_out = Headers()
 
         ## uwsgi do not sent environ variables to apps environ
-        if 'uwsgi.version' in self.environ or 'poor.Version' in os.environ:
-            self.poor_environ = os.environ
+        if 'uwsgi.version' in self.__environ or 'poor.Version' in os.environ:
+            self.__poor_environ = os.environ
         else:
-            self.poor_environ = self.environ
+            self.__poor_environ = self.__environ
         #endif
 
         ## args
         if app_config['auto_args']:
-            self.args = Args(self, app_config['keep_blank_values'],
+            self.__args = Args(self, app_config['keep_blank_values'],
                                    app_config['strict_parsing'])
-        else: self.args = EmptyForm()
+        else: self.__args = EmptyForm()
 
         if app_config['auto_form'] and self.method_number & (METHOD_POST | METHOD_PUT | METHOD_PATCH):
-            self.form = FieldStorage(self,
+            self.__form = FieldStorage(self,
                             keep_blank_values = app_config['keep_blank_values'],
                             strict_parsing = app_config['strict_parsing'])
-        else: self.form = EmptyForm()
+        else: self.__form = EmptyForm()
 
-        self.debug = self.poor_environ.get('poor_Debug', 'Off').lower() == 'on'
+        self.__debug = self.__poor_environ.get('poor_Debug', 'Off').lower() == 'on'
 
         self.start_response = start_response
         self._start_response = False
 
-        self._file = self.environ.get("wsgi.input")
-        self._errors = self.environ.get("wsgi.errors")
+        self._file = self.__environ.get("wsgi.input")
+        self._errors = self.__environ.get("wsgi.errors")
         self._buffer = BytesIO()
         self._buffer_len = 0
         self._buffer_offset = 0
 
-        self.remote_host = self.environ.get('REMOTE_HOST')
-        self.remote_addr = self.environ.get('REMOTE_ADDR')
-        self.referer = self.environ.get('HTTP_REFERER', None)
-        self.user_agent = self.environ.get('HTTP_USER_AGENT')
-        self.scheme = self.environ.get('wsgi.url_scheme')
-
-        self.server_software = self.environ.get('SERVER_SOFTWARE','Unknown')
-        if self.server_software == 'Unknown' and 'uwsgi.version' in self.environ:
-            self.server_software = 'uWsgi'
-        self.server_admin = self.environ.get('SERVER_ADMIN',
-                            'webmaster@%s' % self.hostname)
-
-        # CGI SERVER NAME value (ServerName on apache)
-        self.server_hostname = self.environ.get('SERVER_NAME')
-
-        # Integer. TCP/IP port number. CGI SERVER PORT value
-        self.port = int(self.environ.get('SERVER_PORT'))
-
-        # Protocol, as given by the client, or HTTP/0.9. cgi SERVER_PROTOCOL value
-        self.protocol = self.environ.get('SERVER_PROTOCOL')
-
-        # String, which is used to encrypt session.PoorSession
-        self.secretkey = self.poor_environ.get(
-                'poor_SecretKey',
-                'Poor WSGI/%s for Python/%s.%s on %s' % \
-                    (__version__, version_info[0], version_info[1],
-                    self.server_software))
-
         try:
-            self._log_level = levels[self.poor_environ.get('poor_LogLevel', 'warn').lower()]
+            self._log_level = levels[self.__poor_environ.get('poor_LogLevel', 'warn').lower()]
         except:
             self._log_level = LOG_WARNING
             self.log_error('Bad poor_LogLevel, default is warn.', LOG_WARNING)
         #endtry
 
         try:
-            self._buffer_size = int(self.poor_environ.get('poor_BufferSize', '16384'))
+            self._buffer_size = int(self.__poor_environ.get('poor_BufferSize', '16384'))
         except:
             self._buffer_size = 16384
             self.log_error('Bad poor_BufferSize, default is 16384 B (16 KiB).', LOG_WARNING)
         #endtry
 
-        self.document_index = self.poor_environ.get('poor_DocumentIndex', 'Off').lower() == 'on'
-
         ### variables for user use
-        self.config = None
-        self.logger = self.log_error
-        self.user = None
+        self.__config = None
+        self.__logger = self.log_error
+        self.__user = None
     #enddef
 
+    ## ------------------------- Properties -------------------------- ##
+    @property
+    def environ(self):
+        """ Copy of table object containing request environment information
+            from wsgi server.
+        """
+        return self.__environ.copy()
+
+    @property
+    def subprocess_env(self):
+        """ *DEPRECATED* Apache compatibility property. Contains the same as
+            Request.environ.
+        """
+        stderr.write("[W] Using deprecated method subprocess_env in\n")
+        for s in stack()[1:]:
+            stderr.write("  File %s, line %s, in %s\n" % s[1:4])
+            stderr.write(s[4][0])
+        stderr.flush()
+
+        return self.__environ.copy()
+
+    @property
+    def hostname(self):
+        """ Host, as set by full URI or Host: header. """
+        return self.__environ.get('HTTP_HOST')
+
+    @property
+    def method(self):
+        """ String containing the method - {GET}, {HEAD}, {POST}, etc. """
+        return self.__environ.get('REQUEST_METHOD')
+
+    @property
+    def method_number(self):
+        """ Method number constant from state module. """
+        if not self.method in methods:
+            return methods['GET']
+        return methods[self.method]
+
+    @property
+    def uri(self):
+        """ The path portion of the URI. """
+        return uni(self.__environ.get('PATH_INFO'))
+
+    @property
+    def uri_rule(self):
+        """ Rule from one of application handler table. This property could be
+            set once, and that do Application object.
+        """
+        return self.__uri_rule
+    @uri_rule.setter
+    def uri_rule(self, value):
+        if self.__uri_rule is not None:
+            self.__uri_rule = value
+
+    @property
+    def content_type(self):
+        """ Content-Type header string, by default *{ text/html; charset=utf-8 }*.
+            Another way to set content_type is via headers_out object property.
+        """
+        return self.__content_type
+    @content_type.setter
+    def content_type(self, value):
+        self.__content_type = value
+
+    @property
+    def clength(self):
+        """ Property to store output content length for header. This value was
+            set automatically when size of output data are less then buffer size.
+        """
+        return self.__clength
+    @clength.setter
+    def clength(self, value):
+        self.__clength = length
+
+    @property
+    def body_bytes_sent(self):
+        """ Internal variable to store count of bytes which are really sent to
+            wsgi server.
+        """
+        return self.__body_bytes_sent
+
+    @property
+    def status(self):
+        """ Http status code, which is *state.HTTP_OK (200)* by default. If you
+            want to set this variable (which is very good idea in http_state
+            handlers), it is good solution to use some of HTTP_ constant from
+            state module.
+        """
+        return self.__status
+    @status.setter
+    def status(self, value):
+        if not value in responses:
+            raise ValueError("Bad response status %s" % value)
+        self.__status = value
+
+    @property
+    def headers_in(self):
+        """ Reference to input headers object """
+        return self.__headers_in
+
+    @property
+    def is_xhr(self):
+        """ If X-Requested-With header is set and have XMLHttpRequest value,
+            then is true.
+        """
+        return (self.__headers_in.get('X-Requested-With','XMLHttpRequest') == 'XMLHttpRequest')
+
+    @property
+    def headers_out(self):
+        """ Reference to output headers object """
+        return self.__headers_out
+    @headers_out.setter
+    def headers_out(self, value):
+        if not isinstance(value, WHeaders):
+            raise ValueError("Headers must be instance of wsgiref.headers.Headers")
+        self.__headers_out = value
+
+    @property
+    def err_headers_out(self):
+        """ Reference to output headers object for error pages. """
+        return self.__err_headers_out
+
+    @property
+    def poor_environ(self):
+        """ Environ with poor_ variables. It is environ from request, or
+            os.environ
+        """
+        return self.__poor_environ.copy()
+
+    @property
+    def args(self):
+        """ Extended dictionary (Args instance) of request arguments from
+            QUERY_STRING, which is typical, but not only for GET method.
+            Arguments are parsed when app.auto_args is set which is default.
+
+            This property could be set only once.
+        """
+        return self.__args
+    @args.setter
+    def args(self, value):
+        if isinstance(self.__args, EmptyForm):
+            self.__args = value
+
+    @property
+    def form(self):
+        """ Dictionary like class (FieldStorage instance) of method arguments
+            which are send in request body, which is typical for POST, PUT or
+            PATCH method. Request body is parsed when app.auto_form is set
+            which default and when method is POST, PUT or PATCH.
+
+            This property could be set only once.
+        """
+        return self.__form
+    @form.setter
+    def form(self, value):
+        if isinstance(self.__form, EmptyForm):
+            self.__form = value
+
+    @property
+    def debug(self):
+        """ Value of poor_Debug variable. """
+        return self.__debug
+
+    @property
+    def remote_host(self):
+        """ Remote hostname. """
+        return self.__environ.get('REMOTE_HOST')
+
+    @property
+    def remote_addr(self):
+        """ Remote address. """
+        return self.__environ.get('REMOTE_ADDR')
+
+    @property
+    def referer(self):
+        """ Request referer if is available or None. """
+        return self.__environ.get('HTTP_REFERER', None)
+
+    @property
+    def user_agent(self):
+        """ Browser user agent string. """
+        return self.__environ.get('HTTP_USER_AGENT')
+
+    @property
+    def scheme(self):
+        """ Request scheme, typical {http} or {https}. """
+        return self.__environ.get('wsgi.url_scheme')
+
+    @property
+    def server_software(self):
+        """ Server software """
+        ss = self.__environ.get('SERVER_SOFTWARE','Unknown')
+        if ss == 'Unknown' and 'uwsgi.version' in self.__environ:
+            ss = 'uWsgi'
+        return ss
+
+    @property
+    def server_admin(self):
+        """ Server admin if set, or webmaster@hostname. """
+        return self.__environ.get('SERVER_ADMIN', 'webmaster@%s' % self.hostname)
+
+    @property
+    def server_hostname(self):
+        """ Server name variable. """
+        return self.__environ.get('SERVER_NAME')
+
+    @property
+    def port(self):
+        """ Server port. """
+        return int(self.__environ.get('SERVER_PORT'))
+
+    @property
+    def protocol(self):
+        """ Server protocol, as given by the client, or HTTP/0.9. cgi
+            SERVER_PROTOCOL value
+        """
+        return self.__environ.get('SERVER_PROTOCOL')
+
+    @property
+    def secretkey(self):
+        """ value of poor_SecretKey variable, which is used for PoorSession
+            class.
+        """
+        return self.__poor_environ.get(
+                'poor_SecretKey',
+                'Poor WSGI/%s for Python/%s.%s on %s' % \
+                    (__version__, version_info[0], version_info[1],
+                    self.server_software))
+
+    @property
+    def document_index(self):
+        """ value of poor_DocumentIndex variable, which is used to generate
+            index html page, when poor_DocumentRoot is set.
+        """
+        return self.__poor_environ.get('poor_DocumentIndex', 'Off').lower() == 'on'
+
+    @property
+    def config(self):
+        """ for config object (default None) """
+        return self.__config
+    @config.setter
+    def config(self, value):
+        self.__config = value
+
+    @property
+    def logger(self):
+        """ For special logger object or logger function (default req.log_error)
+        """
+        return self.__logger
+    @logger.setter
+    def logger(self, value):
+        self.__logger = value
+
+    @property
+    def user(self):
+        """ For user object, who is login for example (default None) """
+        return self.__user
+    @user.setter
+    def user(self, value):
+        self.__user = value
+
+
+    ## ------------------------- Methods -------------------------- ##
     def __read(self, length = -1):
         return self._file.read(length)
 
@@ -284,7 +438,7 @@ class Request:
         Read data from client (typical for XHR2 data POST). If length is not
         set, or if is lower then zero, Content-Length was be use.
         """
-        content_length = int(self.headers_in.get("Content-Length", 0))
+        content_length = int(self.__headers_in.get("Content-Length", 0))
         if content_length == 0:
             self.log_error("No Content-Length found, read was failed!", LOG_ERR)
             return '';
@@ -315,30 +469,34 @@ class Request:
             self.__write(self._buffer.read(self._buffer_size))
             self._buffer_offset += self._buffer_size
             self._buffer.seek(0,2)  # seek to EOF
-            self.body_bytes_sent = self._buffer_offset
+            self.__body_bytes_sent = self._buffer_offset
         if flush == 1:
             self.flush()
     #enddef
 
     def __call_start_response(self):
-        if self.content_type and not self.headers_out.get('Content-Type'):
-            self.headers_out.add('Content-Type', self.content_type)
-        elif not self.content_type and not self.headers_out.get('Content-Type'):
+        if self.__content_type and not self.__headers_out.get('Content-Type'):
+            self.__headers_out.add('Content-Type', self.__content_type)
+        elif not self.__content_type and not self.__headers_out.get('Content-Type'):
             self.log_error('Content-type not set!', LOG_WARNING)
 
-        if self.clength and not self.headers_out.get('Content-Length'):
-            self.headers_out.add('Content-Length', str(self.clength))
+        if self.__clength and not self.__headers_out.get('Content-Length'):
+            self.__headers_out.add('Content-Length', str(self.__clength))
 
         self.__write = self.start_response(
-                            "%d %s" % (self.status, responses[self.status]),
-                            self.headers_out.items())
+                            "%d %s" % (self.__status, responses[self.__status]),
+                            self.__headers_out.items())
         self._start_response = True
     #enddef
 
     def add_common_vars(self):
-        """ only set {REQUEST_URI} variable if not exist """
-        if 'REQUEST_URI' not in self.environ:
-            self.subprocess_env['REQUEST_URI'] = self.environ.get('PATH_INFO')
+        """ *DEPRECATED*. Do nothing """
+        stderr.write("[W] Using deprecated method add_common_vars in\n")
+        for s in stack()[1:]:
+            stderr.write("  File %s, line %s, in %s\n" % s[1:4])
+            stderr.write(s[4][0])
+        stderr.flush()
+
 
     def get_options(self):
         """ Returns dictionary with application variables from server
@@ -351,7 +509,7 @@ class Request:
                 app_templates = app/templ   # application variable templates
         """
         options = {}
-        for key,val in self.poor_environ.items():
+        for key,val in self.__poor_environ.items():
             if key[:4].lower() == 'app_':
                 options[key[4:].lower()] = val
         return options
@@ -362,9 +520,9 @@ class Request:
 
     def document_root(self):
         """Returns DocumentRoot setting."""
-        self.log_error("poor_DocumentRoot: %s" % self.poor_environ.get('poor_DocumentRoot', ''),
+        self.log_error("poor_DocumentRoot: %s" % self.__poor_environ.get('poor_DocumentRoot', ''),
                 LOG_INFO)
-        return self.poor_environ.get('poor_DocumentRoot', '')
+        return self.__poor_environ.get('poor_DocumentRoot', '')
 
     def construct_url(self, uri):
         """This function returns a fully qualified URI string from the path
@@ -407,7 +565,7 @@ class Request:
         #self._buffer.truncate()
         self._buffer_len = 0
         self._buffer_offset = 0
-        self.body_bytes_sent = 0
+        self.__body_bytes_sent = 0
     #enddef
 
     def __end_of_request__(self):
@@ -416,7 +574,7 @@ class Request:
         object at the end of request for returning right value to wsgi server.
         """
         if not self._start_response:
-            self.set_content_lenght(self._buffer_len)
+            self.__clength = self._buffer_len
             self.__call_start_response()
             self._buffer_offset = self._buffer_len
             self._buffer.seek(0)    # na zacatek !!
@@ -425,7 +583,7 @@ class Request:
             self._buffer.seek(self._buffer_offset)
             self.__write(self._buffer.read())   # flush all from buffer
             self._buffer_offset = self._buffer_len
-            self.body_bytes_sent = self._buffer_len
+            self.__body_bytes_sent = self._buffer_len
             return ()               # data was be sent via write method
         #enddef
     #enddef
@@ -438,7 +596,7 @@ class Request:
         self._buffer.seek(self._buffer_offset)
         self.__write(self._buffer.read())       # flush all from buffer
         self._buffer_offset = self._buffer_len
-        self.body_bytes_sent = self._buffer_len
+        self.__body_bytes_sent = self._buffer_len
     #enddef
 
     def sendfile(self, path, offset = 0, limit = -1 ):
@@ -464,10 +622,14 @@ class Request:
     #enddef
 
     def set_content_lenght(self, length):
-        """ Sets Content-Length value for output header. This value was set
-            automatically when size of output data are less then buffer size.
-        """
+        """ *DEPRECATED* Use req.clength = length instead of call this method """
         self.clength = length
+
+        stderr.write("[W] Using deprecated method set_content_lenght in\n")
+        for s in stack()[1:]:
+            stderr.write("  File %s, line %s, in %s\n" % s[1:4])
+            stderr.write(s[4][0])
+        stderr.flush()
     #enddef
 
 #endclass

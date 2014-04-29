@@ -73,8 +73,8 @@ class PoorSession:
         raw = None
 
         # get SID from cookie
-        if "HTTP_COOKIE" in req.subprocess_env:
-            self.cookie.load(req.subprocess_env["HTTP_COOKIE"])
+        if "HTTP_COOKIE" in req.environ:
+            self.cookie.load(req.environ["HTTP_COOKIE"])
             if SID in self.cookie:
                 raw = self.cookie[SID].value
         #endif
@@ -115,8 +115,6 @@ class PoorSession:
         raw = b64encode(compress(hidden(dumps(self.data),
                                      req.secretkey), 9))
         raw = raw if isinstance(raw, str) else raw.decode()
-        print(raw)
-        print(type(raw))
         self.cookie[self.SID] = raw
         self.cookie[self.SID]['path'] = self.path
 

@@ -27,34 +27,6 @@ class Application(object):
     """ Poor WSGI application which is called by WSGI server, how, is describe
         in PEP 0333. This object store route dispatch table, and have methods
         for it's using and of course __call__ method for use as WSGI application.
-
-        Read only properties:
-            filters - copy of filter table with regular expressions and convert
-                    functions, see Application.set_filter and Application.route
-            pre - tuple of table with preprocess handlers, see
-                    Application.pre_process
-            post - tuple of table with postprocess handlers, see
-                    Application.post_process
-            dhandlers - copy of table with default handlers, see
-                    Application.set_default
-            handlers - copy of table with static handlers, see
-                    Application.route
-            rhandlers - copy of table with regular expression handlers, see
-                    Application.route and Application.rroute
-            shandlers - copy of table with http state aka error handlers, see
-                    Application.http_state
-
-        Settable properties:
-            auto_args       - value of poor_AutoArgs variable, which is used for
-                             automatic parsing request uri to args variable.
-            auto_form       - value of poor_AutoForm variable, which is used for
-                             automatic parsed request body to form variable.
-            keep_blank_values - value of poor_KeepBlankValues variable, which is
-                             used as Args and FieldStorage input parameter for
-                             automatic parsing values.
-            strict_parsing  - value of poor_StrictParsing variable, which is used
-                             for as Args and FieldStorage input parameter for
-                             automatic parsing values.
     """
     def __init__(self):
         # list of pre and post process handlers
@@ -117,44 +89,58 @@ class Application(object):
 
     @property
     def filters(self):
-        """
-        Return copy of filter table with regular expressions and convert
-        functions.
+        """ Copy of filter table with regular expressions and convert
+            functions, see Application.set_filter and Application.route.
         """
         return self.__filters.copy()
 
     @property
     def pre(self):
-        """ return tuple of table with preprocess handlers """
+        """ Tuple of table with pre-process handlers, see
+            Application.pre_process.
+        """
         return tuple(self.__pre)
 
     @property
     def post(self):
-        """ return tuple of table with postprocess handlers """
+        """ Tuple of table with post-process handlers, see
+            Application.post_process.
+        """
         return tuple(self.__post)
 
     @property
     def dhandlers(self):
-        """ return copy of table with default handlers """
+        """ Copy of table with default handlers, see
+            Application.set_default
+        """
         return self.__dhandlers.copy()
 
     @property
     def handlers(self):
-        """ return copy of table with static handlers """
+        """ Copy of table with static handlers, see
+            Application.route.
+        """
         return self.__handlers.copy()
 
     @property
     def rhandlers(self):
-        """ return copy of table with regular expression handlers """
+        """ Copy of table with regular expression handlers, see
+            Application.route and Application.rroute.
+        """
         return self.__rhandlers.copy()
 
     @property
     def shandlers(self):
-        """ return copy of table with http state aka error handlers """
+        """ Copy of table with http state aka error handlers, see
+            Application.http_state
+        """
         return self.__shandlers.copy()
 
     @property
     def auto_args(self):
+        """ If it is True (default), Request object do automatic parsing request
+            uri to its args variable.
+        """
         return self.__config['auto_args']
     @auto_args.setter
     def auto_args(self, value):
@@ -162,6 +148,9 @@ class Application(object):
 
     @property
     def auto_form(self):
+        """ If it is True (default) and method is POST, PUT or PATCH, Request
+            object do automatic parsing request body to its form variable.
+        """
         return self.__config['auto_form']
     @auto_form.setter
     def auto_form(self, value):
@@ -169,6 +158,9 @@ class Application(object):
 
     @property
     def keep_blank_values(self):
+        """ If it is 1 (0 is default), automatic parsing request uri or body
+            keep blank values as empty string.
+        """
         return self.__config['keep_blank_values']
     @keep_blank_values.setter
     def keep_blank_values(self, value):
@@ -176,6 +168,9 @@ class Application(object):
 
     @property
     def strict_parsing(self):
+        """ If it is 1 (0 is default), automatic parsing request uri or body
+            raise with exception on parsing error.
+        """
         return self.__config['strict_parsing']
     @strict_parsing.setter
     def strict_parsing(self, value):

@@ -4,8 +4,13 @@ main application function, and functions for working with dispatch table
 
 from socket import error as SocketError
 from os import path, access, R_OK
-from collections import OrderedDict
 from sys import version_info
+
+if version_info[0] == 2 and version_info[1] < 7:
+    from ordereddict import OrderedDict
+else:
+    from collections import OrderedDict
+
 import re
 
 from poorwsgi.state import OK, DONE, DECLINED, HTTP_ERROR, HTTP_OK, \
@@ -18,7 +23,7 @@ from poorwsgi.results import default_shandlers, not_implemented, internal_server
 
 re_filter = re.compile(r'<(\w+)(:[^>]+)?>')
 
-if version_info.major < 3:      # python 2.x
+if version_info[0] < 3:         # python 2.x
     _unicode_exist = True
 else:                           # python 3.x
     _unicode_exist = False

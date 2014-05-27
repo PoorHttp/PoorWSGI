@@ -1,4 +1,7 @@
-==== 0.9.5 rc2 ====
+==== 0.9.6 (rc3) ====
+    * python2.6 support (need ordereddict module)
+
+==== 0.9.5 (rc2) ====
     * try call default handler if file not exist
     * SERVER_RETURN exception was moved to results module
     * Deprecated class SERVER_RETURN is child of right SERVER_RETURN
@@ -14,7 +17,7 @@
     * compatibility aliases for EmptyForm, Args and FieldStorage
     * using properties in Request and Application object
 
-==== 0.9.1 rc ====
+==== 0.9.1 (rc) ====
     * Profiler support for Application __call__ method
     * request_uri and some documentation update
     * do extensin in jinja24doc

@@ -13,7 +13,7 @@ from shutil import copyfile
 from subprocess import call
 from sys import version_info
 
-if version_info.major >= 3:
+if version_info[0] >= 3:
     from io import FileIO
     file = FileIO
 
@@ -58,7 +58,13 @@ class X_clean(clean):
         clean.run(self)
 
 
-setup(
+def _setup(**kwargs):
+    if version_info[0] == 2 and version_info[1] < 7:
+        kwargs['install_requires'] = ['ordereddict >= 1.1']
+    setup(**kwargs)
+
+
+_setup(
     name                = "PoorWSGI",
     version             = __version__,
     description         = "Poor WSGI connector for Python",

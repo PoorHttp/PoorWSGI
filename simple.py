@@ -17,12 +17,16 @@ from base64 import decodestring, encodestring
 from poorwsgi import *
 from poorwsgi.session import PoorSession
 from inspect import stack
-from collections import OrderedDict
 from sys import version_info
 
 import os
 
-if version_info.major >= 3:
+if version_info[0] == 2 and version_info[1] < 7:
+    from ordereddict import OrderedDict
+else:
+    from collections import OrderedDict
+
+if version_info[0] >= 3:
     from io import FileIO
     file = FileIO
 

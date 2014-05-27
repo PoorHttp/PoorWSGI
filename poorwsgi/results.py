@@ -10,7 +10,7 @@ from sys import version_info, version, exc_info
 
 import mimetypes
 
-if version_info.major < 3:      # python 2.x
+if version_info[0] < 3:      # python 2.x
     from httplib import responses
 else:                           # python 3.x
     from http.client import responses

@@ -11,7 +11,7 @@ from inspect import stack
 
 import os, re
 
-if version_info.major < 3:      # python 2.x
+if version_info[0] < 3:         # python 2.x
     from httplib import responses
     from cStringIO import StringIO as BytesIO
     from urlparse import parse_qs
@@ -743,7 +743,7 @@ class FieldStorage(CgiFieldStorage):
             req = req.environ.get('wsgi.input')
 
         self.environ = environ
-        if version_info.major < 3:
+        if version_info[0] < 3:
             CgiFieldStorage.__init__( self, req, headers, outerboundary, environ,
                     keep_blank_values, strict_parsing)
         else:

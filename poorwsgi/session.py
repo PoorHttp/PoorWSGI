@@ -9,7 +9,7 @@ from base64 import b64decode, b64encode
 from bz2 import compress, decompress
 from sys import version_info
 
-if version_info.major < 3:      # python 2.x
+if version_info[0] < 3:         # python 2.x
     from Cookie import SimpleCookie
 else:                           # python 3.x
     from http.cookies import SimpleCookie
@@ -29,10 +29,10 @@ def hidden(text, passwd):
     passlen = len(passwd)
     
     # text must be str on python 2.x (like bytes in python 3.x)
-    if version_info.major < 3 and isinstance(text, unicode):
+    if version_info[0] < 3 and isinstance(text, unicode):
         text = text.encode("utf-8")
     # text must be bytes
-    elif version_info.major >= 3 and isinstance(text, str):
+    elif version_info[0] >= 3 and isinstance(text, str):
         text = text.encode("utf-8")
 
     if isinstance(text, str):       # text is str, we are in python 2.x

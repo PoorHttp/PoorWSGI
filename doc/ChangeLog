@@ -1,3 +1,7 @@
+==== 0.9.7 (rc4) ====
+    * documentation is build, install, and clean by extra commands
+      build_html, install_html and clean_html
+
 ==== 0.9.6 (rc3) ====
     * python2.6 support (need ordereddict module)
 

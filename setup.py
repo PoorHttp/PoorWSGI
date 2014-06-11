@@ -2,9 +2,8 @@
 Poor WSGI for Python is light WGI connector with uri routing between WSGI server
 and your application.
 """
-from distutils.core import setup
-from distutils.command.build import build
-from distutils.command.clean import clean
+from distutils.core import setup, Command
+from distutils.command.install_data import install_data
 from distutils.dir_util import remove_tree
 from distutils import log
 
@@ -30,32 +29,96 @@ def find_data_files (directory, targetFolder=""):
     log.info(str(rv))
     return rv
 
-class X_build(build):
+
+class build_html(Command):
+    description = "build html documentation, need jinja24doc >= 1.1.0"
+    user_options = [
+            ('build-base=', 'b', "base build directory (default: 'build.build-base')"),
+            ('html-temp=', 't', "temporary documentation directory")
+        ]
+
+    def initialize_options(self):
+        self.build_base = None
+        self.html_temp = None
+
+    def finalize_options(self):
+        self.set_undefined_options('build',
+                                   ('build_base', 'build_base'))
+        if self.html_temp is None:
+            self.html_temp = path.join(self.build_base, 'html')
+
     def run(self):
-        log.info("creating documentation")
-        if not path.exists('build/_html_'):
-            makedirs('build/_html_')
+        log.info("building html docmuentation")
+        if self.dry_run:
+            return
+
+        if not path.exists(self.html_temp):
+            makedirs(self.html_temp)
         if call(['jinja24doc', '-v','_poorwsgi.html', 'doc'], 
-                        stdout=file('build/_html_/index.html', 'w')):
+                        stdout=file(self.html_temp + '/index.html', 'w')):
             raise IOError(1, 'jinja24doc failed')
         if call(['jinja24doc', '-v','_poorwsgi_api.html', 'doc'],
-                        stdout=file('build/_html_/api.html', 'w')):
+                        stdout=file(self.html_temp + '/api.html', 'w')):
             raise IOError(1, 'jinja24doc failed')
         if call(['jinja24doc', '-v', '_licence.html', 'doc'],
-                        stdout=file('build/_html_/licence.html', 'w')):
+                        stdout=file(self.html_temp + '/licence.html', 'w')):
             raise IOError(1, 'jinja24doc failed')
-        copyfile('doc/style.css', 'build/_html_/style.css')
-        build.run(self)             # run original build
+        copyfile('doc/style.css', self.html_temp + '/style.css')
 
-class X_clean(clean):
+
+class clean_html(Command):
+    description = "clean up temporary files from 'build_html' command"
+    user_options = [
+            ('build-base=', 'b', 
+                    "base build directory (default: 'build-html.build-base')"),
+            ('html-temp=', 't', 
+                    "temporary documentation directory")
+        ]
+
+    def initialize_options(self):
+        self.build_base = None
+        self.html_temp = None
+
+    def finalize_options(self):
+        self.set_undefined_options('build_html',
+                                   ('build_base', 'build_base'),
+                                   ('html_temp', 'html_temp'))
+    
     def run(self):
-        for directory in ('build/_html_',):
-            if path.exists(directory):
-                remove_tree(directory, dry_run=self.dry_run)
-            else:
-                log.warn("'%s' does not exist -- can't clean it",
-                            directory)
-        clean.run(self)
+        if path.exists(self.html_temp):
+            remove_tree(self.html_temp, dry_run=self.dry_run)
+        else:
+            log.warn("'%s' does not exist -- can't clean it", self.html_temp)
+
+class install_html(install_data):
+    description = "install html documentation"
+    user_options = install_data.user_options + [
+            ('build-base=', 'b', 
+                    "base build directory (default: 'build-html.build-base')"),
+            ('html-temp=', 't', 
+                    "temporary documentation directory"),
+            ('skip-build', None, "skip the build step"),
+        ]
+
+    def initialize_options(self):
+        self.build_base = None
+        self.html_temp = None
+        self.skip_build = None
+        install_data.initialize_options(self)
+
+    def finalize_options(self):
+        self.set_undefined_options('build_html',
+                                   ('build_base', 'build_base'),
+                                   ('html_temp', 'html_temp'))
+        self.set_undefined_options('install',
+                                   ('skip_build', 'skip_build'))
+        install_data.finalize_options(self)
+
+    def run(self):
+        if not self.skip_build:
+            self.run_command('build_html')
+        self.data_files = find_data_files(self.html_temp, 'share/doc/poorwsgi/html')
+        install_data.run(self)
 
 
 def _setup(**kwargs):
@@ -94,7 +157,7 @@ _setup(
             "Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware",
             "Topic :: Software Development :: Libraries :: Python Modules"
     ],
-    build_requires      = ['jinja24doc >= 1.1.0'],
-    cmdclass            = {'build': X_build,
-                           'clean': X_clean },
+    cmdclass            = {'build_html': build_html,
+                           'clean_html': clean_html,
+                           'install_html': install_html},
 )

@@ -50,6 +50,12 @@ If you are new with it, please see fast Tutorial on this page.
     or
     ~$ git clone http://git.code.sf.net/p/poorhttp/poorwsgi poorwsgi
 
+    ~$ cd jinja24doc
+    ~$ python setup.py install
+
+    if you have jinja24doc and you want to install this html documentation
+    ~$ python setup.py install_html
+
 ==== Install from PyPI ====
 
 

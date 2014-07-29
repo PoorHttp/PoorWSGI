@@ -63,6 +63,14 @@ class Headers(WHeaders):
         """
         if key != "Set-Cookie" and key in self:
             raise KeyError("Key %s exist." % key)
+
+        if (not _unicode_exist and isinstance(key, str)) or \
+            (_unicode_exist and isinstance(key, unicode)):
+            key = key.encode('utf-8')
+        if (not _unicode_exist and isinstance(value, str)) or \
+            (_unicode_exist and isinstance(value, unicode)):
+            value = value.encode('utf-8')
+
         self.add_header(key, value)
 #endclass
 

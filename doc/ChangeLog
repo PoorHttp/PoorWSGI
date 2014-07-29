@@ -1,3 +1,6 @@
+==== 0.9.8 (rc5) ====
+    * automatic convert unicode to str for in header add method
+
 ==== 0.9.7 (rc4) ====
     * documentation is build, install, and clean by extra commands
       build_html, install_html and clean_html

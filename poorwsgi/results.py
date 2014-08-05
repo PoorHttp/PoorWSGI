@@ -4,7 +4,7 @@ default Poor WSGI handlers
 
 from traceback import format_exception
 from time import strftime, gmtime
-from os import path, access, listdir, R_OK
+from os import path, access, listdir, R_OK, getegid, geteuid, getuid, getgid
 from operator import itemgetter
 from sys import version_info, version, exc_info
 
@@ -491,9 +491,15 @@ def debug_info(req, app):
     app_html = "\n".join(("        <tr><td>%s:</td><td>%s</td></tr>" %\
                     (key, val) for key, val in req.get_options().items()))
 
+    environ = req.environ.copy()
+    environ['os.pgid'] = getgid()
+    environ['os.puid'] = getuid()
+    environ['os.egid'] = getegid()
+    environ['os.euid'] = geteuid()
+
     # transfotm enviroment variables to html
     environ_html = "\n".join(("        <tr><td>%s:</td><td>%s</td></tr>" %\
-                    (key, str(val)) for key,val in req.environ.items()))
+                    (key, str(val)) for key,val in sorted(environ.items())))
 
 
     content_html = \

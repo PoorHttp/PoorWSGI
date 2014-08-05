@@ -1,5 +1,6 @@
 ==== 0.9.8 (rc5) ====
     * automatic convert unicode to str for in header add method
+    * uid, gid, euid and egid in debug-info
 
 ==== 0.9.7 (rc4) ====
     * documentation is build, install, and clean by extra commands

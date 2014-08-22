@@ -33,7 +33,7 @@ from poorwsgi.state import __author__, __date__, __version__, methods, \
 from poorwsgi.results import SERVER_RETURN as SERVER_RETURN_RIGHT
 
 # simple regular expression for construct_url method
-_httpUrlPatern = re.compile(r"^(http|https):\/\/")
+re_httpUrlPatern = re.compile(r"^(http|https):\/\/")
 
 if _unicode_exist:
     def uni(text):
@@ -48,7 +48,13 @@ else:
 
 
 class Headers(WHeaders):
-    """Class inherited from wsgiref.headers.Headers."""
+    """ Class inherited from wsgiref.headers.Headers. As PEP 0333, resp.
+        RFC 2616 says, all headers names must be only US-ASCII character except
+        control characters or separators. And headers values must be store in
+        string encoded in ISO-8859-1. This class methods Headers.add and
+        Headers.add_header do auto convert values from UTF-8 to ISO-8859-1
+        encoding.
+    """
 
     def __init__(self):
         """By default constains X-Powered-By values."""
@@ -57,22 +63,44 @@ class Headers(WHeaders):
         ]
         WHeaders.__init__(self, headers)
 
+
     def add(self, key, value):
         """ Set header key to value. Duplicate keys are not allowed instead of
-            {Set-Cookie}.
+            {Set-Cookie}. Value must be in UTF-8, and is convert to ISO-8859-1.
         """
         if key != "Set-Cookie" and key in self:
             raise KeyError("Key %s exist." % key)
-
-        if (not _unicode_exist and isinstance(key, str)) or \
-            (_unicode_exist and isinstance(key, unicode)):
-            key = key.encode('utf-8')
-        if (not _unicode_exist and isinstance(value, str)) or \
-            (_unicode_exist and isinstance(value, unicode)):
-            value = value.encode('utf-8')
-
         self.add_header(key, value)
-#endclass
+
+
+    def add_header(self, key, value, **kwargs):
+        """ Extended header setting.
+
+        key is the header field to add. kwargs arguments can be used to set
+        additional parameters for the header field, with underscores converted
+        to dashes.  Normally the parameter will be added as key="value" unless
+        value is None, in which case only the key will be added.
+
+            h.add_header('Content-Disposition', 'attachment', filename='image.png')
+
+        All keys must be US-ASCII string except control characters or separators.
+        """
+
+        if not value is None:
+            if not _unicode_exist and isinstance(value, str):
+                value = value.encode('utf-8').decode('iso-8859-1')
+            if _unicode_exist and isinstance(value, unicode):
+                value = value.encode('iso-8859-1')
+
+        for k, v in kwargs.items():
+            if not _unicode_exist and isinstance(v, str):
+                v = v.encode('utf-8').decode('iso-8859-1')
+            if _unicode_exist and isinstance(v, unicode):
+                v = v.encode('iso-8859-1')
+            kwargs[k] = v
+
+        WHeaders.add_header(self, key, value, **kwargs)
+    #endclass
 
 class Request(object):
     """ HTTP request object with all server elements. It could be compatible
@@ -538,7 +566,7 @@ class Request(object):
         determine the scheme, server host name and port. The port number is not
         included in the string if it is the same as the default port 80."""
 
-        if not _httpUrlPatern.match(uri):
+        if not re_httpUrlPatern.match(uri):
             return "%s://%s%s" % (self.scheme, self.hostname, uri)
         return uri
     #enddef

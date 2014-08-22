@@ -126,10 +126,13 @@ def check_login(fn):
 
 @app.route('/')
 def root(req):
+    req.headers_out.add('X-Test-Author', 'Ondřej Tůma')
+    req.headers_out.add('X-Kanji-Value', '漢字')
+    req.headers_out.add_header('X-Kanji-Values', 'array', first ='漢', second = '字')
     buff = get_header("Index") + (
             get_crumbnav(req),
             "<ul>",
-            '<li><a href="/">/</a> - This Page</li>',
+            '<li><a href="%s">/</a> - This Page</li>' % req.construct_url('/'),
             '<li><a href="/test/static">/test/static</a> - Testing Static Page</li>',
             '<li><a href="/test/42">/test/&lt;variable:int&gt;</a> - Testing regular:int Page</li>',
             '<li><a href="/test/3.14">/test/&lt;variable:float&gt;</a> - Testing regular:float Page</li>',

@@ -6,8 +6,9 @@ from hashlib import sha1
 from time import time
 from pickle import dumps, loads
 from base64 import b64decode, b64encode
-from bz2 import compress, decompress
 from sys import version_info
+
+import bz2
 
 if version_info[0] < 3:         # python 2.x
     from Cookie import SimpleCookie
@@ -27,7 +28,7 @@ def hidden(text, passwd):
     """
     passwd = sha1(uni(passwd).encode("utf-8")).digest()
     passlen = len(passwd)
-    
+
     # text must be str on python 2.x (like bytes in python 3.x)
     if version_info[0] < 3 and isinstance(text, unicode):
         text = text.encode("utf-8")
@@ -47,16 +48,35 @@ def hidden(text, passwd):
     return retval
 #enddef
 
+class NoCompress:
+    """ Fake compress class/module whith two static method for PoorSession.
+        If compress parameter is None, this class is use
+    """
+
+    @staticmethod
+    def compress(data, compresslevel = 9):
+        """ Get two params, data, and compresslevel. Method only return data. """
+        return data
+
+    @staticmethod
+    def decompress(data):
+        """ Get one parameter data, which returns. """
+        return data
+#endclass
+
 class PoorSession:
     """Self-contained cookie with session data"""
 
-    def __init__(self, req, expires = 0, path = '/', SID = 'SESSID'):
+    def __init__(self, req, expires = 0, path = '/', SID = 'SESSID', compress = bz2):
         """
         Constructor.
-            req     mod_python.apache.request
-            expires cookie expire time in seconds, if it 0, no expire is set
-            path    cookie path
-            SID     cookie key name
+            req      mod_python.apache.request
+            expires  cookie expire time in seconds, if it 0, no expire is set
+            path     cookie path
+            SID      cookie key name
+            compress compress module or class. Could be bz2, gzip.zlib, or any other,
+                     which have standard compress and decompress methods. Or it
+                     could be None to not use any compressing method.
         """
 
         # @cond PRIVATE
@@ -64,6 +84,7 @@ class PoorSession:
         self.expires = expires
         self.path = path
         self.cookie = SimpleCookie()
+        self.cps = compress if not compress is None else NoCompress
         # @endcond
 
         ## @property data
@@ -81,7 +102,7 @@ class PoorSession:
 
         if raw:
             try:
-                self.data = loads(hidden(decompress(b64decode(raw.encode())),
+                self.data = loads(hidden(self.cps.decompress(b64decode(raw.encode())),
                                     req.secretkey))
                 if not isinstance(self.data, dict):
                     raise RuntimeError()
@@ -112,7 +133,7 @@ class PoorSession:
         """Store data to cookie value. This method is called automaticly in
         header method.
         """
-        raw = b64encode(compress(hidden(dumps(self.data),
+        raw = b64encode(self.cps.compress(hidden(dumps(self.data),
                                      req.secretkey), 9))
         raw = raw if isinstance(raw, str) else raw.decode()
         self.cookie[self.SID] = raw
@@ -121,7 +142,7 @@ class PoorSession:
         if self.expires:
             self.data['expires'] = int(time()) + self.expires
             self.cookie[self.SID]['expires'] = self.expires
-            
+
         return raw
     #enddef
 

@@ -21,6 +21,7 @@ from poorwsgi.request import Request, uni
 from poorwsgi.results import default_shandlers, not_implemented, internal_server_error, \
             SERVER_RETURN, send_file, directory_index, debug_info
 
+# check, if there is define filter in uri
 re_filter = re.compile(r'<(\w+)(:[^>]+)?>')
 
 if version_info[0] < 3:         # python 2.x
@@ -33,7 +34,19 @@ class Application(object):
         in PEP 0333. This object store route dispatch table, and have methods
         for it's using and of course __call__ method for use as WSGI application.
     """
-    def __init__(self):
+
+    __instances = []
+
+    def __init__(self, name = "__main__"):
+        """ You can't need to call __init__, becouse there is one Application
+            instance yet in module. Application class is per name singleton.
+            That means, there could be exist only one instance with same name.
+        """
+
+        if Application.__instances.count(name):
+            raise RuntimeError('Application with name %s exist yet.' % name)
+        Application.__instances.append(name)
+
         # list of pre and post process handlers
         self.__pre = []
         self.__post = []

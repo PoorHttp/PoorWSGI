@@ -40,7 +40,7 @@ If you are new with it, please see fast Tutorial on this page.
 
 
     #!text
-    ~$ wget http://sourceforge.net/projects/poorhttp/files/PoorWSGI-1.0.0.tar.gz/download
+    ~$ wget https://pypi.python.org/packages/source/P/PoorWSGI/PoorWSGI-1.0.0.tar.gz
     ~$ tar xzf PoorWSGI-1.0.0.tar.gz
     ~$ cd PoorWSGI-1.0.0
     ~# python setup.py install

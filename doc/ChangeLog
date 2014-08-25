@@ -1,3 +1,10 @@
+==== 1.0.0 ===
+    * Application class is smart singleton now (one instance for one name)
+    * PoorSession have variable compressor module or object
+    * Headers convert strings to ISO-8859-1 as RFC and PEP says
+    * additional headers test in simple.py test
+    * documentation updates and fixes    
+
 ==== 0.9.8 (rc5) ====
     * automatic convert unicode to str for in header add method
     * uid, gid, euid and egid in debug-info

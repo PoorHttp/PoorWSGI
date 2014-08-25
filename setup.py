@@ -139,8 +139,7 @@ _setup(
             ('share/doc/poorwsgi',
                         ['doc/ChangeLog', 'doc/licence.txt', 'doc/readme.txt']),
             ('share/poorwsgi/example',
-                        ['simple.py']) ] +
-            find_data_files("build/_html_", 'share/doc/poorwsgi/html'),
+                        ['simple.py']) ],
     license             = "BSD",
     long_description    = __doc__.strip(),
     classifiers         = [

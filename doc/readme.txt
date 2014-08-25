@@ -40,7 +40,13 @@ If you are new with it, please see fast Tutorial on this page.
 
 
     #!text
-    Not yet
+    ~$ wget http://sourceforge.net/projects/poorhttp/files/PoorWSGI-1.0.0.tar.gz/download
+    ~$ tar xzf PoorWSGI-1.0.0.tar.gz
+    ~$ cd PoorWSGI-1.0.0
+    ~# python setup.py install
+
+    if you have jinja24doc and you want to install this html documentation
+    ~# python setup.py install_html
 
 ==== Source from git ====
 
@@ -51,16 +57,18 @@ If you are new with it, please see fast Tutorial on this page.
     ~$ git clone http://git.code.sf.net/p/poorhttp/poorwsgi poorwsgi
 
     ~$ cd jinja24doc
-    ~$ python setup.py install
+    ~# python setup.py install
 
     if you have jinja24doc and you want to install this html documentation
-    ~$ python setup.py install_html
+    ~# python setup.py install_html
 
 ==== Install from PyPI ====
-
+PoorWSGI use ordereddict which was append to collections in Python 2.7, so for
+Python 2.6 and less you need to install ordereddict package:
 
     #!text
-    Not yet
+    ~$ pip install ordereddict      # only for Python2.6 and less
+    ~$ pip install PoorWSGI
 
 === Configuration ===
 Poor WSGI is configured via environment variables with poor_* prefix.

@@ -120,7 +120,7 @@ a:active {
     margin-top: 0.5em;
 }
 
-@media (max-width: 560px){
+@media (max-width: 50em){
     .content { margin: 0;}
     .sidebar { float: none;}
 }

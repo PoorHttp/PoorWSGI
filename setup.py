@@ -143,7 +143,6 @@ _setup(
     license             = "BSD",
     long_description    = __doc__.strip(),
     classifiers         = [
-            "Development Status :: 4 - Beta",
             "Environment :: Web Environment",
             "Intended Audience :: Developers",
             "License :: OSI Approved :: BSD License",

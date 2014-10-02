@@ -16,13 +16,10 @@ if version_info[0] < 3:         # python 2.x
     from cStringIO import StringIO as BytesIO
     from urlparse import parse_qs
 
-    _unicode_exist = True
 else:                           # python 3.x
     from http.client import responses
     from io import BytesIO
     from urllib.parse import parse_qs
-
-    _unicode_exist = False
 
 from poorwsgi.state import __author__, __date__, __version__, methods, \
         levels, LOG_ERR, LOG_WARNING, LOG_INFO, \
@@ -31,21 +28,10 @@ from poorwsgi.state import __author__, __date__, __version__, methods, \
         HTTP_INTERNAL_SERVER_ERROR
 
 from poorwsgi.results import SERVER_RETURN as SERVER_RETURN_RIGHT
+from poorwsgi.results import _unicode_exist, uni
 
 # simple regular expression for construct_url method
 re_httpUrlPatern = re.compile(r"^(http|https):\/\/")
-
-if _unicode_exist:
-    def uni(text):
-        """ automatic conversion from str to unicode with utf-8 encoding """
-        if isinstance(text, str):
-            return unicode(text, encoding = 'utf-8')
-        return unicode(text)
-else:
-    def uni(text):
-        """ automatic conversion from str to unicode with utf-8 encoding """
-        return str(text)
-
 
 class Headers(WHeaders):
     """ Class inherited from wsgiref.headers.Headers. As PEP 0333, resp.

@@ -12,15 +12,30 @@ import mimetypes
 
 if version_info[0] < 3:      # python 2.x
     from httplib import responses
+    _unicode_exist = True
+
 else:                           # python 3.x
     from http.client import responses
     xrange = range
+    _unicode_exist = False
 
 from poorwsgi.state import __author__, __date__, __version__, \
         DONE, METHOD_ALL, methods, sorted_methods, levels, LOG_ERR, \
         HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_FORBIDDEN, \
         HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED, HTTP_INTERNAL_SERVER_ERROR, \
         HTTP_NOT_IMPLEMENTED
+
+if _unicode_exist:
+    def uni(text):
+        """ automatic conversion from str to unicode with utf-8 encoding """
+        if isinstance(text, str):
+            return unicode(text, encoding = 'utf-8')
+        return unicode(text)
+else:
+    def uni(text):
+        """ automatic conversion from str to unicode with utf-8 encoding """
+        return str(text)
+
 
 class SERVER_RETURN(Exception):
     """Compatible with mod_python.apache exception."""
@@ -464,15 +479,15 @@ def debug_info(req, app):
 
     # filters
     filters_html = "\n".join("        <tr><td>%s</td><td>%s</td><td>%s</td></tr>" % \
-                (f, str(r), c.__name__) for f, (r, c) in app.filters.items() )
+                (f, uni(r), c.__name__) for f, (r, c) in app.filters.items() )
 
     # transform actual request headers to hml
     headers_html = "\n".join(("        <tr><td>%s:</td><td>%s</td></tr>" %\
-                    (key, val) for key, val in req.headers_in.items()))
+                    (key, uni(val)) for key, val in req.headers_in.items()))
 
     # transform some poor wsgi variables to html
     poor_html = "\n".join(("        <tr><td>%s:</td><td>%s</td></tr>" %\
-            (key, val) for key, val in (
+            (key, uni(val)) for key, val in (
                     ('SecretKey', req.secretkey),
                     ('Debug', req.debug),
                     ('Version', "%s (%s)" % (__version__, __date__)),
@@ -489,7 +504,7 @@ def debug_info(req, app):
 
     # tranform application variables to html
     app_html = "\n".join(("        <tr><td>%s:</td><td>%s</td></tr>" %\
-                    (key, val) for key, val in req.get_options().items()))
+                    (key, uni(val)) for key, val in req.get_options().items()))
 
     environ = req.environ.copy()
     environ['os.pgid'] = getgid()
@@ -499,8 +514,7 @@ def debug_info(req, app):
 
     # transfotm enviroment variables to html
     environ_html = "\n".join(("        <tr><td>%s:</td><td>%s</td></tr>" %\
-                    (key, str(val)) for key,val in sorted(environ.items())))
-
+                    (key, uni(val)) for key,val in sorted(environ.items())))
 
     content_html = \
 """<html>
@@ -542,16 +556,16 @@ def debug_info(req, app):
       <small><i>%s / Poor WSGI for Python , webmaster: %s </i></small>
     </body>
 </html>""" % (
-        handlers_html,
-        ehandlers_html,
-        pre_post_html,
-        filters_html,
+        uni(handlers_html),
+        uni(ehandlers_html),
+        uni(pre_post_html),
+        filters_html,           # some variable are unicode yet
         headers_html,
         poor_html,
         app_html,
         environ_html,
-        req.server_software,
-        req.server_admin
+        uni(req.server_software),
+        uni(req.server_admin)
     )
 
     req.content_type = "text/html"

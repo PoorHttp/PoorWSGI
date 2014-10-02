@@ -1,9 +1,16 @@
+==== 1.0.1 ===
+    * use pypi servers insead of sourceforge to download (doc)
+    * adding viewport and desription to documentation html header
+    * fix development status
+    * unicode bug fix on debug-info page and with document_root
+    * better rst description for pypi
+
 ==== 1.0.0 ===
     * Application class is smart singleton now (one instance for one name)
     * PoorSession have variable compressor module or object
     * Headers convert strings to ISO-8859-1 as RFC and PEP says
     * additional headers test in simple.py test
-    * documentation updates and fixes    
+    * documentation updates and fixes
 
 ==== 0.9.8 (rc5) ====
     * automatic convert unicode to str for in header add method

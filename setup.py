@@ -1,7 +1,53 @@
 """
+.. image:: https://pypip.in/download/poorwsgi/badge.png
+    :target: https://pypi.python.org/pypi/poorwsgi/
+    :alt: Download this month
+
+.. image:: https://pypip.in/version/poorwsgi/badge.png
+    :target: https://pypi.python.org/pypi/poorwsgi/
+    :alt: Latest version
+
+.. image:: https://pypip.in/py_versions/poorwsgi/badge.png
+    :target: https://pypi.python.org/pypi/poorwsgi/
+    :alt: Supported Python versions
+
+.. image:: https://pypip.in/status/poorwsgi/badge.svg
+    :target: https://pypi.python.org/pypi/poorwsgi/
+    :alt: Development Status
+
+.. image:: https://pypip.in/license/poorwsgi/badge.png
+    :target: https://pypi.python.org/pypi/poorwsgi/
+    :alt: License
+
+Poor WSGI for Python
+====================
+
 Poor WSGI for Python is light WGI connector with uri routing between WSGI server
-and your application.
+and your application. The simplest way to run and test it looks like that:
+
+::
+
+    from wsgiref.simple_server import make_server
+    from poorwsgi import *
+
+    @app.route('/test')
+    def root_uri(req):
+        return 'Hello world'
+
+    if __name__ == '__main__':
+        httpd = make_server('127.0.0.1', 8080, app)
+        httpd.serve_forever()
+
+You can use python wsgiref.simple_server for test it:
+
+::
+
+    ~$ python simple.py
+
+For more information see
+`Project homepage <http://poorhttp.zeropage.cz/poorwsgi.html>`_
 """
+
 from distutils.core import setup, Command
 from distutils.command.install_data import install_data
 from distutils.dir_util import remove_tree
@@ -83,7 +129,7 @@ class clean_html(Command):
         self.set_undefined_options('build_html',
                                    ('build_base', 'build_base'),
                                    ('html_temp', 'html_temp'))
-    
+
     def run(self):
         if path.exists(self.html_temp):
             remove_tree(self.html_temp, dry_run=self.dry_run)
@@ -93,9 +139,9 @@ class clean_html(Command):
 class install_html(install_data):
     description = "install html documentation"
     user_options = install_data.user_options + [
-            ('build-base=', 'b', 
+            ('build-base=', 'b',
                     "base build directory (default: 'build-html.build-base')"),
-            ('html-temp=', 't', 
+            ('html-temp=', 't',
                     "temporary documentation directory"),
             ('skip-build', None, "skip the build step"),
         ]
@@ -143,14 +189,22 @@ _setup(
     license             = "BSD",
     long_description    = __doc__.strip(),
     classifiers         = [
+            "Development Status :: 5 - Production/Stable",
             "Environment :: Web Environment",
             "Intended Audience :: Developers",
             "License :: OSI Approved :: BSD License",
             "Natural Language :: English",
             "Natural Language :: Czech",
+            "Operating System :: MacOS :: MacOS X",
             "Operating System :: POSIX",
-            "Programming Language :: Python :: 2",
+            "Operating System :: POSIX :: BSD :: NetBSD",
+            "Operating System :: POSIX :: Linux",
+            "Programming Language :: Python :: 2.6",
+            "Programming Language :: Python :: 2.7",
             "Programming Language :: Python :: 3",
+            "Programming Language :: Python :: 3.2",
+            "Programming Language :: Python :: 3.3",
+            "Programming Language :: Python :: 3.4",
             "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
             "Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware",
             "Topic :: Software Development :: Libraries :: Python Modules"

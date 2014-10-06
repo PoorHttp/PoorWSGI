@@ -532,8 +532,9 @@ class Request(object):
         """
         options = {}
         for key,val in self.__poor_environ.items():
+            key = key.strip()
             if key[:4].lower() == 'app_':
-                options[key[4:].lower()] = val
+                options[key[4:].lower()] = val.strip()
         return options
 
     def get_remote_host(self):

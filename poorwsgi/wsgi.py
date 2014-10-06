@@ -15,7 +15,7 @@ import re
 
 from poorwsgi.state import OK, DONE, DECLINED, HTTP_ERROR, HTTP_OK, \
             METHOD_GET, METHOD_POST, METHOD_HEAD, methods, LOG_INFO, LOG_ERR, \
-            HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, \
+            HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN, \
             __author__, __date__, __version__
 from poorwsgi.request import Request
 from poorwsgi.results import default_shandlers, not_implemented, internal_server_error, \

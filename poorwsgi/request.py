@@ -662,10 +662,10 @@ class EmptyForm(dict):
     to Off.
     """
     def getvalue(self, name, default = None):
-        return None
+        return default
 
     def getfirst(self, name, default = None, fce = uni):
-        return None
+        return fce(default) if not default is None else default
 
     def getlist(self, name, fce = uni):
         return []

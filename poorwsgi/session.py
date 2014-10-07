@@ -2,7 +2,7 @@
 PoorSession self-contained cookie class
 
 """
-from hashlib import sha1
+from hashlib import sha512
 from time import time
 from pickle import dumps, loads
 from base64 import b64decode, b64encode
@@ -26,7 +26,7 @@ def hidden(text, passwd):
         passwd  password
         returns string
     """
-    passwd = sha1(uni(passwd).encode("utf-8")).digest()
+    passwd = sha512(uni(passwd).encode("utf-8")).digest()
     passlen = len(passwd)
 
     # text must be str on python 2.x (like bytes in python 3.x)
@@ -107,7 +107,7 @@ class PoorSession:
                 if not isinstance(self.data, dict):
                     raise RuntimeError()
             except Exception as e:
-                req.log_error(e, LOG_INFO)
+                req.log_error(e.__repr__(), LOG_INFO)
                 req.log_error('Bad session data.')
             #endtry
 

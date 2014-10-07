@@ -6,7 +6,7 @@ Headers, Request and FieldStorage classes, which is used for managing requests.
 from wsgiref.headers import Headers as WHeaders
 from cgi import FieldStorage as CgiFieldStorage
 from time import strftime, gmtime
-from sys import version_info, stderr
+from sys import version_info, version, stderr
 from inspect import stack
 
 import os, re
@@ -414,9 +414,8 @@ class Request(object):
         """
         return self.__poor_environ.get(
                 'poor_SecretKey',
-                'Poor WSGI/%s for Python/%s.%s on %s' % \
-                    (__version__, version_info[0], version_info[1],
-                    self.server_software))
+                '%s%s%s%s%s' % (__version__, self.server_software, version,
+                                os.getcwd(), ''.join(str(x) for x in os.uname()) ))
 
     @property
     def document_index(self):

@@ -20,7 +20,7 @@ else:                           # python 3.x
     _unicode_exist = False
 
 from poorwsgi.state import __author__, __date__, __version__, \
-        DONE, METHOD_ALL, methods, sorted_methods, levels, LOG_ERR, \
+        DONE, METHOD_ALL, methods, sorted_methods, levels, LOG_ERR, LOG_DEBUG, \
         HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_FORBIDDEN, \
         HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED, HTTP_INTERNAL_SERVER_ERROR, \
         HTTP_NOT_IMPLEMENTED
@@ -488,7 +488,6 @@ def debug_info(req, app):
     # transform some poor wsgi variables to html
     poor_html = "\n".join(("        <tr><td>%s:</td><td>%s</td></tr>" %\
             (key, uni(val)) for key, val in (
-                    ('SecretKey', req.secretkey),
                     ('Debug', req.debug),
                     ('Version', "%s (%s)" % (__version__, __date__)),
                     ('Python Version', version),
@@ -501,6 +500,7 @@ def debug_info(req, app):
                     ('Document Root', req.document_root()),
                     ('Document Index', req.document_index)
         )))
+    req.log_error('SecretKey: %s' % req.secretkey, LOG_DEBUG)
 
     # tranform application variables to html
     app_html = "\n".join(("        <tr><td>%s:</td><td>%s</td></tr>" %\

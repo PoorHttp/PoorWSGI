@@ -1,3 +1,12 @@
+    * auto striping option keys and values
+    * HTTP_FORBIDDEN bug fix (missing const)
+    * Security update:
+      * using sha512 in session hidden function
+      * more uknown generic secret key
+      * secret key is moved from debug-info html page to log where this page is
+        shown
+    * EmptyForm return default value
+
 ==== 1.0.1 ===
     * use pypi servers insead of sourceforge to download (doc)
     * adding viewport and desription to documentation html header

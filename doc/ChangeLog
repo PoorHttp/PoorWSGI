@@ -1,3 +1,4 @@
+==== 1.0.2 ====
     * auto striping option keys and values
     * HTTP_FORBIDDEN bug fix (missing const)
     * Security update:
@@ -7,14 +8,14 @@
         shown
     * EmptyForm return default value
 
-==== 1.0.1 ===
+==== 1.0.1 ====
     * use pypi servers insead of sourceforge to download (doc)
     * adding viewport and desription to documentation html header
     * fix development status
     * unicode bug fix on debug-info page and with document_root
     * better rst description for pypi
 
-==== 1.0.0 ===
+==== 1.0.0 ====
     * Application class is smart singleton now (one instance for one name)
     * PoorSession have variable compressor module or object
     * Headers convert strings to ISO-8859-1 as RFC and PEP says

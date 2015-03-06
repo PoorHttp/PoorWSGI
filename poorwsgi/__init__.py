@@ -2,7 +2,7 @@
 Poor WSGI connector for Python
 
 Current Contents:
-   
+
     #!text
     * request - Headers, Request and FieldStorage classes, which
                 is used for managing requests.
@@ -21,7 +21,7 @@ Current Contents:
 
 from poorwsgi.request import uni
 
-from poorwsgi.results import redirect, SERVER_RETURN
+from poorwsgi.results import redirect, SERVER_RETURN, send_file
 
 from poorwsgi.state import __author__, __date__, __version__
 

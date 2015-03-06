@@ -266,7 +266,7 @@ def not_implemented(req, code = None):
     return DONE
 #enddef
 
-def send_file(req, path, content_type = None):
+def send_file(req, path, content_type = None):  # TODO: set content-length !!
     """
     Returns file with content_type as fast as possible on wsgi
     """
@@ -427,32 +427,32 @@ def debug_info(req, app):
     #enddef
 
     # transform handlers table to html
-    handlers_html  = "\n<tr><th>Static:</th></tr>"
-    handlers_html += "\n".join(
+    shandlers_html  = "\n<tr><th>Static:</th></tr>"
+    shandlers_html += "\n".join(
             ("        <tr><td colspan=\"2\"><a href=\"%s\">%s</a></td><td>%s</td><td>%s</td></tr>" % \
                 (u, u, _human_methods_(m), f.__module__+'.'+f.__name__) \
                     for u, m, f in handlers_view(app.handlers) ))
 
-    handlers_html += "\n<tr><th>Regular expression:</th></tr>"
+    rhandlers_html  = "\n<tr><th>Regular expression:</th></tr>"
     # regular expression handlers
-    handlers_html += "\n".join(
-            ("        <tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % \
+    rhandlers_html += "\n".join(
+            ('        <tr><td><div class="path">%s</div></td><td>%s</td><td>%s</td><td>%s</td></tr>' % \
                 (_html_escape_(u.pattern), ', '.join(tuple("%s:<b>%s</b>" % (G, C.__name__) for G,C in c)), _human_methods_(m), f.__module__+'.'+f.__name__) \
                     for u, m, (f, c) in handlers_view(app.rhandlers, False) ))
 
-    handlers_html += "\n<tr><th>Default:</th></tr>"
+    dhandlers_html  = "\n<tr><th>Default:</th></tr>"
     # this result function could be called by user, so we need to test req.debug
     if req.debug and 'debug-info' not in app.handlers:
-        handlers_html += "        <tr><td colspan=\"2\"><a href=\"%s\">%s</a></td><td>%s</td><td>%s</td></tr>" % \
+        dhandlers_html += "        <tr><td colspan=\"2\"><a href=\"%s\">%s</a></td><td>%s</td><td>%s</td></tr>" % \
             ('/debug-info', '/debug-info', 'ALL', debug_info.__module__+'.'+debug_info.__name__ )
 
-    handlers_html += "\n".join(
+    dhandlers_html += "\n".join(
             ("        <tr><td colspan=\"2\">_default_handler_</td><td>%s</td><td>%s</td></tr>" % \
                 (_human_methods_(m), f.__module__+'.'+f.__name__) \
                     for x, m, f in handlers_view({'x': app.dhandlers}) ))
 
     # transform state handlers and default state table to html, users handler
-    # from shandlers are preferer 
+    # from shandlers are preferer
     _tmp_shandlers = {}
     _tmp_shandlers.update(default_shandlers)
     for k, v in app.shandlers.items():
@@ -530,11 +530,14 @@ def debug_info(req, app):
       th { padding: 10px 4px 0; text-align: left; background: #fff; }
       td { word-break:break-word; }
       td:first-child { white-space: nowrap; word-break:keep-all; }
+      .path {max-width: 400px; overflow-x: auto;}
     </style>
   <head>
     <body>
       <h1>Poor Wsgi Debug Info</h1>
       <h2>Handlers Tanble</h2>
+      <table>%s</table>
+      <table>%s</table>
       <table>%s</table>
       <h2>Http State Handlers Tanble</h2>
       <table>%s</table>
@@ -556,7 +559,9 @@ def debug_info(req, app):
       <small><i>%s / Poor WSGI for Python , webmaster: %s </i></small>
     </body>
 </html>""" % (
-        uni(handlers_html),
+        uni(shandlers_html),
+        uni(rhandlers_html),
+        uni(dhandlers_html),
         uni(ehandlers_html),
         uni(pre_post_html),
         filters_html,           # some variable are unicode yet

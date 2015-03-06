@@ -1,3 +1,8 @@
+==== 1.0.3 ====
+    * installation documentation fix
+    * /debug-info handlers are separete
+    * send_file result in main __init__.py
+
 ==== 1.0.2 ====
     * auto striping option keys and values
     * HTTP_FORBIDDEN bug fix (missing const)

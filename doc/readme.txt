@@ -40,9 +40,9 @@ If you are new with it, please see fast Tutorial on this page.
 
 
     #!text
-    ~$ wget https://pypi.python.org/packages/source/P/PoorWSGI/PoorWSGI-1.0.0.tar.gz
-    ~$ tar xzf PoorWSGI-1.0.0.tar.gz
-    ~$ cd PoorWSGI-1.0.0
+    ~$ wget https://pypi.python.org/packages/source/P/PoorWSGI/PoorWSGI-1.0.3.tar.gz
+    ~$ tar xzf PoorWSGI-1.0.3.tar.gz
+    ~$ cd PoorWSGI-1.0.3
     ~# python setup.py install
 
     if you have jinja24doc and you want to install this html documentation
@@ -56,7 +56,7 @@ If you are new with it, please see fast Tutorial on this page.
     or
     ~$ git clone http://git.code.sf.net/p/poorhttp/poorwsgi poorwsgi
 
-    ~$ cd jinja24doc
+    ~$ cd poorwsgi
     ~# python setup.py install
 
     if you have jinja24doc and you want to install this html documentation

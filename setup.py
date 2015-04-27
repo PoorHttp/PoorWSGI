@@ -70,7 +70,7 @@ def find_data_files (directory, targetFolder=""):
     for root, dirs, files in walk(directory):
         if targetFolder:
             rv.append (( targetFolder, list(root+'/'+f for f in files if f[0]!='.' and f[-1]!='~') ))
-        else:   
+        else:
             rv.append (( root, list(root+'/'+f for f in files if f[0]!='.' and f[-1]!='~') ))
     log.info(str(rv))
     return rv
@@ -100,7 +100,7 @@ class build_html(Command):
 
         if not path.exists(self.html_temp):
             makedirs(self.html_temp)
-        if call(['jinja24doc', '-v','_poorwsgi.html', 'doc'], 
+        if call(['jinja24doc', '-v','_poorwsgi.html', 'doc'],
                         stdout=file(self.html_temp + '/index.html', 'w')):
             raise IOError(1, 'jinja24doc failed')
         if call(['jinja24doc', '-v','_poorwsgi_api.html', 'doc'],
@@ -115,9 +115,9 @@ class build_html(Command):
 class clean_html(Command):
     description = "clean up temporary files from 'build_html' command"
     user_options = [
-            ('build-base=', 'b', 
+            ('build-base=', 'b',
                     "base build directory (default: 'build-html.build-base')"),
-            ('html-temp=', 't', 
+            ('html-temp=', 't',
                     "temporary documentation directory")
         ]
 

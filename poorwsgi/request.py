@@ -4,10 +4,11 @@ Headers, Request and FieldStorage classes, which is used for managing requests.
 
 
 from wsgiref.headers import Headers as WHeaders
-from cgi import FieldStorage as CgiFieldStorage
+from cgi import FieldStorage as CgiFieldStorage, parse_header
 from time import strftime, gmtime
 from sys import version_info, version, stderr
 from inspect import stack
+from json import load as json_load
 
 import os, re
 
@@ -146,25 +147,38 @@ class Request(object):
             self.__poor_environ = self.__environ
         #endif
 
+        self._file = self.__environ.get("wsgi.input")
+        self._errors = self.__environ.get("wsgi.errors")
+
         ## args
         if app_config['auto_args']:
             self.__args = Args(self, app_config['keep_blank_values'],
                                    app_config['strict_parsing'])
         else: self.__args = EmptyForm()
 
-        if app_config['auto_form'] and self.method_number & (METHOD_POST | METHOD_PUT | METHOD_PATCH):
+        ctype, pdict = parse_header(self.__headers_in.get('content-type', ''))
+        # test auto json parsing
+        if app_config['auto_json'] \
+        and self.method_number & (METHOD_POST | METHOD_PUT | METHOD_PATCH) \
+        and ctype in app_config['json_content_types']:
+            self.__json = Json(self)
+            self.__form = EmptyForm()
+        # test auto form parsing
+        elif app_config['auto_form'] \
+        and self.method_number & (METHOD_POST | METHOD_PUT | METHOD_PATCH):
             self.__form = FieldStorage(self,
                             keep_blank_values = app_config['keep_blank_values'],
                             strict_parsing = app_config['strict_parsing'])
-        else: self.__form = EmptyForm()
+            self.__json = EmptyForm()
+        else:
+            self.__form = EmptyForm()
+            self.__json = EmptyForm()
 
         self.__debug = self.__poor_environ.get('poor_Debug', 'Off').lower() == 'on'
 
         self.start_response = start_response
         self._start_response = False
 
-        self._file = self.__environ.get("wsgi.input")
-        self._errors = self.__environ.get("wsgi.errors")
         self._buffer = BytesIO()
         self._buffer_len = 0
         self._buffer_offset = 0
@@ -294,7 +308,7 @@ class Request(object):
         """ If X-Requested-With header is set and have XMLHttpRequest value,
             then is true.
         """
-        return (self.__headers_in.get('X-Requested-With','XMLHttpRequest') == 'XMLHttpRequest')
+        return (self.__headers_in.get('X-Requested-With','') == 'XMLHttpRequest')
 
     @property
     def headers_out(self):
@@ -346,6 +360,15 @@ class Request(object):
     def form(self, value):
         if isinstance(self.__form, EmptyForm):
             self.__form = value
+
+    @property
+    def json(self):
+        """ Json dictionary if request content type is one of
+            app.json_content_types application/json and request
+            method is POST, PUT or PATCH and app.auto_json is set to true which
+            is default. Otherwise json is None.
+        """
+        return self.__json
 
     @property
     def debug(self):
@@ -681,6 +704,44 @@ class Args(dict):
         args = parse_qs(qs, keep_blank_values, strict_parsing) if qs else {}
         dict.__init__(self, ((key, val[0] if len(val) < 2 else val) \
                                     for key, val in args.items() ))
+
+    def getvalue(self, name, default = None):
+        """ compatibility methods with FieldStorage, alias for get """
+        return self.get(name, default)
+
+    def getfirst(self, name, default = None, fce = uni):
+        """
+        Returns first variable value for key or default, if key not exist.
+        fce - function which processed value, str is default.
+        """
+        val = self.get(name, default)
+        if val is None: return None
+
+        if isinstance(val, list):
+            return fce(val[0])
+        return fce(val)
+    #enddef
+
+    def getlist(self, name, fce = uni):
+        """
+        Returns list of variable values for key or empty list, if key not exist.
+        fce - function which processed value, str is default.
+        """
+        val = self.get(name, None)
+        if val is None: return []
+
+        if isinstance(val, list):
+            return map(fce, val)
+        return [fce(val),]
+
+
+class Json(dict):
+    """
+    Compatibility class for read values from JSON POST, PUT or PATCH request.
+    It has getfirst and getlist methods, which can call function on values.
+    """
+    def __init__(self, req):
+        dict.__init__(self, json_load(req).items())
 
     def getvalue(self, name, default = None):
         """ compatibility methods with FieldStorage, alias for get """

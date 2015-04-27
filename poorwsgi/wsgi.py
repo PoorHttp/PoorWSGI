@@ -71,8 +71,14 @@ class Application(object):
         self.__config = {
             'auto_args': True,
             'auto_form': True,
+            'auto_json': True,
             'keep_blank_values': 0,
-            'strict_parsing': 0
+            'strict_parsing': 0,
+            'json_content_types': [
+                'application/json',
+                'application/javascript',
+                'application/merge-patch+json'
+            ]
         }
     #enddef
 
@@ -171,6 +177,17 @@ class Application(object):
         self.__config['auto_form'] = bool(value)
 
     @property
+    def auto_json(self):
+        """ If it is True (default), method is POST, PUT or PATCH and requset
+            content type is one of json_content_types, Request object do
+            automatic parsing request body to json variable.
+        """
+        return self.__config['auto_json']
+    @auto_json.setter
+    def auto_json(self, value):
+        self.__config['auto_json'] = bool(value)
+
+    @property
     def keep_blank_values(self):
         """ If it is 1 (0 is default), automatic parsing request uri or body
             keep blank values as empty string.
@@ -189,6 +206,13 @@ class Application(object):
     @strict_parsing.setter
     def strict_parsing(self, value):
         self.__config['strict_parsing'] = int(value)
+
+    @property
+    def json_content_types(self):
+        """ Containt list of strings as json content types, which is use for
+            testing, when automatics Json object is create from request body.
+        """
+        return self.__config['json_content_types']
 
     def set_filter(self, name, regex, convertor = uni):
         """

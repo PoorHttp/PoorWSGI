@@ -40,9 +40,9 @@ If you are new with it, please see fast Tutorial on this page.
 
 
     #!text
-    ~$ wget https://pypi.python.org/packages/source/P/PoorWSGI/PoorWSGI-1.0.3.tar.gz
-    ~$ tar xzf PoorWSGI-1.0.3.tar.gz
-    ~$ cd PoorWSGI-1.0.3
+    ~$ wget https://pypi.python.org/packages/source/P/PoorWSGI/PoorWSGI-1.0.4.tar.gz
+    ~$ tar xzf PoorWSGI-1.0.4.tar.gz
+    ~$ cd PoorWSGI-1.0.4
     ~# python setup.py install
 
     if you have jinja24doc and you want to install this html documentation
@@ -383,6 +383,11 @@ If you want to off this functionality, set this property to {False}.
 
 You must do it, if you want to set your own file_callback for FieldStorage.
 
+==== app.auto_json ====
+If it is True (default), method is POST, PUT or PATCH and requset content type
+is application/json, than Request object do automatic parsing request body to
+json dict variable.
+
 ==== app.keep_blank_values ====
 This property is set for input parameters to automatically calling Args and
 FieldStorage classes, when auto_args resp. auto_form is set. By default this
@@ -402,22 +407,22 @@ variable to {1}. If so, use it in your own parsing.
 
     @app.pre_process()
     def auto_form_and_args(req):
-    """ This is own implementation of req.form and req.args paring """
+        """ This is own implementation of req.form and req.args paring """
 
-    try:
-        req.args = request.Args(req,
-                        keep_blank_values = app.keep_blank_values,
-                        strict_parsing = app.strict_parsing)
-    except Exception as e:
-        req.log_error("Bad request uri: %s", e)
-
-    if req.method_number == state.METHOD_POST:
         try:
-            req.form = request.FieldStorage(req,
+            req.args = request.Args(req,
                         keep_blank_values = app.keep_blank_values,
                         strict_parsing = app.strict_parsing)
         except Exception as e:
-            req.log_error("Bad request body: %s", e)
+            req.log_error("Bad request uri: %s", e)
+
+        if req.method_number == state.METHOD_POST:
+            try:
+                req.form = request.FieldStorage(req,
+                            keep_blank_values = app.keep_blank_values,
+                            strict_parsing = app.strict_parsing)
+            except Exception as e:
+                req.log_error("Bad request body: %s", e)
 
 ==== Automatic convert to unicode ====
 
@@ -469,6 +474,41 @@ variable, which is configurable by XXX.
 
 As like Args class, if poor_AutoForm is set to Off, or if method is no POST,
 PUT or PATCH, req.form is EmptyForm is instance instead of FieldStorage.
+
+==== JSON request ====
+
+In the first place JSON request are from AJAX. There are automatic JSON
+parsing in Request object, which parse request body to JSON variable. This
+parsing starts only when app.auto_json variable is set to True (default)
+and if content type of POST, PUT or PATCH request is application/json.
+Then request body is parsed to json property.
+
+    import json
+
+    @app.route('/test/json', methods = state.METHOD_POST | state.METHOD_PUT | state.METHOD_PATCH)
+    def test_json(req):
+        for key, val in req.json.items():
+            req.error_log('%s: %v' % (key, str(val)))
+
+        req.content_type = 'application/json'
+        return json.dumps({'Status': '200', 'Message': 'Ok'})
+
+JQuery AJAX request could look like this:
+
+    $.ajax({ url: '/test/json',
+             type: 'put',
+             accepts : {json: 'application/json', html: 'text/html'},
+             contentType: 'application/json',
+             dataType: 'json',
+             data: JSON.stringify({ test: 'Test message', 'count': 42, 'note': null }),
+             success: function(data){
+                console.log(data);
+             },
+             error: function(xhr, status, http_status){
+                    console.error(status);
+                    console.error(http_status);
+             }
+    });
 
 ==== File uploading ====
 

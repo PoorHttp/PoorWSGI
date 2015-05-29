@@ -114,7 +114,10 @@ def internal_server_error(req):
 
         # Traceback
         for i in xrange(len(traceback)):
-            req.write('<div class="line%s">%s</div>' % ( i % 2, traceback[i]))
+            traceback_line = traceback[i].replace('&', '&amp;')\
+                                         .replace('<', '&lt;')\
+                                         .replace('>', '&gt;')
+            req.write('<div class="line%s">%s</div>' % ( i % 2, traceback_line))
 
         content = [
             "    </pre>\n",

@@ -267,16 +267,20 @@ def test_varargs(req, *args):
 
 @app.route('/login')
 def login(req):
+    req.log_error("Input cookies: %s" % repr(req.cookies), state.LOG_DEBUG)
     cookie = PoorSession(req)
     cookie.data['login'] = True
     cookie.header(req, req.headers_out)
+    req.log_error("Output headers: %s" % req.headers_out, state.LOG_DEBUG)
     redirect(req, '/')
 
 @app.route('/logout')
 def logout(req):
+    req.log_error("Input cookies: %s" % repr(req.cookies), state.LOG_DEBUG)
     cookie = PoorSession(req)
     cookie.destroy()
     cookie.header(req, req.headers_out)
+    req.log_error("Output headers: %s" % req.headers_out, state.LOG_DEBUG)
     redirect(req, '/')
 
 @app.route('/test/form', method = state.METHOD_GET_POST)

@@ -65,12 +65,45 @@ class NoCompress:
 #endclass
 
 class PoorSession:
-    """Self-contained cookie with session data"""
+    """ Self-contained cookie with session data. You cat store or read data from
+        object via PoorSesssion.data variable which must be dictionary. Data is
+        stored to cookie by pickle dump. Be careful with stored object. You can
+        add object with litle python trick:
+
+            sess = PoorSession(req)
+
+            sess.data['class'] = obj.__class__          # write to cookie
+            sess.data['dict']  = obj.__dict__.copy()
+
+            obj = sess.data['class']()                  # read from cookie
+            obj.__dict__ = sess.data['dict'].copy()
+
+        Or for beter solution, you can create export and import methods for you
+        object like that:
+
+            class Obj(object):
+                def import(self, d):
+                    self.attr1 = d['attr1']
+                    self.attr2 = d['attr2']
+
+                def export(self):
+                    d = {'attr1': self.attr1, 'attr2': self.attr2}
+                    return d
+
+            obj = Obj()
+            sess = PoorSession(req)
+
+            sess.data['class'] = obj.__class__          # write to cookie
+            sess.data['dict']  = obj.export()
+
+            obj = sess.data['class']()                  # read from cookie
+            obj.import(sess.data['dict'])
+    """
 
     def __init__(self, req, expires = 0, path = '/', SID = 'SESSID', compress = bz2):
         """
         Constructor.
-            req      mod_python.apache.request
+            req      Request object
             expires  cookie expire time in seconds, if it 0, no expire is set
             path     cookie path
             SID      cookie key name
@@ -79,30 +112,26 @@ class PoorSession:
                      could be None to not use any compressing method.
         """
 
-        # @cond PRIVATE
-        self.SID = SID
-        self.expires = expires
-        self.path = path
-        self.cookie = SimpleCookie()
-        self.cps = compress if not compress is None else NoCompress
-        # @endcond
+        self.__SID = SID
+        self.__expires = expires
+        self.__path = path
+        self.__cps = compress if not compress is None else NoCompress
 
-        ## @property data
+
         # data is session dictionary to store user data in cookie
         self.data = {}
+        self.cookie = SimpleCookie()
+        self.cookie[SID] = None
 
         raw = None
 
-        # get SID from cookie
-        if "HTTP_COOKIE" in req.environ:
-            self.cookie.load(req.environ["HTTP_COOKIE"])
-            if SID in self.cookie:
-                raw = self.cookie[SID].value
+        if req.cookies and SID in req.cookies:
+            raw = req.cookies[SID].value
         #endif
 
         if raw:
             try:
-                self.data = loads(hidden(self.cps.decompress(b64decode(raw.encode())),
+                self.data = loads(hidden(self.__cps.decompress(b64decode(raw.encode())),
                                     req.secretkey))
                 if not isinstance(self.data, dict):
                     raise RuntimeError()
@@ -121,8 +150,8 @@ class PoorSession:
 
     def renew(self):
         """Renew cookie, in fact set expires to next time if it set."""
-        if self.expires:
-            self.data['expires'] = int(time()) + self.expires
+        if self.__expires:
+            self.data['expires'] = int(time()) + self.__expires
             return
 
         if 'expires' in self.data:
@@ -133,15 +162,15 @@ class PoorSession:
         """Store data to cookie value. This method is called automaticly in
         header method.
         """
-        raw = b64encode(self.cps.compress(hidden(dumps(self.data),
+        raw = b64encode(self.__cps.compress(hidden(dumps(self.data),
                                      req.secretkey), 9))
         raw = raw if isinstance(raw, str) else raw.decode()
-        self.cookie[self.SID] = raw
-        self.cookie[self.SID]['path'] = self.path
+        self.cookie[self.__SID] = raw
+        self.cookie[self.__SID]['path'] = self.__path
 
-        if self.expires:
-            self.data['expires'] = int(time()) + self.expires
-            self.cookie[self.SID]['expires'] = self.expires
+        if self.__expires:
+            self.data['expires'] = int(time()) + self.__expires
+            self.cookie[self.__SID]['expires'] = self.__expires
 
         return raw
     #enddef
@@ -150,8 +179,7 @@ class PoorSession:
         """Destroy session. In fact, set cookie expires value to past (-1)."""
         self.data = {}
         self.data['expires'] = -1
-        if self.SID in self.cookie:
-            self.cookie[self.SID]['expires'] = -1
+        self.cookie[self.__SID]['expires'] = -1
     #enddef
 
     def header(self, req, headers_out = None):

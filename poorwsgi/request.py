@@ -16,11 +16,13 @@ if version_info[0] < 3:         # python 2.x
     from httplib import responses
     from cStringIO import StringIO as BytesIO
     from urlparse import parse_qs
+    from Cookie import SimpleCookie
 
 else:                           # python 3.x
     from http.client import responses
     from io import BytesIO
     from urllib.parse import parse_qs
+    from http.cookies import SimpleCookie
 
 from poorwsgi.state import __author__, __date__, __version__, methods, \
         levels, LOG_ERR, LOG_WARNING, LOG_INFO, \
@@ -173,6 +175,13 @@ class Request(object):
         else:
             self.__form = EmptyForm()
             self.__json = EmptyForm()
+
+
+        if app_config['auto_cookies'] and 'Cookie' in self.__headers_in:
+            self.__cookies = SimpleCookie()
+            self.__cookies.load(self.__headers_in['Cookie'])
+        else:
+            self.__cookies = tuple()
 
         self.__debug = self.__poor_environ.get('poor_Debug', 'Off').lower() == 'on'
 
@@ -366,9 +375,17 @@ class Request(object):
         """ Json dictionary if request content type is one of
             app.json_content_types application/json and request
             method is POST, PUT or PATCH and app.auto_json is set to true which
-            is default. Otherwise json is None.
+            is default. Otherwise json is EmptyForm.
         """
         return self.__json
+
+    @property
+    def cookies(self):
+        """ SimpleCookie iteratable object of all cookies from Cookie header.
+            This property was set if app.auto_cookies is set to true which is
+            default. Otherwhise cookies was empty tuple.
+        """
+        return self.__cookies
 
     @property
     def debug(self):

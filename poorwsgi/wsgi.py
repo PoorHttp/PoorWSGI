@@ -75,10 +75,11 @@ class Application(object):
             'keep_blank_values': 0,
             'strict_parsing': 0,
             'json_content_types': [
-                'application/json',
-                'application/javascript',
-                'application/merge-patch+json'
-            ]
+                    'application/json',
+                    'application/javascript',
+                    'application/merge-patch+json'
+                ],
+            'auto_cookies': True
         }
     #enddef
 
@@ -186,6 +187,16 @@ class Application(object):
     @auto_json.setter
     def auto_json(self, value):
         self.__config['auto_json'] = bool(value)
+
+    @property
+    def auto_cookies(self):
+        """ If it is True (default) and Cookie request header was set,
+            SimpleCookie object was paresed to Request property cookies.
+        """
+        return self.__config['auto_cookies']
+    @auto_cookies.setter
+    def auto_cookies(self, value):
+        self.__config['auto_cookies'] = bool(value)
 
     @property
     def keep_blank_values(self):

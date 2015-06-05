@@ -94,6 +94,7 @@ def internal_server_error(req):
             "<html>\n",
             "  <head>\n",
             "    <title>500 - Internal Server Error</title>\n",
+            "    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"/>\n",
             "    <style>\n",
             "      body {width: 80%; margin: auto; padding-top: 30px;}\n",
             "      h1 {text-align: center; color: #707070;}\n"\
@@ -151,6 +152,7 @@ def forbidden(req):
         "<html>\n"\
         "  <head>\n"\
         "    <title>403 - Forbidden Acces</title>\n"\
+        "    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"/>\n"\
         "    <style>\n"\
         "      body {width: 80%%; margin: auto; padding-top: 30px;}\n"\
         "      h1 {text-align: center; color: #ff0000;}\n"\
@@ -180,6 +182,7 @@ def not_found(req):
         "<html>\n"\
         "  <head>\n"\
         "    <title>404 - Page Not Found</title>\n"\
+        "    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"/>\n"\
         "    <style>\n"\
         "      body {width: 80%%; margin: auto; padding-top: 30px;}\n"\
         "      h1 {text-align: center; color: #707070;}\n"\
@@ -208,6 +211,7 @@ def method_not_allowed(req):
         "<html>\n"\
         "  <head>\n"\
         "    <title>405 - Method Not Allowed</title>\n"\
+        "    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"/>\n"\
         "    <style>\n"\
         "      body {width: 80%%; margin: auto; padding-top: 30px;}\n"\
         "      h1 {text-align: center; color: #707070;}\n"\
@@ -236,6 +240,7 @@ def not_implemented(req, code = None):
             "<html>\n"\
             "  <head>\n"\
             "    <title>501 - Not Implemented</title>\n"\
+            "    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"/>\n"\
             "    <style>\n"\
             "      body {width: 80%%; margin: auto; padding-top: 30px;}\n"\
             "      h1 {text-align: center; color: #707070;}\n"\
@@ -523,7 +528,7 @@ def debug_info(req, app):
 """<html>
   <head>
     <title>Poor Wsgi Debug info</title>
-    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"/>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
     <style>
       body { width: 80%%; margin: auto; padding-top: 30px; }
       h1 { text-align: center; color: #707070; }

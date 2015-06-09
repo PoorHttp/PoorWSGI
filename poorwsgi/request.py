@@ -1,9 +1,10 @@
+# -*- coding: utf-8 -*-
 """
 Headers, Request and FieldStorage classes, which is used for managing requests.
 """
 
-
-from wsgiref.headers import Headers as WHeaders
+from collections import Mapping
+from wsgiref.headers import _formatparam
 from cgi import FieldStorage as CgiFieldStorage, parse_header
 from time import strftime, gmtime
 from sys import version_info, version, stderr
@@ -36,60 +37,165 @@ from poorwsgi.results import _unicode_exist, uni
 # simple regular expression for construct_url method
 re_httpUrlPatern = re.compile(r"^(http|https):\/\/")
 
-class Headers(WHeaders):
-    """ Class inherited from wsgiref.headers.Headers. As PEP 0333, resp.
+class Headers(Mapping):
+    """ Class inherited from collections.Mapping. As PEP 0333, resp.
         RFC 2616 says, all headers names must be only US-ASCII character except
         control characters or separators. And headers values must be store in
         string encoded in ISO-8859-1. This class methods Headers.add and
         Headers.add_header do auto convert values from UTF-8 to ISO-8859-1
-        encoding.
+        encoding if it is possible. So on every modification methods must be use
+        UTF-8 string or unicode.
     """
 
-    def __init__(self):
-        """By default constains X-Powered-By values."""
-        headers = [
-            ("X-Powered-By", "Poor WSGI for Python")
-        ]
-        WHeaders.__init__(self, headers)
+    def __init__(self, headers = list(), strict = True):
+        """ Headers object could be create from list, set or tuple of pairs
+            name, value. Or from dictionary. All names or values must be
+            iso-8859-1 encodable. If not, AssertionError will be raised.
 
-
-    def add(self, key, value):
-        """ Set header key to value. Duplicate keys are not allowed instead of
-            {Set-Cookie}. Value must be in UTF-8, and is convert to ISO-8859-1.
+            If strict is False, headers names and values are not encoded to
+            iso-8859-1. This is for input headers using only!
         """
-        if key != "Set-Cookie" and key in self:
-            raise KeyError("Key %s exist." % key)
-        self.add_header(key, value)
+        if isinstance(headers, (list, tuple, set)):
+            if strict:
+                self.__headers = list(
+                    (Headers.iso88591(k),Headers.iso88591(v)) for k,v in headers )
+            else:
+                self.__headers = list( (k, v) for k,v in headers )
+        elif isinstance(header, dict):
+            if strict:
+                self.__headers = list(
+                    (Headers.iso88591(k),Headers.iso88591(v)) for k,v in headers.items() )
+            else:
+                self.__headers = list( (k, v) for k,v in headers.items() )
+        else:
+            raise AssertionError(
+                "headers must be tuple, list or set of str or unicode, or dict (got {0})"
+                    .format(type(headers)))
+    #enddef
+
+    def __len__(self):
+        """ Return len of header items """
+        return len(self.__headers)
+
+    def __getitem__(self, name):
+        """ Return header item identified by lower name """
+        name = Headers.iso88591(name.lower())
+        for k,v in self.__headers:
+            if k.lower() == name:
+                return v
+        raise KeyError("{!r} is not registered".format(name))
+
+    def __delitem__(self, name):
+        """ Delete item identied by lower name """
+        name = Headers.iso88591(name.lower())
+        self.__headers = list(kv for kv in self.__headers if kv[0].lower() != name)
+
+    def __setitem__(self, name, value):
+        """ Delete item if exist and set it's new value """
+        del self[name]
+        self.add_header(name, value)
+
+    def __iter__(self):
+        return iter(self.__headers)
+
+    def __repr__(self):
+        return "Headers(%r)" % repr(tuple(self.__headers))
+
+    def names(self):
+        """ Return tuple of headers names """
+        return tuple(k for k, v in self.__headers)
+
+    def keys(self):
+        """ Alias for names method """
+        return names()
+
+    def values(self):
+        """ Return tuple of headers values """
+        return tuple(v for k, v in self.__headers)
+
+    def get_all(self, name):
+        """ Return tuple of all values of header identifed by lower name """
+        name = Headers.iso88591(name.lower())
+        return tuple(kv[1] for kv in self.__headers if kv[0].lower() == name)
+
+    def items(self):
+        """ Return tuple of headers pairs """
+        return tuple(self.__headers)
+
+    def setdefault(self, name, value):
+        """ Set header value if not exist, and return it's value """
+        res = self.get(name)
+        if res is None:
+            self.add_header(name, value)
+            return value
+        else:
+            return res
 
 
-    def add_header(self, key, value, **kwargs):
+    def add(self, name, value):
+        """ Set header name to value. Duplicate names are not allowed instead of
+            {Set-Cookie}.
+        """
+        if name != "Set-Cookie" and name in self:
+            raise KeyError("Key %s exist." % name)
+        self.add_header(name, value)
+
+
+    def add_header(self, name, value, **kwargs):
         """ Extended header setting.
 
-        key is the header field to add. kwargs arguments can be used to set
+        name is the header field to add. kwargs arguments can be used to set
         additional parameters for the header field, with underscores converted
-        to dashes.  Normally the parameter will be added as key="value" unless
-        value is None, in which case only the key will be added.
+        to dashes.  Normally the parameter will be added as name="value" unless
+        value is None, in which case only the name will be added.
 
             h.add_header('Content-Disposition', 'attachment', filename='image.png')
 
-        All keys must be US-ASCII string except control characters or separators.
+        All names must be US-ASCII string except control characters or separators.
         """
 
+        parts = []
+
         if not value is None:
-            if not _unicode_exist and isinstance(value, str):
-                value = value.encode('utf-8').decode('iso-8859-1')
-            if _unicode_exist and isinstance(value, unicode):
-                value = value.encode('iso-8859-1')
+            parts.append(Headers.iso88591(value))
 
         for k, v in kwargs.items():
-            if not _unicode_exist and isinstance(v, str):
-                v = v.encode('utf-8').decode('iso-8859-1')
-            if _unicode_exist and isinstance(v, unicode):
-                v = v.encode('iso-8859-1')
-            kwargs[k] = v
+            k = Headers.iso88591(k)
+            if v is None:
+                parts.append(k.replace('_', '-'))
+            else:
+                parts.append(_formatparam(k.replace('_', '-'),Headers.iso88591(v)))
+        self.__headers.append((Headers.iso88591(name), "; ".join(parts)))
 
-        WHeaders.add_header(self, key, value, **kwargs)
-    #endclass
+    @staticmethod
+    def iso88591(value):
+        """ Doing automatic conversion to iso-8859-1 strings. In python 2.x
+            can convert unicode to iso-8859-1 strings, or from utf-8 string
+            to iso-8859-1 string. On python 3.x converts from utf-8 to
+            iso-8859-1 string. That means, all input value of Headers class must
+            be UTF-8 stings.
+        """
+        try:
+            if not _unicode_exist and isinstance(value, str):
+                return value.encode('utf-8').decode('iso-8859-1')
+            if _unicode_exist and isinstance(value, str):
+                return value.decode('utf-8').encode('iso-8859-1')
+            if _unicode_exist and isinstance(value, unicode):
+                return value.encode('iso-8859-1')
+
+        except UnicodeError as e:
+                raise AssertionError(
+                    "Header name/value must be iso-8859-1 encoded (got {0})"
+                    .format(value))
+        if not _unicode_exist:
+            raise AssertionError(
+                "Header name/value must be of type str (got {0})"
+                    .format(value))
+        else:
+            raise AssertionError(
+                "Header name/value must be of type str or unicode (got {0})"
+                    .format(value))
+# endclass Headers
 
 class Request(object):
     """ HTTP request object with all server elements. It could be compatible
@@ -134,13 +240,13 @@ class Request(object):
                 key = '-'.join(map(lambda x: x.capitalize() ,key.split('_')))
                 tmp.append((key, val))
 
-        self.__headers_in = WHeaders(tmp)
+        self.__headers_in = Headers(tmp, False) # do not convert to iso-8859-1
 
         ## A Headers object representing the headers to be sent to the client.
-        self.__headers_out = Headers()
+        self.__headers_out = Headers((("X-Powered-By", "Poor WSGI for Python"),))
 
         ## These headers get send with the error response, instead of headers_out.
-        self.__err_headers_out = Headers()
+        self.__err_headers_out = Headers((("X-Powered-By", "Poor WSGI for Python"),))
 
         ## uwsgi do not sent environ variables to apps environ
         if 'uwsgi.version' in self.__environ or 'poor.Version' in os.environ:
@@ -325,7 +431,7 @@ class Request(object):
         return self.__headers_out
     @headers_out.setter
     def headers_out(self, value):
-        if not isinstance(value, WHeaders):
+        if not isinstance(value, Headers):
             raise ValueError("Headers must be instance of wsgiref.headers.Headers")
         self.__headers_out = value
 
@@ -546,7 +652,7 @@ class Request(object):
 
         self.__write = self.start_response(
                             "%d %s" % (self.__status, responses[self.__status]),
-                            self.__headers_out.items())
+                            list(self.__headers_out.items()))
         self._start_response = True
     #enddef
 
@@ -902,3 +1008,45 @@ class SERVER_RETURN(SERVER_RETURN_RIGHT):
 
         SERVER_RETURN_RIGHT.__init__(self, code)
 #endclass
+
+if __name__ == '__main__':
+    import unittest
+
+    class TestHeaders(unittest.TestCase):
+        _headers = (('key', 'value'),)
+
+        def test_init(self):
+            headers = Headers(self._headers)
+            self.assertTrue('Key' in headers)
+            self.assertEqual('value', headers['key'])
+
+        def test_base_methods(self):
+            _headers = self._headers[:1] + (('Key', 'new value'),)
+            headers = Headers(_headers)
+            self.assertEqual(('key', 'Key'), headers.keys())
+            self.assertEqual(('value', 'new value'), headers.values())
+            self.assertEqual(_headers, headers.items())
+            self.assertEqual('value', headers.get('Key'))
+            self.assertEqual(None, headers.get('nokey'))
+            self.assertEqual('default', headers.get('X-Default', 'default'))
+            headers['key'] = 'super value'
+
+        def test_headers_methods(self):
+            headers = Headers()
+            headers.setdefault('X-Key', 'x-key')
+            headers.add_header('X-Key', 'x-val')
+            with self.assertRaises(KeyError):
+                headers.add('x-key', 'X-Key')
+            self.assertEqual(('x-key', 'x-val'), headers.get_all('x-key'))
+            with self.assertRaises(AssertionError):
+                headers['X-Author'] = 'Ondřej Tůma'
+            del(headers['x-key'])
+            headers.add_header('Content-Disposition', 'attachment', filename='image.png')
+            self.assertEqual((('Content-Disposition', 'attachment; filename="image.png"'),),
+                             headers.items())
+            headers['X-Value'] = u'value'
+            repr(headers)
+    # endclass TestHeaders
+
+
+    unittest.main()

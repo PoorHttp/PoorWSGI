@@ -126,9 +126,6 @@ def check_login(fn):
 
 @app.route('/')
 def root(req):
-    req.headers_out.add('X-Test-Author', 'Ondřej Tůma')
-    req.headers_out.add('X-Kanji-Value', '漢字')
-    req.headers_out.add_header('X-Kanji-Values', 'array', first ='漢', second = '字')
     buff = get_header("Index") + (
             get_crumbnav(req),
             "<ul>",

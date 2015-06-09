@@ -1,3 +1,12 @@
+==== 1.0.4 ====
+    * is_xhr bug fix
+    * json POST|PUT|Patch request parsing
+    * documentation fix
+    * Request cookies and Session rewrite
+    * html clear output in error traceback
+    * included results have meta content tag
+    * Reimplementation of Headers class (Python 3.4 support)
+
 ==== 1.0.3 ====
     * installation documentation fix
     * /debug-info handlers are separete

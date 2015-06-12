@@ -1,3 +1,8 @@
+==== 1.4.1 ====
+    * append Secret Key about info to debug-info page
+    * fix ini config examples - documentation can't be on same line as variable
+    * fix menu links (diskusion and Facebook to PyPI)
+
 ==== 1.4.0 ====
     * fix version style to major.minor.maintenance
 

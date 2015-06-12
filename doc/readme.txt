@@ -113,14 +113,18 @@ function or class must be set in predefined variable in {http} section:
     #!ini
     [http]
     ...
-    application = /srv/simple.py        # your main python file, where app, resp.
-                                        # application from wsgi module is imported
+    # your main python file, where app, resp. application from wsgi module
+    # is imported
+    application = /srv/simple.py
+
     ...
     [environ]
-    poor_Debug = Off                    # default
+    # debug - internal server errror page with traceback, debug-info page
+    poor_Debug = Off
     poor_DocumentRoot = /srv/public
     poor_DocumentIndex = On
-    poor_LogLevel = error               # only error alert an emerg type are log
+    # only error alert an emerg type are log
+    poor_LogLevel = error
 
 
 === uWsgi server example ===
@@ -132,11 +136,13 @@ environment variables.
     #!ini
     [uwsgi]
     ...
-    wsgi-file = /srv/simple.py          # your main python file, where app, resp.
-                                        # application from wsgi module is imported
+    # your main python file, where app, resp. application from wsgi module
+    # is imported
+    wsgi-file = /srv/simple.py
     ...
-    env = poor_Debug=On                 # variables must be set without space between
-    env = poor_DocumentRoot=/srv/public # variable equation and value
+    # variables must be set without space between variable equation and value
+    env = poor_Debug=On
+    env = poor_DocumentRoot=/srv/public
     env = poor_SecretKey=MyApplication@Super!Secret?Password:-)
 
 == Tutorial ==

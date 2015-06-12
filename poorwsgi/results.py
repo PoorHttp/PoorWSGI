@@ -506,7 +506,8 @@ def debug_info(req, app):
                     ('Log Level', dict((b,a) for a,b in levels.items())[req._log_level]),
                     ('Buffer Size', req._buffer_size),
                     ('Document Root', req.document_root()),
-                    ('Document Index', req.document_index)
+                    ('Document Index', req.document_index),
+                    ('Secret Key', '*'*5 + ' see in error output (wsgi log) when Log Level is <b>debug</b> ' + '*'*5)
         )))
     req.log_error('SecretKey: %s' % req.secretkey, LOG_DEBUG)
 

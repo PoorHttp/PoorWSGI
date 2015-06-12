@@ -1,3 +1,6 @@
+==== 1.4.0 ====
+    * fix version style to major.minor.maintenance
+
 ==== 1.0.4 ====
     * is_xhr bug fix
     * json POST|PUT|Patch request parsing

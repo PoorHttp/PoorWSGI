@@ -1,21 +1,21 @@
 """
-.. image:: https://pypip.in/download/poorwsgi/badge.png
+.. image:: https://img.shields.io/pypi/dm/PoorWSGI.svg
     :target: https://pypi.python.org/pypi/poorwsgi/
     :alt: Download this month
 
-.. image:: https://pypip.in/version/poorwsgi/badge.png
+.. image:: https://img.shields.io/pypi/v/PoorWSGI.svg
     :target: https://pypi.python.org/pypi/poorwsgi/
     :alt: Latest version
 
-.. image:: https://pypip.in/py_versions/poorwsgi/badge.png
+.. image:: https://img.shields.io/pypi/pyversions/PoorWSGI.svg
     :target: https://pypi.python.org/pypi/poorwsgi/
     :alt: Supported Python versions
 
-.. image:: https://pypip.in/status/poorwsgi/badge.svg
+.. image:: https://img.shields.io/pypi/status/PoorWSGI.svg
     :target: https://pypi.python.org/pypi/poorwsgi/
     :alt: Development Status
 
-.. image:: https://pypip.in/license/poorwsgi/badge.png
+.. image:: https://img.shields.io/pypi/l/PoorWSGI.svg
     :target: https://pypi.python.org/pypi/poorwsgi/
     :alt: License
 

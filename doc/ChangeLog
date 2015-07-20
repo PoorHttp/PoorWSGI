@@ -1,3 +1,6 @@
+==== 1.4.2 ====
+    * bug fix when setting req.clength
+
 ==== 1.4.1 ====
     * append Secret Key about info to debug-info page
     * fix ini config examples - documentation can't be on same line as variable

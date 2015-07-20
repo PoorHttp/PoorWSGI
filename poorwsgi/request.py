@@ -390,7 +390,7 @@ class Request(object):
         return self.__clength
     @clength.setter
     def clength(self, value):
-        self.__clength = length
+        self.__clength = value
 
     @property
     def body_bytes_sent(self):

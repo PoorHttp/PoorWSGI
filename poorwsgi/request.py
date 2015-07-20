@@ -642,13 +642,30 @@ class Request(object):
     #enddef
 
     def __call_start_response(self):
-        if self.__content_type and not self.__headers_out.get('Content-Type'):
-            self.__headers_out.add('Content-Type', self.__content_type)
-        elif not self.__content_type and not self.__headers_out.get('Content-Type'):
-            self.log_error('Content-type not set!', LOG_WARNING)
+        if self.__status == 304:
+            # Not Modified MUST NOT include other entity-headers
+            # http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+            if 'Content-Encoding' in self.__headers_out \
+                    or 'Content-Language' in self.__headers_out \
+                    or 'Content-Length' in self.__headers_out \
+                    or 'Content-Location' in self.__headers_out \
+                    or 'Content-MD5' in self.__headers_out \
+                    or 'Content-Range' in self.__headers_out \
+                    or 'Content-Type' in self.__headers_out:
+                self.log_error('Some entity header in Not Modified response',
+                                LOG_WARNING)
+            if not 'Date' in self.__headers_out:
+                self.log_error('Missing Date header in Not Modified response',
+                                LOG_WARNING)
+        else:
+            if self.__content_type and not self.__headers_out.get('Content-Type'):
+                self.__headers_out.add('Content-Type', self.__content_type)
+            elif not self.__content_type and not self.__headers_out.get('Content-Type'):
+                self.log_error('Content-type not set!', LOG_WARNING)
 
-        if self.__clength and not self.__headers_out.get('Content-Length'):
-            self.__headers_out.add('Content-Length', str(self.__clength))
+            if self.__clength and not self.__headers_out.get('Content-Length'):
+                self.__headers_out.add('Content-Length', str(self.__clength))
+        #endif
 
         self.__write = self.start_response(
                             "%d %s" % (self.__status, responses[self.__status]),

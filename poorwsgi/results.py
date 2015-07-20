@@ -21,9 +21,9 @@ else:                           # python 3.x
 
 from poorwsgi.state import __author__, __date__, __version__, \
         DONE, METHOD_ALL, methods, sorted_methods, levels, LOG_ERR, LOG_DEBUG, \
-        HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_FORBIDDEN, \
-        HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED, HTTP_INTERNAL_SERVER_ERROR, \
-        HTTP_NOT_IMPLEMENTED
+        HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_NOT_MODIFIED, \
+        HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED, \
+        HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_IMPLEMENTED
 
 if _unicode_exist:
     def uni(text):
@@ -68,6 +68,12 @@ def redirect(req, uri, permanent = 0, text = None):
         req.write(text)
     raise SERVER_RETURN(DONE)
 #enddef
+
+def not_modified(req):
+    req.status = HTTP_NOT_MODIFIED
+    req.content_type = None
+    return DONE
+
 
 def internal_server_error(req):
     """ More debug 500 Internal Server Error server handler. It was be called
@@ -595,9 +601,9 @@ def __fill_default_shandlers(code, handler):
     for m in methods.values():
         default_shandlers[code][m] = handler
 
-__fill_default_shandlers(HTTP_INTERNAL_SERVER_ERROR, internal_server_error)
+__fill_default_shandlers(HTTP_NOT_MODIFIED, not_modified)
+__fill_default_shandlers(HTTP_FORBIDDEN, forbidden)
 __fill_default_shandlers(HTTP_NOT_FOUND, not_found)
 __fill_default_shandlers(HTTP_METHOD_NOT_ALLOWED, method_not_allowed)
-__fill_default_shandlers(HTTP_FORBIDDEN, forbidden)
+__fill_default_shandlers(HTTP_INTERNAL_SERVER_ERROR, internal_server_error)
 __fill_default_shandlers(HTTP_NOT_IMPLEMENTED, not_implemented)
-

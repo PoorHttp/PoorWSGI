@@ -1,3 +1,6 @@
+==== 1.5.0 ====
+    * http response 304 Not Modified supported
+
 ==== 1.4.2 ====
     * bug fix when setting req.clength
 

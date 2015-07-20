@@ -3,8 +3,8 @@ main application function, and functions for working with dispatch table
 """
 
 from socket import error as SocketError
-from os import path, access, R_OK
-from sys import version_info
+from os import path, access, R_OK, environ
+from sys import version_info, stderr
 
 if version_info[0] == 2 and version_info[1] < 7:
     from ordereddict import OrderedDict
@@ -14,7 +14,8 @@ else:
 import re
 
 from poorwsgi.state import OK, DONE, DECLINED, HTTP_ERROR, HTTP_OK, \
-            METHOD_GET, METHOD_POST, METHOD_HEAD, methods, LOG_INFO, LOG_ERR, \
+            METHOD_GET, METHOD_POST, METHOD_HEAD, methods, \
+            levels, LOG_INFO, LOG_ERR, LOG_WARNING, \
             HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN, \
             __author__, __date__, __version__
 from poorwsgi.request import Request
@@ -81,6 +82,13 @@ class Application(object):
                 ],
             'auto_cookies': True
         }
+
+        try:
+            self.__log_level = levels[environ.get('poor_LogLevel', 'warn').lower()]
+        except:
+            self.__log_level = LOG_WARNING
+            self.log_error('Bad poor_LogLevel, default is warn.', LOG_WARNING)
+        #endtry
     #enddef
 
     def __regex(self, match):
@@ -627,6 +635,42 @@ class Application(object):
 
     def del_profile(self):
         self.__call__ = self.__clear_call__
+
+
+    def get_options(self):
+        """ Returns dictionary with application variables from system
+            environment. Application variables start with {app_} prefix,
+            but in returned dictionary is set without this prefix.
+
+                #!ini
+                poor_LogLevel = warn        # Poor WSGI variable
+                app_db_server = localhost   # application variable db_server
+                app_templates = app/templ   # application variable templates
+
+            This method works like Request.get_options, but work with
+            os.environ, so it works only with wsgi servers, which set not only
+            request environ, but os.environ too. Apaches mod_wsgi don't do that,
+            uWsgi and PoorHTTP do that.
+        """
+        options = {}
+        for key,val in environ.items():
+            key = key.strip()
+            if key[:4].lower() == 'app_':
+                options[key[4:].lower()] = val.strip()
+        return options
+    #enddef
+
+    def log_error(self, message, level = LOG_ERR):
+        """ Logging method with the same functionality like in Request object,
+            but as get_options read configuration from os.environ which could
+            not work in same wsgi servers like Apaches mod_wsgi.
+
+            This method write to stderr so messages, could not be found in
+            servers error log!
+        """
+        if self.__log_level[0] >= level[0]:
+            stderr.write("<%s> %s\n" % (level[1], message))
+    #enddef
 
 #endclass
 

@@ -3,6 +3,7 @@
     * new req.uri_hadler property
     * set req.uri_hadler and req.uri_rule before calling pre handlers, but after
       end point handler is known
+    * new get_options and log_error methods of Application object
 
 ==== 1.4.2 ====
     * bug fix when setting req.clength

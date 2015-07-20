@@ -702,12 +702,12 @@ class Request(object):
 
 
     def get_options(self):
-        """ Returns dictionary with application variables from server
+        """ Returns dictionary with application variables from request
             environment. Application variables start with {app_} prefix,
             but in returned dictionary is set without this prefix.
 
                 #!ini
-                poor_LogLevel = warn       # Poor WSGI variable
+                poor_LogLevel = warn        # Poor WSGI variable
                 app_db_server = localhost   # application variable db_server
                 app_templates = app/templ   # application variable templates
         """

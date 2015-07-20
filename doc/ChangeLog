@@ -1,5 +1,8 @@
 ==== 1.5.0 ====
     * http response 304 Not Modified supported
+    * new req.uri_hadler property
+    * set req.uri_hadler and req.uri_rule before calling pre handlers, but after
+      end point handler is known
 
 ==== 1.4.2 ====
     * bug fix when setting req.clength

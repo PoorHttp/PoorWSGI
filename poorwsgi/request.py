@@ -219,6 +219,9 @@ class Request(object):
         ## The path portion of the URI.
         self.__uri_rule = None
 
+        ## Reference to final uri_handler, user can use some handler attributes
+        self.__uri_handler = None
+
         ## String. The content type. Another way to set content_type is via
         #  headers_out object property. Default is text/html; charset=utf-8
         self.__content_type = "text/html; charset=utf-8"
@@ -364,13 +367,29 @@ class Request(object):
     @property
     def uri_rule(self):
         """ Rule from one of application handler table. This property could be
-            set once, and that do Application object.
+            set once, and that do Application object. There are some internal
+            uri_rules which is set typical if some internal handler was called.
+            There are: {_default_handler_, _directory_index_, _debug_info_ and
+            _send_file_ }. In other case, there be url or regex.
         """
         return self.__uri_rule
     @uri_rule.setter
     def uri_rule(self, value):
-        if self.__uri_rule is not None:
+        if self.__uri_rule is None:
             self.__uri_rule = value
+
+    @property
+    def uri_handler(self):
+        """ This property is set at the smae point as uri_rule. It was set by
+            Application object when end point handler is known before calling
+            all pre handlers. Typical use case is set some specital attribute
+            to handler, and read them in pre handler.
+        """
+        return self.__uri_handler
+    @uri_handler.setter
+    def uri_handler(self, value):
+        if self.__uri_handler is None:
+            self.__uri_handler = value
 
     @property
     def content_type(self):

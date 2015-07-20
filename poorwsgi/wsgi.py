@@ -454,10 +454,19 @@ class Application(object):
     def handler_from_default(self, req):
         if req.method_number in self.__dhandlers:
             req.uri_rule = '_default_handler_'
+            req.uri_handler = self.__dhandlers[req.method_number]
+            self.handler_from_pre(req)       # call pre handlers now
             retval = self.__dhandlers[req.method_number](req)
             if retval != DECLINED:
                 raise SERVER_RETURN(retval)
     #enddef
+
+    def handler_from_pre(self, req):
+        """ Run all pre (pre_proccess) handlers. This method was call before
+            end-point route handler.
+        """
+        for fn in self.__pre:
+                fn(req)
 
     def handler_from_table(self, req):
         """ call right handler from handlers table (fill with route function). If no
@@ -470,8 +479,10 @@ class Application(object):
         if req.uri in self.__handlers:
             if req.method_number in self.__handlers[req.uri]:
                 handler = self.__handlers[req.uri][req.method_number]
-                req.uri_rule = req.uri
-                retval = handler(req)
+                req.uri_rule = req.uri      # some nice variable for pre handlers
+                req.uri_handler = handler
+                self.handler_from_pre(req)  # call pre handlers now
+                retval = handler(req)       # call right handler now
                 # return text is allowed
                 if isinstance(retval, str) or (_unicode_exist and isinstance(retval, unicode)):
                     req.write(retval, 1)    # write data and flush
@@ -488,7 +499,9 @@ class Application(object):
             match = ruri.match(req.uri)
             if match and req.method_number in self.__rhandlers[ruri]:
                 handler, convertors = self.__rhandlers[ruri][req.method_number]
-                req.uri_rule = ruri.pattern
+                req.uri_rule = ruri.pattern # some nice variable for pre handlers
+                req.uri_handler = handler
+                self.handler_from_pre(req)  # call pre handlers now
                 if len(convertors):
                     # create OrderedDict from match insead of dict for convertors applying
                     req.groups = OrderedDict( (g, c(v)) for ((g, c), v) in zip(convertors, match.groups()) )
@@ -511,24 +524,36 @@ class Application(object):
 
             if not path.exists(rfile):
                 if req.debug and req.uri == '/debug-info':      # work if debug
+                    req.uri_rule = '_debug_info_'
+                    req.uri_handler = debug_info
+                    self.handler_from_pre(req)  # call pre handlers now
                     raise SERVER_RETURN(debug_info(req, self))
                 self.handler_from_default(req)                  # try default
                 raise SERVER_RETURN(HTTP_NOT_FOUND)             # not found
 
             # return file
             if path.isfile(rfile) and access(rfile, R_OK):
+                req.uri_rule = '_send_file_'
+                req.uri_handler = send_file
+                self.handler_from_pre(req)      # call pre handlers now
                 req.log_error("Return file: %s" % req.uri, LOG_INFO);
                 raise SERVER_RETURN(send_file(req, rfile))
 
             # return directory index
             if req.document_index and path.isdir(rfile) and access(rfile, R_OK):
-                req.log_error("Return directory: %s" % req.uri, LOG_INFO);
+                req.log_error("Return directory: %s" % req.uri, LOG_INFO)
+                req.uri_rule = '_directory_index_'
+                req.uri_handler = directory_index
+                self.handler_from_pre(req)      # call pre handlers now
                 raise SERVER_RETURN(directory_index(req, rfile))
 
             raise SERVER_RETURN(HTTP_FORBIDDEN)
         #endif
 
         if req.debug and req.uri == '/debug-info':
+            req.uri_rule = '_debug_info_'
+            req.uri_handler = debug_info
+            self.handler_from_pre(req)          # call pre handlers now
             raise SERVER_RETURN(debug_info(req, self))
 
         self.handler_from_default(req)
@@ -545,14 +570,6 @@ class Application(object):
         """
 
         req = Request(environ, start_response, self.__config)
-
-        try: # call pre_process
-            for fn in self.__pre:
-                fn(req)
-        except:
-            self.error_from_table(req, 500)
-            return req.__end_of_request__()
-        #endtry
 
         try:
             self.handler_from_table(req)

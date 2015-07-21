@@ -6,6 +6,7 @@
     * new get_options and log_error methods of Application object
     * pre process handlers are run for http status handlers if not run yet
     * not implement error got http status code
+    * bad request error page and error log on not implement method
 
 ==== 1.4.2 ====
     * bug fix when setting req.clength

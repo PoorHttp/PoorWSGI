@@ -22,7 +22,7 @@ else:                           # python 3.x
 from poorwsgi.state import __author__, __date__, __version__, \
         DONE, METHOD_ALL, methods, sorted_methods, levels, LOG_ERR, LOG_DEBUG, \
         HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_NOT_MODIFIED, \
-        HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED, \
+        HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED, \
         HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_IMPLEMENTED
 
 if _unicode_exist:
@@ -152,6 +152,35 @@ def internal_server_error(req):
     return DONE
 #enddef
 
+def bad_request(req):
+    """ 400 Bad Request server error handler. """
+    content = \
+        "<html>\n"\
+        "  <head>\n"\
+        "    <title>400 - Bad Request</title>\n"\
+        "    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"/>\n"\
+        "    <style>\n"\
+        "      body {width: 80%%; margin: auto; padding-top: 30px;}\n"\
+        "      h1 {text-align: center; color: #707070;}\n"\
+        "      p {text-indent: 30px; margin-top: 30px; margin-bottom: 30px;}\n"\
+        "    </style>\n"\
+        "  <head>\n"\
+        "  <body>\n"\
+        "    <h1>400 - Bad Request</h1>\n"\
+        "    <p>Method %s for %s uri.</p>\n"\
+        "    <hr>\n"\
+        "    <small><i>webmaster: %s </i></small>\n"\
+        "  </body>\n"\
+        "</html>" % (req.method, req.uri, req.server_admin)
+
+    req.content_type = "text/html"
+    req.status = HTTP_BAD_REQUEST
+    req.headers_out = req.err_headers_out
+    req.headers_out.add('Content-Length', str(len(content)))
+    req.write(content)
+    return DONE
+#enddef
+
 def forbidden(req):
     """ 403 - Forbidden Access server error handler. """
     content = \
@@ -260,6 +289,8 @@ def not_implemented(req, code = None):
         content += \
             "    <p>Your reqeuest <code>%s</code> returned not implemented\n"\
             "      status <code>%s</code>.</p>\n" % (req.uri, code)
+        req.log_error('Your reqeuest %s returned not implemented status %d' % \
+                      (req.uri, code))
     else:
         content += \
             "    <p>Response for Your reqeuest <code>%s</code> is not implemented</p>" \
@@ -602,6 +633,7 @@ def __fill_default_shandlers(code, handler):
         default_shandlers[code][m] = handler
 
 __fill_default_shandlers(HTTP_NOT_MODIFIED, not_modified)
+__fill_default_shandlers(HTTP_BAD_REQUEST, bad_request)
 __fill_default_shandlers(HTTP_FORBIDDEN, forbidden)
 __fill_default_shandlers(HTTP_NOT_FOUND, not_found)
 __fill_default_shandlers(HTTP_METHOD_NOT_ALLOWED, method_not_allowed)

@@ -449,6 +449,10 @@ class Application(object):
         if code in self.__shandlers and req.method_number in self.__shandlers[code]:
             try:
                 handler = self.__shandlers[code][req.method_number]
+                if 'uri_handler' not in req.__dict__:
+                    req.uri_rule = '_%d_error_handler_' % code
+                    req.uri_handler = handler
+                self.handler_from_pre(req)       # call pre handlers now
                 handler(req)
             except:
                 internal_server_error(req)
@@ -456,7 +460,7 @@ class Application(object):
             handler = default_shandlers[code][METHOD_GET]
             handler(req)
         else:
-            not_implemented(req)
+            not_implemented(req, code)
     #enddef
 
     def handler_from_default(self, req):

@@ -18,6 +18,7 @@ else:                           # python 3.x
     from http.client import responses
     xrange = range
     _unicode_exist = False
+    def cmp(a, b): return (a > b) - (a < b)
 
 from poorwsgi.state import __author__, __date__, __version__, \
         DONE, METHOD_ALL, methods, sorted_methods, levels, LOG_ERR, LOG_DEBUG, \

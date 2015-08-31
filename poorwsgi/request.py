@@ -758,6 +758,7 @@ class Request(object):
 
         if self._log_level[0] >= level[0]:
             self._errors.write("<%s> %s\n" % (level[1], message))
+            self._errors.flush()
 
     def __reset_buffer__(self):
         """ Clean _buffer - for internal server error use. It could be used in

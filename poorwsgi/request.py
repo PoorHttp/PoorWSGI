@@ -520,7 +520,7 @@ class Request(object):
     @property
     def remote_host(self):
         """ Remote hostname. """
-        return self.__environ.get('REMOTE_HOST')
+        return self.__environ.get('REMOTE_HOST', '')
 
     @property
     def remote_addr(self):
@@ -652,7 +652,10 @@ class Request(object):
                 self.__call_start_response()
             #endif
             self._buffer.seek(self._buffer_offset)
-            self.__write(self._buffer.read(self._buffer_size))
+            try:
+                self.__write(self._buffer.read(self._buffer_size))
+            except Exception as e:
+                raise BrokenClientConnection(self.remote_host, self.remote_addr)
             self._buffer_offset += self._buffer_size
             self._buffer.seek(0,2)  # seek to EOF
             self.__body_bytes_sent = self._buffer_offset
@@ -786,7 +789,10 @@ class Request(object):
             return self._buffer     # return buffer (StringIO or BytesIO)
         else:
             self._buffer.seek(self._buffer_offset)
-            self.__write(self._buffer.read())   # flush all from buffer
+            try:
+                self.__write(self._buffer.read())   # flush all from buffer
+            except Exception as e:
+                raise BrokenClientConnection(self.remote_host, self.remote_addr)
             self._buffer_offset = self._buffer_len
             self.__body_bytes_sent = self._buffer_len
             return ()               # data was be sent via write method
@@ -799,7 +805,10 @@ class Request(object):
             self.__call_start_response()
 
         self._buffer.seek(self._buffer_offset)
-        self.__write(self._buffer.read())       # flush all from buffer
+        try:
+            self.__write(self._buffer.read())       # flush all from buffer
+        except Exception as e:
+            raise BrokenClientConnection(self.remote_host, self.remote_addr)
         self._buffer_offset = self._buffer_len
         self.__body_bytes_sent = self._buffer_len
     #enddef
@@ -1029,6 +1038,14 @@ class FieldStorage(CgiFieldStorage):
     #enddef
 
 #endclass
+
+class BrokenClientConnection(Exception):
+    """ Helping class for Broken Connection Pipe detect. """
+    def __init__(self, remote_host, remote_addr):
+        Exception.__init__(self, remote_host, remote_addr)
+
+    def __str__(self):
+        return "Broken client connection %s[%s]" % self.args
 
 class SERVER_RETURN(SERVER_RETURN_RIGHT):
     """Compatible with mod_python.apache exception."""

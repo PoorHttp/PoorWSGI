@@ -2,7 +2,6 @@
 main application function, and functions for working with dispatch table
 """
 
-from socket import error as SocketError
 from os import path, access, R_OK, environ
 from sys import version_info, stderr
 
@@ -18,7 +17,7 @@ from poorwsgi.state import OK, DONE, DECLINED, HTTP_ERROR, HTTP_OK, \
             levels, LOG_INFO, LOG_ERR, LOG_WARNING, \
             HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN, \
             __author__, __date__, __version__
-from poorwsgi.request import Request
+from poorwsgi.request import Request, BrokenClientConnection
 from poorwsgi.results import default_shandlers, not_implemented, internal_server_error, \
             SERVER_RETURN, send_file, directory_index, debug_info, \
             _unicode_exist, uni
@@ -593,7 +592,8 @@ class Application(object):
             else:
                 req.status = code
                 self.error_from_table(req, code)
-        except SocketError as e:
+        except BrokenClientConnection as e:
+            req.log_error(str(e), LOG_ERR)
             return ()
         except Exception as e:
             self.error_from_table(req, 500)
@@ -674,6 +674,7 @@ class Application(object):
         """
         if self.__log_level[0] >= level[0]:
             stderr.write("<%s> %s\n" % (level[1], message))
+            stderr.flush()
     #enddef
 
 #endclass

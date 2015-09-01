@@ -123,7 +123,7 @@ def _setup(**kwargs):
     setup(**kwargs)
 
 def doc():
-    with open('README.md', 'r') as readme:
+    with open('README.rst', 'r') as readme:
         return readme.read().strip()
 
 _setup(

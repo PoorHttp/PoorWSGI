@@ -1,3 +1,10 @@
+==== 1.5.1 ====
+    * append missing cmp function when python3 is use
+    * errors must be flushed
+    * Broken client connection detection
+    * move documentation to separate README.rst
+    * moved to GitHub (fix links)
+
 ==== 1.5.0 ====
     * http response 304 Not Modified supported
     * new req.uri_hadler property

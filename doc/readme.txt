@@ -40,9 +40,9 @@ If you are new with it, please see fast Tutorial on this page.
 
 
     #!text
-    ~$ wget https://pypi.python.org/packages/source/P/PoorWSGI/PoorWSGI-1.5.0.tar.gz
-    ~$ tar xzf PoorWSGI-1.5.0.tar.gz
-    ~$ cd PoorWSGI-1.5.0
+    ~$ wget https://pypi.python.org/packages/source/P/PoorWSGI/PoorWSGI-1.5.1.tar.gz
+    ~$ tar xzf PoorWSGI-1.5.1.tar.gz
+    ~$ cd PoorWSGI-1.5.1
     ~# python setup.py install
 
     if you have jinja24doc and you want to install this html documentation
@@ -52,11 +52,11 @@ If you are new with it, please see fast Tutorial on this page.
 
 
     #!text
-    ~$ git clone git://git.code.sf.net/p/poorhttp/poorwsgi poorwsgi
+    ~$ git clone git@github.com:PoorHttp/PoorWSGI.git
     or
-    ~$ git clone http://git.code.sf.net/p/poorhttp/poorwsgi poorwsgi
+    ~$ git clone https://github.com/PoorHttp/PoorWSGI.git
 
-    ~$ cd poorwsgi
+    ~$ cd PoorWSGI
     ~# python setup.py install
 
     if you have jinja24doc and you want to install this html documentation
@@ -828,19 +828,19 @@ there are more programmers then he, which use this little project, let's call
 it WSGI connector.
 
 If you have any questions, proposals, bug fixes, text corrections, or any
-other things, please send me email to {*mcbig at zeropage.cz*} or send it to
-discussion on SourceForge.Net:
-https://sourceforge.net/p/poorhttp/discussion/poorwsgi/. Thank you so much.
+other things, please send me email to {*mcbig at zeropage.cz*} or you can
+create issue on GutHub:
+https://github.com/PoorHttp/PoorWSGI/issues Thank you so much.
 
 === ChangeLog ===
 For release history or difference of releases, you can use git diff, diff log,
 git2cl tool or you can see ChangeLog from source code or on git repository
 web. See:
 
-    http://sourceforge.net/p/poorhttp/poorwsgi/ci/master/tree/doc/ChangeLog
-    
+    https://github.com/PoorHttp/PoorWSGI/blob/master/doc/ChangeLog
+
 === Simple.py ===
 It is published simple.py application test file. You can download it, study it
 test or use it as you can. See:
 
-    http://sourceforge.net/p/poorhttp/poorwsgi/ci/master/tree/simple.py
+    https://github.com/PoorHttp/PoorWSGI/blob/master/simple.py

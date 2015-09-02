@@ -1,5 +1,6 @@
 include *.py
 include MANIFEST.in
+include README.rst
 graft doc
 global-exclude *~
 global-exclude *.swp

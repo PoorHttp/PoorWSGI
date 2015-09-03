@@ -815,7 +815,14 @@ class Request(object):
 
     def sendfile(self, path, offset = 0, limit = -1 ):
         """
-        Send file defined by path to client. offset and len is not supported yet
+        Send file defined by path to client. offset and len is not supported
+        yet.
+
+            @app.route('myfile.txt')
+            def myfile(req):
+                req.content_type('text/plain')
+                length = req.sendfile('myfile.txt')
+                req.log_error('sending myfile.txt with %d length' % length)
         """
         if not os.access(path, os.R_OK):
             raise IOError("Could not stat file for reading")

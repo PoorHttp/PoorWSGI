@@ -793,6 +793,8 @@ class Request(object):
                 self.__write(self._buffer.read())   # flush all from buffer
             except Exception as e:
                 raise BrokenClientConnection(self.remote_host, self.remote_addr)
+            finally:
+                self._buffer.close()
             self._buffer_offset = self._buffer_len
             self.__body_bytes_sent = self._buffer_len
             return ()               # data was be sent via write method
@@ -828,16 +830,12 @@ class Request(object):
             raise IOError("Could not stat file for reading")
 
         length = 0
-
-        bf = os.open(path, os.O_RDONLY)
-
-        data = os.read(bf, self._buffer_size)
-        while data != '':
-            length += len(data)
-            self.write(data)
-            data = os.read(bf, self._buffer_size)
-        #endwhile
-        os.close(bf)
+        with open(path, 'r') as bf:
+            data = bf.read(self._buffer_size)
+            while data:
+                length += len(data)
+                self.write(data)
+                data = bf.read(self._buffer_size)
 
         return length
     #enddef

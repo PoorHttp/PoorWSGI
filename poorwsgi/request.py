@@ -9,7 +9,7 @@ from cgi import FieldStorage as CgiFieldStorage, parse_header
 from time import strftime, gmtime
 from sys import version_info, version, stderr
 from inspect import stack
-from json import load as json_load
+from json import loads as json_loads
 
 import os, re
 
@@ -272,7 +272,7 @@ class Request(object):
         if app_config['auto_json'] \
         and self.method_number & (METHOD_POST | METHOD_PUT | METHOD_PATCH) \
         and ctype in app_config['json_content_types']:
-            self.__json = Json(self)
+            self.__json = Json(self, pdict.get('charset', 'utf-8'))
             self.__form = EmptyForm()
         # test auto form parsing
         elif app_config['auto_form'] \
@@ -916,8 +916,9 @@ class Json(dict):
     Compatibility class for read values from JSON POST, PUT or PATCH request.
     It has getfirst and getlist methods, which can call function on values.
     """
-    def __init__(self, req):
-        dict.__init__(self, json_load(req).items())
+    def __init__(self, req, charset):
+        dict.__init__(self, json_loads(req.read().decode(charset)).items())
+
 
     def getvalue(self, name, default = None):
         """ compatibility methods with FieldStorage, alias for get """

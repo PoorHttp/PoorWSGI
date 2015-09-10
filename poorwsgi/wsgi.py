@@ -57,6 +57,7 @@ class Application(object):
             ':int'      : (r'-?\d+', int),
             ':float'    : (r'-?\d+(\.\d+)?', float),
             ':word'     : (r'\w+', uni),
+            ':hex'      : (r'[0-9a-fA-F]+', uni),
             ':re:'      : (None, uni),
             'none'      : (r'[^/]+', uni)
         }

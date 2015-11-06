@@ -25,7 +25,7 @@ from poorwsgi.results import default_shandlers, not_implemented, internal_server
 # check, if there is define filter in uri
 re_filter = re.compile(r'<(\w+)(:[^>]+)?>')
 
-class Application(object):
+class Application:
     """ Poor WSGI application which is called by WSGI server, how, is describe
         in PEP 0333. This object store route dispatch table, and have methods
         for it's using and of course __call__ method for use as WSGI application.
@@ -580,7 +580,6 @@ class Application(object):
             handler_from_table, and post_process function. pre_process and
             post_process functions are not in try except block !
         """
-
         req = Request(environ, start_response, self.__config)
 
         try:
@@ -619,6 +618,7 @@ class Application(object):
 
         rv = []
         uri_dump = self._dump + environ.get('PATH_INFO').replace('/','_') + '.profile'
+        self.log_error('Generate %s' % uri_dump)
         self._runctx('wrapper(rv)', globals(), locals(), filename =  uri_dump)
         return rv[0]
     #enddef

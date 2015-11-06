@@ -1,30 +1,15 @@
       <menu class="sidebar">
-    {% for type, name, args, doc in sects %}
-        {% if type == 'h2' %}<h2><a href="#{{ name }}">{{ name }}</a></h2>
-        {% elif type == 'h3' %}<h3><a href="#{{ name }}">{{ name }}</a></h3>
+    {% for type, name, id, doc in sects %}
+        {% if type == 'h2' %}<h2><a href="#{{ id }}">{{ name }}</a></h2>
+        {% elif type == 'h3' %}<h3><a href="#{{ id }}">{{ name }}</a></h3>
         {% endif %}
     {% endfor %}
-      </menu><!-- sidebar --!>
+      </menu>
 
     <div class="content">
     {% for type, name, args, doc in sects %}
-      {% if type == 'h2' %}
-      <h2>{{ name }}
-        <span class="links">
-          <a name="{{ name }}" href="#{{ name }}">link</a> |
-          <a href="#">top</a></span></h2>
-      {% elif type == 'h3' %}
-      <h3>{{ name }}
-        <span class="links">
-          <a name="{{ name }}" href="#{{ name }}">link</a> |
-          <a href="#">top</a></span></h3>
-      {% elif type == 'h4' %}
-      <h4>{{ name }}
-        <span class="links">
-          <a name="{{ name }}" href="#{{ name }}">link</a> |
-          <a href="#">top</a></span></h4>
-      {% elif type == 'text' %}
-      <div>{{ wiki(doc) }}</div>
+      {% if type == 'text' %}
+      <div>{{ doc }}</div>
       {% endif %}
     {% endfor %}
-    </div><!-- content --!>
+    </div>

@@ -190,7 +190,7 @@ at the moment of call of this method to WSGI server, but WSGI server can send
 data to client at and of your handler.
 
 Before you send data, it could be to set {Content-Type} header of page data.
-Default vaule is '{text/html; charset=utf-8}'. You change content type by
+Default vaule is {text/html; charset=utf-8}. You change content type by
 change Request.content_type variable or via Request.headers_out object.
 {Content-Length} was be set automatically if data are less then
 poor_BufferSize. Or you can set content length via Request.set_content_lenght
@@ -347,7 +347,7 @@ too, default poor WSGI internal server error handler is called.
 
 There are too special list of handlers. First is iter and call before each
 request. You can add function with pre_process decorator or add_pre_process
-method. Functions are called in order how is add to list. They don'ŧ return
+method. Functions are called in order how is add to list. They don't return
 anything, resp. their return values are ignored. If they crash with error,
 internal_server_error was return and http state handler was called.
 
@@ -665,7 +665,7 @@ So if you want to add any other variable, be careful to named it.
     def test(req):
         req.logger('test call')
         ...
-        
+
 
 === Headers and Sessions ===
 ==== Headers ====
@@ -828,7 +828,7 @@ there are more programmers then he, which use this little project, let's call
 it WSGI connector.
 
 If you have any questions, proposals, bug fixes, text corrections, or any
-other things, please send me email to {*mcbig at zeropage.cz*} or you can
+other things, please send me email to *mcbig at zeropage.cz* or you can
 create issue on GutHub:
 https://github.com/PoorHttp/PoorWSGI/issues Thank you so much.
 

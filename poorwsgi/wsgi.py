@@ -43,6 +43,14 @@ class Application:
             raise RuntimeError('Application with name %s exist yet.' % name)
         Application.__instances.append(name)
 
+        if name == '__poorwsgi__':
+            stderr.write("[W] Using instance of Application in\n")
+            for s in stack()[1:]:
+                stderr.write("  File %s, line %s, in %s\n" % s[1:4])
+                stderr.write(s[4][0])
+            stderr.write("[W] Please, create your own instance")
+            stderr.flush()
+
         # list of pre and post process handlers
         self.__pre = []
         self.__post = []
@@ -681,7 +689,7 @@ class Application:
 #endclass
 
 # application callable instance, which is need by wsgi server
-application = Application()
+application = Application('__poorwsgi__')
 
 # short reference to application instance, which is need by wsgi server
 app = application

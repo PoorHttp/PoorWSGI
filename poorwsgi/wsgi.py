@@ -4,6 +4,7 @@ main application function, and functions for working with dispatch table
 
 from os import path, access, R_OK, environ
 from sys import version_info, stderr
+from inspect import stack
 
 if version_info[0] == 2 and version_info[1] < 7:
     from ordereddict import OrderedDict
@@ -12,28 +13,30 @@ else:
 
 import re
 
-from poorwsgi.state import OK, DONE, DECLINED, HTTP_ERROR, HTTP_OK, \
-            METHOD_GET, METHOD_POST, METHOD_HEAD, methods, \
-            levels, LOG_INFO, LOG_ERR, LOG_WARNING, \
-            HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN, \
-            __author__, __date__, __version__
+from poorwsgi.state import OK, DONE, DECLINED, HTTP_OK, \
+    METHOD_GET, METHOD_POST, METHOD_HEAD, methods, levels, \
+    LOG_INFO, LOG_ERR, LOG_WARNING, \
+    HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN
 from poorwsgi.request import Request, BrokenClientConnection
 from poorwsgi.results import default_shandlers, not_implemented, internal_server_error, \
-            SERVER_RETURN, send_file, directory_index, debug_info, \
-            _unicode_exist, uni
+    SERVER_RETURN, send_file, directory_index, debug_info, \
+    _unicode_exist, uni
 
 # check, if there is define filter in uri
 re_filter = re.compile(r'<(\w+)(:[^>]+)?>')
 
+
 class Application:
-    """ Poor WSGI application which is called by WSGI server, how, is describe
-        in PEP 0333. This object store route dispatch table, and have methods
-        for it's using and of course __call__ method for use as WSGI application.
+    """Poor WSGI application which is called by WSGI server.
+
+    Working of is describe in PEP 0333. This object store route dispatch table,
+    and have methods for it's using and of course __call__ method for use
+    as WSGI application.
     """
 
     __instances = []
 
-    def __init__(self, name = "__main__"):
+    def __init__(self, name="__main__"):
         """ You can't need to call __init__, becouse there is one Application
             instance yet in module. Application class is per name singleton.
             That means, there could be exist only one instance with same name.
@@ -48,7 +51,7 @@ class Application:
             for s in stack()[1:]:
                 stderr.write("  File %s, line %s, in %s\n" % s[1:4])
                 stderr.write(s[4][0])
-            stderr.write("[W] Please, create your own instance")
+            stderr.write("[W] Please, create your own instance\n")
             stderr.flush()
 
         # list of pre and post process handlers

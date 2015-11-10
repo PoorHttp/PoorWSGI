@@ -1,5 +1,4 @@
-"""
-default Poor WSGI handlers
+"""Default Poor WSGI handlers
 """
 
 from traceback import format_exception
@@ -11,46 +10,47 @@ from sys import version_info, version, exc_info
 import mimetypes
 
 if version_info[0] < 3:      # python 2.x
-    from httplib import responses
     _unicode_exist = True
 
 else:                           # python 3.x
-    from http.client import responses
     xrange = range
     _unicode_exist = False
-    def cmp(a, b): return (a > b) - (a < b)
 
-from poorwsgi.state import __author__, __date__, __version__, \
-        DONE, METHOD_ALL, methods, sorted_methods, levels, LOG_ERR, LOG_DEBUG, \
-        HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_NOT_MODIFIED, \
-        HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED, \
-        HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_IMPLEMENTED
+    def cmp(a, b):
+        return (a > b) - (a < b)
+
+from poorwsgi.state import __date__, __version__, \
+    DONE, METHOD_ALL, methods, sorted_methods, levels, LOG_ERR, LOG_DEBUG, \
+    HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_NOT_MODIFIED, \
+    HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED, \
+    HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_IMPLEMENTED
 
 if _unicode_exist:
     def uni(text):
-        """ automatic conversion from str to unicode with utf-8 encoding """
+        """Automatic conversion from str to unicode with utf-8 encoding."""
         if isinstance(text, str):
-            return unicode(text, encoding = 'utf-8')
+            return unicode(text, encoding='utf-8')
         return unicode(text)
 else:
     def uni(text):
-        """ automatic conversion from str to unicode with utf-8 encoding """
+        """Automatic conversion from str to unicode with utf-8 encoding."""
         return str(text)
 
 
 class SERVER_RETURN(Exception):
     """Compatible with mod_python.apache exception."""
-    def __init__(self, code = HTTP_INTERNAL_SERVER_ERROR):
+    def __init__(self, code=HTTP_INTERNAL_SERVER_ERROR):
         """code is one of HTTP_* status from state module"""
         Exception.__init__(self, code)
-#endclass
 
-def redirect(req, uri, permanent = 0, text = None):
-    """This is a convenience function to redirect the browser to another
-    location. When permanent is true, MOVED_PERMANENTLY status is sent to the
-    client, otherwise it is MOVED_TEMPORARILY. A short text is sent to the
-    browser informing that the document has moved (for those rare browsers that
-    do not support redirection); this text can be overridden by supplying a text
+
+def redirect(req, uri, permanent=0, text=None):
+    """Redirect the browser to another location.
+
+    When permanent is true, MOVED_PERMANENTLY status is sent to the client,
+    otherwise it is MOVED_TEMPORARILY. A short text is sent to the browser
+    informing that the document has moved (for those rare browsers that do not
+    support redirection); this text can be overridden by supplying a text
     string.
 
     This function raises SERVER_RETURN exception with a value of state.DONE to
@@ -68,7 +68,8 @@ def redirect(req, uri, permanent = 0, text = None):
     if text:
         req.write(text)
     raise SERVER_RETURN(DONE)
-#enddef
+# enddef
+
 
 def not_modified(req):
     req.status = HTTP_NOT_MODIFIED
@@ -77,9 +78,11 @@ def not_modified(req):
 
 
 def internal_server_error(req):
-    """ More debug 500 Internal Server Error server handler. It was be called
-        automaticly when no handlers are not defined in dispatch_table.errors.
-        If poor_Debug variable is to On, Tracaback will be genarated.
+    """ More debug 500 Internal Server Error server handler.
+
+    It was be called automatically when no handlers are not defined
+    in dispatch_table.errors. If poor_Debug variable is to On, Tracaback
+    will be generated.
     """
     exc_type, exc_value, exc_traceback = exc_info()
     traceback = format_exception(exc_type,
@@ -90,7 +93,7 @@ def internal_server_error(req):
     traceback = traceback.split('\n')
 
     req.status = HTTP_INTERNAL_SERVER_ERROR
-    if req.body_bytes_sent > 0: # if body is sent
+    if req.body_bytes_sent > 0:     # if body is sent
         return DONE
 
     req.__reset_buffer__()        # clean buffer for error text
@@ -98,60 +101,67 @@ def internal_server_error(req):
     req.headers_out = req.err_headers_out
 
     content = [
-            "<html>\n",
-            "  <head>\n",
-            "    <title>500 - Internal Server Error</title>\n",
-            "    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"/>\n",
-            "    <style>\n",
-            "      body {width: 80%; margin: auto; padding-top: 30px;}\n",
-            "      h1 {text-align: center; color: #707070;}\n"\
-            "      pre .line1 {background: #e0e0e0}\n",
-            "    </style>\n",
-            "  <head>\n",
-            "  <body>\n",
-            "    <h1>500 - Internal Server Error</h1>\n",
+        "<html>\n",
+        "  <head>\n",
+        "    <title>500 - Internal Server Error</title>\n",
+        "    <meta http-equiv=\"content-type\" "
+        "content=\"text/html; charset=utf-8\"/>\n",
+        "    <style>\n",
+        "      body {width: 80%; margin: auto; padding-top: 30px;}\n",
+        "      h1 {text-align: center; color: #707070;}\n",
+        "      pre .line1 {background: #e0e0e0}\n",
+        "    </style>\n",
+        "  <head>\n",
+        "  <body>\n",
+        "    <h1>500 - Internal Server Error</h1>\n",
     ]
-    for l in content: req.write(l)
+    for l in content:
+        req.write(l)
 
     if req.debug:
         content = [
             "    <h2> Exception Traceback</h2>\n",
             "    <pre>",
         ]
-        for l in content: req.write(l)
+        for l in content:
+            req.write(l)
 
         # Traceback
         for i in xrange(len(traceback)):
             traceback_line = traceback[i].replace('&', '&amp;')\
                                          .replace('<', '&lt;')\
                                          .replace('>', '&gt;')
-            req.write('<div class="line%s">%s</div>' % ( i % 2, traceback_line))
+            req.write('<div class="line%s">%s</div>' % (i % 2, traceback_line))
 
         content = [
             "    </pre>\n",
             "    <hr>\n",
-            "    <small><i>%s / Poor WSGI for Python , webmaster: %s </i></small>\n" % \
-                    (req.server_software,
-                    req.server_admin),
+            "    <small><i>%s / Poor WSGI for Python ,"
+            " webmaster: %s </i></small>\n" % (req.server_software,
+                                               req.server_admin),
         ]
-        for l in content: req.write(l)
+        for l in content:
+            req.write(l)
 
     else:
         content = [
             "    <hr>\n",
-            "    <small><i>webmaster: %s </i></small>\n" % req.server_admin ,
+            "    <small><i>webmaster: %s </i></small>\n" % req.server_admin,
         ]
-        for l in content: req.write(l)
-    #endif
+        for l in content:
+            req.write(l)
+    # endif
 
     content = [
         "  </body>\n",
         "</html>"
     ]
 
-    for l in content: req.write(l)
+    for l in content:
+        req.write(l)
     return DONE
-#enddef
+# enddef
+
 
 def bad_request(req):
     """ 400 Bad Request server error handler. """
@@ -180,7 +190,8 @@ def bad_request(req):
     req.headers_out.add('Content-Length', str(len(content)))
     req.write(content)
     return DONE
-#enddef
+# enddef
+
 
 def forbidden(req):
     """ 403 - Forbidden Access server error handler. """
@@ -209,7 +220,7 @@ def forbidden(req):
     req.headers_out.add('Content-Length', str(len(content)))
     req.write(content)
     return DONE
-#enddef
+# enddef
 
 
 def not_found(req):
@@ -239,7 +250,8 @@ def not_found(req):
     req.headers_out.add('Content-Length', str(len(content)))
     req.write(content)
     return DONE
-#enddef
+# enddef
+
 
 def method_not_allowed(req):
     """ 405 Method Not Allowed server error handler. """
@@ -268,41 +280,42 @@ def method_not_allowed(req):
     req.headers_out.add('Content-Length', str(len(content)))
     req.write(content)
     return DONE
-#enddef
+# enddef
 
-def not_implemented(req, code = None):
+
+def not_implemented(req, code=None):
     """ 501 Not Implemented server error handler. """
     content = \
-            "<html>\n"\
-            "  <head>\n"\
-            "    <title>501 - Not Implemented</title>\n"\
-            "    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"/>\n"\
-            "    <style>\n"\
-            "      body {width: 80%%; margin: auto; padding-top: 30px;}\n"\
-            "      h1 {text-align: center; color: #707070;}\n"\
-            "      p {text-indent: 30px; margin-top: 30px; margin-bottom: 30px;}\n"\
-            "    </style>\n"\
-            "  <head>\n"\
-            "  <body>\n"\
-            "    <h1>501 - Not Implemented</h1>\n"
+        "<html>\n"\
+        "  <head>\n"\
+        "    <title>501 - Not Implemented</title>\n"\
+        "    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"/>\n"\
+        "    <style>\n"\
+        "      body {width: 80%%; margin: auto; padding-top: 30px;}\n"\
+        "      h1 {text-align: center; color: #707070;}\n"\
+        "      p {text-indent: 30px; margin-top: 30px; margin-bottom: 30px;}\n"\
+        "    </style>\n"\
+        "  <head>\n"\
+        "  <body>\n"\
+        "    <h1>501 - Not Implemented</h1>\n"
 
     if code:
         content += \
             "    <p>Your reqeuest <code>%s</code> returned not implemented\n"\
             "      status <code>%s</code>.</p>\n" % (req.uri, code)
-        req.log_error('Your reqeuest %s returned not implemented status %d' % \
+        req.log_error('Your reqeuest %s returned not implemented status %d' %
                       (req.uri, code))
     else:
         content += \
             "    <p>Response for Your reqeuest <code>%s</code> is not implemented</p>" \
             % req.uri
-    #endif
+    # endif
 
     content += \
-            "    <hr>\n"\
-            "    <small><i>webmaster: %s </i></small>\n"\
-            "  </body>\n"\
-            "</html>" % req.server_admin
+        "    <hr>\n"\
+        "    <small><i>webmaster: %s </i></small>\n"\
+        "  </body>\n"\
+        "</html>" % req.server_admin
 
     req.content_type = "text/html"
     req.status = HTTP_NOT_IMPLEMENTED
@@ -310,15 +323,14 @@ def not_implemented(req, code = None):
     req.headers_out.add('Content-Length', str(len(content)))
     req.write(content)
     return DONE
-#enddef
+# enddef
 
-def send_file(req, path, content_type = None):  # TODO: set content-length !!
-    """
-    Returns file with content_type as fast as possible on wsgi
-    """
-    if content_type == None:     # auto mime type select
+
+def send_file(req, path, content_type=None):  # TODO: set content-length !!
+    """Returns file with content_type as fast as possible on wsgi."""
+    if content_type is None:     # auto mime type select
         (content_type, encoding) = mimetypes.guess_type(path)
-    if content_type == None:     # default mime type
+    if content_type is None:     # default mime type
         content_type = "application/octet-stream"
 
     req.content_type = content_type
@@ -328,17 +340,18 @@ def send_file(req, path, content_type = None):  # TODO: set content-length !!
 
     req._buffer = open(path, 'rb')
     return DONE
-#enddef
+# enddef
+
 
 def directory_index(req, _path):
     """
     Returns directory index as html page
     """
     if not path.isdir(_path):
-        req.log_error (
+        req.log_error(
             "Only directory_index can be send with directory_index handler. "
             "`%s' is not directory.",
-            _path);
+            _path)
         raise SERVER_RETURN(HTTP_INTERNAL_SERVER_ERROR)
 
     index = listdir(_path)
@@ -359,14 +372,15 @@ def directory_index(req, _path):
             unit = 'G'
             val = val / 1024.0
         return (val, unit)
-    #enddef
+    # enddef
 
     diruri = req.uri.rstrip('/')
     content = [
         "<html>\n",
         "  <head>\n",
         "    <title>Index of %s</title>\n" % diruri,
-        "    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"/>\n",
+        "    <meta http-equiv=\"content-type\" "
+        "content=\"text/html; charset=utf-8\"/>\n",
         "    <style>\n",
         "      body { width: 98%; margin: auto; }\n",
         "      table { font: 90% monospace; text-align: left; }\n",
@@ -379,7 +393,7 @@ def directory_index(req, _path):
         "    <hr>\n"
         "    <table>\n",
         "      <tr><th>Name</th><th>Last Modified</th>"
-                  "<th class=\"size\">Size</th><th>Type</th></tr>\n"
+        "<th class=\"size\">Size</th><th>Type</th></tr>\n"
     ]
 
     for item in index:
@@ -395,7 +409,7 @@ def directory_index(req, _path):
             continue
 
         fname = item + ('/' if path.isdir(fpath) else '')
-        ftype = "";
+        ftype = ""
 
         if path.isdir(fpath):
             ftype = "Directory"
@@ -403,17 +417,22 @@ def directory_index(req, _path):
             (ftype, encoding) = mimetypes.guess_type(fpath)
             if not ftype:
                 ftype = 'application/octet-stream'
-        #endif
+        # endif
 
+        if path.isfile(fpath):
+            size = "%.1f%s" % hbytes(path.getsize(fpath))
+        else:
+            size = "- "
         content.append("      "
-            "<tr><td><a href=\"%s\">%s</a></td><td>%s</td>"
-            "<td class=\"size\">%s</td><td>%s</td></tr>\n" %\
-            (diruri + '/' + fname,
-            fname,
-            strftime("%d-%b-%Y %H:%M", gmtime(path.getctime(fpath))),
-            "%.1f%s" % hbytes(path.getsize(fpath)) if path.isfile(fpath) else "- ",
-            ftype
-            ))
+                       "<tr><td><a href=\"%s\">%s</a></td><td>%s</td>"
+                       "<td class=\"size\">%s</td><td>%s</td></tr>\n" %
+                       (diruri + '/' + fname,
+                        fname,
+                        strftime("%d-%b-%Y %H:%M",
+                                 gmtime(path.getctime(fpath))),
+                        size,
+                        ftype
+                        ))
 
     content += [
         "    </table>\n",
@@ -422,9 +441,9 @@ def directory_index(req, _path):
 
     if req.debug:
         content += [
-            "    <small><i>%s / Poor WSGI for Python, webmaster: %s </i></small>\n" % \
-                    (req.server_software,
-                    req.server_admin),
+            "    <small><i>%s / Poor WSGI for Python, "
+            "webmaster: %s </i></small>\n" % (req.server_software,
+                                              req.server_admin),
         ]
     else:
         content += [
@@ -437,56 +456,59 @@ def directory_index(req, _path):
     ]
 
     req.content_type = "text/html"
-    #req.headers_out.add('Content-Length', str(len(content)))
-    for l in content: req.write(l)
+    # req.headers_out.add('Content-Length', str(len(content)))
+    for l in content:
+        req.write(l)
     return DONE
-#enddef
+# enddef
+
 
 def debug_info(req, app):
     def _human_methods_(m):
         if m == METHOD_ALL:
             return 'ALL'
         return ' | '.join(key for key, val in sorted_methods if val & m)
-    #enddef
+    # enddef
 
     def _html_escape_(s):
         s = s.replace('&', '&amp;')
         s = s.replace('>', '&gt;')
         s = s.replace('<', '&lt;')
         return s
-    #enddef
+    # enddef
 
-    def handlers_view(handlers, sort = True):
+    def handlers_view(handlers, sort=True):
         rv = []
         for u, d in sorted(handlers.items()) if sort else handlers.items():
-            mm = sorted(d.keys()) if sort else d.keys()
+            # mm = sorted(d.keys()) if sort else d.keys()
 
             vt = {}
             for m, h in d.items():
-                if not h in vt: vt[h] = 0
+                if h not in vt:
+                    vt[h] = 0
                 vt[h] ^= m
 
-            for h,m in sorted(vt.items(), key = itemgetter(1)):
+            for h, m in sorted(vt.items(), key=itemgetter(1)):
                 rv.append((u, m, h))
 
         return rv
-    #enddef
+    # enddef
 
     # transform handlers table to html
-    shandlers_html  = "\n<tr><th>Static:</th></tr>"
+    shandlers_html = "\n<tr><th>Static:</th></tr>"
     shandlers_html += "\n".join(
             ("        <tr><td colspan=\"2\"><a href=\"%s\">%s</a></td><td>%s</td><td>%s</td></tr>" % \
                 (u, u, _human_methods_(m), f.__module__+'.'+f.__name__) \
                     for u, m, f in handlers_view(app.handlers) ))
 
-    rhandlers_html  = "\n<tr><th>Regular expression:</th></tr>"
+    rhandlers_html = "\n<tr><th>Regular expression:</th></tr>"
     # regular expression handlers
     rhandlers_html += "\n".join(
             ('        <tr><td><div class="path">%s</div></td><td>%s</td><td>%s</td><td>%s</td></tr>' % \
                 (_html_escape_(u.pattern), ', '.join(tuple("%s:<b>%s</b>" % (G, C.__name__) for G,C in c)), _human_methods_(m), f.__module__+'.'+f.__name__) \
                     for u, m, (f, c) in handlers_view(app.rhandlers, False) ))
 
-    dhandlers_html  = "\n<tr><th>Default:</th></tr>"
+    dhandlers_html = "\n<tr><th>Default:</th></tr>"
     # this result function could be called by user, so we need to test req.debug
     if req.debug and 'debug-info' not in app.handlers:
         dhandlers_html += "        <tr><td colspan=\"2\"><a href=\"%s\">%s</a></td><td>%s</td><td>%s</td></tr>" % \
@@ -518,9 +540,9 @@ def debug_info(req, app):
     else:
         pre += (len(post)-len(pre)) * (None, )
 
-    pre_post_html = "\n".join("        <tr><td>%s</td><td>%s</td></tr>" % \
+    pre_post_html = "\n".join("        <tr><td>%s</td><td>%s</td></tr>" %
                 (f0.__module__+'.'+f0.__name__ if f0 is not None else '',
-                 f1.__module__+'.'+f1.__name__ if f1 is not None else '',) \
+                 f1.__module__+'.'+f1.__name__ if f1 is not None else '',)
                     for f0, f1 in zip(pre, post))
 
     # filters
@@ -564,7 +586,7 @@ def debug_info(req, app):
                     (key, uni(val)) for key,val in sorted(environ.items())))
 
     content_html = \
-"""<html>
+        """<html>
   <head>
     <title>Poor Wsgi Debug info</title>
     <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
@@ -623,10 +645,11 @@ def debug_info(req, app):
     req.content_type = "text/html"
     req.write(content_html)
     return DONE
-#enddef
+# enddef
 
 # http state handlers, which is called if programmer don't defined his own
 default_shandlers = {}
+
 
 def __fill_default_shandlers(code, handler):
     default_shandlers[code] = {}

@@ -1,3 +1,17 @@
+=== 1.6.0 ====
+    * new documentation for some methods and function
+    * decode json with content type charset
+    * code refactoring
+    * new hex filter
+    * syntax highlighting for example in readme
+    * log_info method and encoding error message to ascci when is needed
+    * profiling bug fix (problem with Application class)
+    * documentation fix for new jinja24doc
+    * app and appplication is deprecated now
+    * PEP8 code style
+    * new Request is_body_request property
+    * tests in separate directory
+
 ==== 1.5.1 ====
     * append missing cmp function when python3 is use
     * errors must be flushed

@@ -47,7 +47,7 @@ class Application:
         Application.__instances.append(name)
 
         if name == '__poorwsgi__':
-            stderr.write("[W] Using instance of Application in\n")
+            stderr.write("[W] Using deprecated instance of Application in\n")
             for s in stack()[1:]:
                 stderr.write("  File %s, line %s, in %s\n" % s[1:4])
                 if s[4]:

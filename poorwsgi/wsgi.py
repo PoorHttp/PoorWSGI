@@ -26,7 +26,7 @@ from poorwsgi.results import default_shandlers, not_implemented, internal_server
 re_filter = re.compile(r'<(\w+)(:[^>]+)?>')
 
 
-class Application:
+class Application(object):
     """Poor WSGI application which is called by WSGI server.
 
     Working of is describe in PEP 0333. This object store route dispatch table,
@@ -94,7 +94,10 @@ class Application:
                 'application/json',
                 'application/javascript',
                 'application/merge-patch+json'],
-            'auto_cookies': True
+            'auto_cookies': True,
+            'debug': 'Off',
+            'document_root': '',
+            'document_index': 'Off',
         }
 
         try:
@@ -241,6 +244,42 @@ class Application:
     @auto_cookies.setter
     def auto_cookies(self, value):
         self.__config['auto_cookies'] = bool(value)
+
+    @property
+    def debug(self):
+        """Application debug as another way how to set poor_Debug.
+
+        This setting will be rewrite by poor_Debug environment variable.
+        """
+        return self.__config['debug'] == 'On'
+
+    @debug.setter
+    def debug(self, value):
+        self.__config['debug'] = 'On' if bool(value) else 'Off'
+
+    @property
+    def document_root(self):
+        """Application document_root as another way how to set poor_DocumentRoot.
+
+        This setting will be rewrite by poor_DocumentRoot environ variable.
+        """
+        return self.__config['document_root']
+
+    @document_root.setter
+    def document_root(self, value):
+        self.__config['document_root'] = value
+
+    @property
+    def document_index(self):
+        """Application document_root as another way how to set poor_DocumentRoot.
+
+        This setting will be rewrite by poor_DocumentRoot environ variable.
+        """
+        return self.__config['document_index'] == 'On'
+
+    @document_index.setter
+    def document_index(self, value):
+        self.__config['document_index'] = 'On' if bool(value) else 'Off'
 
     @property
     def keep_blank_values(self):

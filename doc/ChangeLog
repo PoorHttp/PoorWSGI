@@ -11,6 +11,11 @@
     * PEP8 code style
     * new Request is_body_request property
     * tests in separate directory
+    * Application.debug, Application.document_root and
+      Application.document_index
+    * better html_escape
+    * better hbytes as human bytes function
+    * results rewrite and fix theis outputs
 
 ==== 1.5.1 ====
     * append missing cmp function when python3 is use

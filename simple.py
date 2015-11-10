@@ -143,6 +143,7 @@ def root(req):
             '<li><a href="/test/upload">/test/upload</a> - Testing file upload (only if you have login cookie / session)</li>',
             '<li><a href="/debug-info">/debug-info</a> - Debug Page (only if poor_Debug is set)</li>',
             '<li><a href="/no-page">/no-page</a> - No Exist Page</li>',
+            '<li><a href="/internal-server-error">/internal-server-error</a> - Inernal Server Error</li>',
             "</ul>",
         ) + get_footer()
     for line in buff:
@@ -411,6 +412,13 @@ def log(req):
 def post(req):
     pass
 
+@app.route('/internal-server-error')
+def method_raises_errror(req):
+    raise RuntimeError('Test of internal server error')
+
 if __name__ == '__main__':
+    app.debug = True
+    app.document_root = './'
+    app.document_index = True
     httpd = make_server('127.0.0.1', 8080, app)
     httpd.serve_forever()

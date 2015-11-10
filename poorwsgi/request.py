@@ -219,6 +219,7 @@ class Request(object):
         It's input parameters are the same, which Application object gets from
         WSGI server plus file callback for auto request body parsing.
         """
+        self.__app_config = app_config
         self.__environ = environ
         if 'REQUEST_URI' not in environ:
             self.__environ['REQUEST_URI'] = environ.get('PATH_INFO')
@@ -301,8 +302,8 @@ class Request(object):
         else:
             self.__cookies = tuple()
 
-        self.__debug = self.__poor_environ.get('poor_Debug',
-                                               'Off').lower() == 'on'
+        self.__debug = self.__poor_environ.get(
+            'poor_Debug', app_config['debug']).lower() == 'on'
 
         self.start_response = start_response
         self._start_response = False
@@ -631,8 +632,9 @@ class Request(object):
         Variable is used to generate index html page, when poor_DocumentRoot
         is set.
         """
-        return self.__poor_environ.get('poor_DocumentIndex',
-                                       'Off').lower() == 'on'
+        return self.__poor_environ.get(
+            'poor_DocumentIndex',
+            self.__app_config['document_index']).lower() == 'on'
 
     @property
     def config(self):
@@ -780,10 +782,12 @@ class Request(object):
 
     def document_root(self):
         """Returns DocumentRoot setting."""
-        self.log_error("poor_DocumentRoot: %s" %
-                       self.__poor_environ.get('poor_DocumentRoot', ''),
+        document_root = self.__poor_environ.get(
+            'poor_DocumentRoot',
+            self.__app_config['document_root'])
+        self.log_error("poor_DocumentRoot: %s" % document_root,
                        LOG_INFO)
-        return self.__poor_environ.get('poor_DocumentRoot', '')
+        return document_root
 
     def construct_url(self, uri):
         """This function returns a fully qualified URI string.

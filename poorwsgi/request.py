@@ -24,8 +24,7 @@ else:                           # python 3.x
     from urllib.parse import parse_qs
     from http.cookies import SimpleCookie
 
-from poorwsgi import __version__
-from poorwsgi.state import methods, levels, \
+from poorwsgi.state import __version__, methods, levels, \
     LOG_ERR, LOG_WARNING, LOG_INFO, METHOD_POST, METHOD_PUT, METHOD_PATCH, \
     HTTP_OK
 

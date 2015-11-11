@@ -27,7 +27,9 @@ and your application. The simplest way to run and test it looks like that:
 .. code-block:: python
 
     from wsgiref.simple_server import make_server
-    from poorwsgi import *
+    from poorwsgi import Application
+
+    app = Application('test')
 
     @app.route('/test')
     def root_uri(req):

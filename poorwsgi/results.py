@@ -1,5 +1,4 @@
-"""Default Poor WSGI handlers
-"""
+"""Default Poor WSGI handlers."""
 
 from traceback import format_exception
 from time import strftime, gmtime
@@ -20,11 +19,11 @@ else:                           # python 3.x
     def cmp(a, b):
         return (a > b) - (a < b)
 
-from poorwsgi.state import __date__, __version__, \
-    DONE, METHOD_ALL, methods, sorted_methods, levels, LOG_ERR, LOG_DEBUG, \
-    HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_NOT_MODIFIED, \
-    HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED, \
-    HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_IMPLEMENTED
+from poorwsgi import __version__, __date__
+from poorwsgi.state import DONE, METHOD_ALL, methods, sorted_methods, levels, \
+    LOG_ERR, LOG_DEBUG, HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, \
+    HTTP_NOT_MODIFIED, HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_NOT_FOUND, \
+    HTTP_METHOD_NOT_ALLOWED, HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_IMPLEMENTED
 
 html_escape_table = {'&': "&amp;",
                      '"': "&quot;",

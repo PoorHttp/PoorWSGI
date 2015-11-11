@@ -418,7 +418,7 @@ class Application(object):
         to handler as next parameters.
 
             # static uri
-            @app.route('/user/post', method = METHOD_POST)
+            @app.route('/user/post', method=METHOD_POST)
             def user_create(req):
                 ...
 
@@ -814,9 +814,3 @@ class Application(object):
             stderr.flush()
     # enddef
 # endclass
-
-# application callable instance, which is need by wsgi server
-application = Application('__poorwsgi__')
-
-# short reference to application instance, which is need by wsgi server
-app = application

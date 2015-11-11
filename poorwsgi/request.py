@@ -24,7 +24,8 @@ else:                           # python 3.x
     from urllib.parse import parse_qs
     from http.cookies import SimpleCookie
 
-from poorwsgi.state import __version__, methods, levels, \
+from poorwsgi import __version__
+from poorwsgi.state import methods, levels, \
     LOG_ERR, LOG_WARNING, LOG_INFO, METHOD_POST, METHOD_PUT, METHOD_PATCH, \
     HTTP_OK
 
@@ -486,8 +487,8 @@ class Request(object):
         """Extended dictionary (Args instance) of request arguments.
 
         Argument are parsed from QUERY_STRING, which is typical, but not only
-        for GET method. Arguments are parsed when app.auto_args is set which
-        is default.
+        for GET method. Arguments are parsed when Application.auto_args is set
+        which is default.
 
         This property could be *set only once*.
         """
@@ -503,8 +504,8 @@ class Request(object):
         """Dictionary like class (FieldStorage instance) of body arguments.
 
         Arguments must be send in request body, which is typical for POST, PUT
-        or PATCH method. Request body is parsed when app.auto_form is set which
-        default and when method is POST, PUT or PATCH.
+        or PATCH method. Request body is parsed when Application.auto_form
+        is set, which default and when method is POST, PUT or PATCH.
 
         This property could be *set only once*.
         """
@@ -519,9 +520,9 @@ class Request(object):
     def json(self):
         """Json dictionary if request content type is JSON.
 
-        Json types is defined in app.json_content_types, typical is
+        Json types is defined in Application.json_content_types, typical is
         {application/json} and request method must be POST, PUT or PATCH and
-        app.auto_json must be set to true (default). Otherwise json
+        Application.auto_json must be set to true (default). Otherwise json
         is EmptyForm.
         """
         return self.__json
@@ -530,8 +531,8 @@ class Request(object):
     def cookies(self):
         """SimpleCookie iterable object of all cookies from Cookie header.
 
-        This property was set if app.auto_cookies is set to true which is
-        default. Otherwise cookies was empty tuple.
+        This property was set if Application.auto_cookies is set to true,
+        which is default. Otherwise cookies was empty tuple.
         """
         return self.__cookies
 

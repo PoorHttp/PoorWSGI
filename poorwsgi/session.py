@@ -18,8 +18,9 @@ from poorwsgi.request import uni
 
 
 def hidden(text, passwd):
-    """
-    (en|de)crypt text with sha hash of passwd via xor.
+    """(en|de)crypt text with sha hash of passwd via xor.
+
+    Arguments:
         text    raw data to (en|de)crypt. Could be str, unicode or bytes
         passwd  password
         returns string
@@ -48,8 +49,9 @@ def hidden(text, passwd):
 
 
 class NoCompress:
-    """ Fake compress class/module whith two static method for PoorSession.
-        If compress parameter is None, this class is use
+    """Fake compress class/module whith two static method for PoorSession.
+
+    If compress parameter is None, this class is use
     """
 
     @staticmethod
@@ -59,49 +61,51 @@ class NoCompress:
 
     @staticmethod
     def decompress(data):
-        """ Get one parameter data, which returns. """
+        """Get one parameter data, which returns."""
         return data
 
 
 class PoorSession:
-    """ Self-contained cookie with session data. You cat store or read data from
-        object via PoorSesssion.data variable which must be dictionary. Data is
-        stored to cookie by pickle dump. Be careful with stored object. You can
-        add object with litle python trick:
+    """Self-contained cookie with session data.
 
-            sess = PoorSession(req)
+    You cat store or read data from object via PoorSesssion.data variable which
+    must be dictionary. Data is stored to cookie by pickle dump. Be careful
+    with stored object. You can add object with litle python trick:
 
-            sess.data['class'] = obj.__class__          # write to cookie
-            sess.data['dict']  = obj.__dict__.copy()
+        sess = PoorSession(req)
 
-            obj = sess.data['class']()                  # read from cookie
-            obj.__dict__ = sess.data['dict'].copy()
+        sess.data['class'] = obj.__class__          # write to cookie
+        sess.data['dict'] = obj.__dict__.copy()
 
-        Or for beter solution, you can create export and import methods for you
-        object like that:
+        obj = sess.data['class']()                  # read from cookie
+        obj.__dict__ = sess.data['dict'].copy()
 
-            class Obj(object):
-                def import(self, d):
-                    self.attr1 = d['attr1']
-                    self.attr2 = d['attr2']
+    Or for beter solution, you can create export and import methods for you
+    object like that:
 
-                def export(self):
-                    d = {'attr1': self.attr1, 'attr2': self.attr2}
-                    return d
+        class Obj(object):
+            def import(self, d):
+                self.attr1 = d['attr1']
+                self.attr2 = d['attr2']
 
-            obj = Obj()
-            sess = PoorSession(req)
+            def export(self):
+                d = {'attr1': self.attr1, 'attr2': self.attr2}
+                return d
 
-            sess.data['class'] = obj.__class__          # write to cookie
-            sess.data['dict']  = obj.export()
+        obj = Obj()
+        sess = PoorSession(req)
 
-            obj = sess.data['class']()                  # read from cookie
-            obj.import(sess.data['dict'])
+        sess.data['class'] = obj.__class__          # write to cookie
+        sess.data['dict'] = obj.export()
+
+        obj = sess.data['class']()                  # read from cookie
+        obj.import(sess.data['dict'])
     """
 
     def __init__(self, req, expires=0, path='/', SID='SESSID', compress=bz2):
-        """
-        Constructor.
+        """Constructor.
+
+        Arguments:
             req      Request object
             expires  cookie expire time in seconds, if it 0, no expire is set
             path     cookie path
@@ -178,9 +182,9 @@ class PoorSession:
         self.cookie[self.__SID]['expires'] = -1
 
     def header(self, req, headers_out=None):
-        """
-        Generate cookie headers and append it to headers_out if it set.
-            returns list of cookie header pairs
+        """Generate cookie headers and append it to headers_out if it set.
+
+        Returns list of cookie header pairs.
         """
         self.write(req)
         cookies = self.cookie.output().split('\r\n')

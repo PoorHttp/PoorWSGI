@@ -70,6 +70,30 @@ Python 2.6 and less you need to install ordereddict package:
     ~$ pip install ordereddict      # only for Python2.6 and less
     ~$ pip install PoorWSGI
 
+=== Unstable version ===
+Developing of next version is pushed to {unstable} branch. If you want to use
+this version, you must install it from git.
+
+    #!text
+    ~$ git clone git@github.com:PoorHttp/PoorWSGI.git
+    or
+    ~$ git clone https://github.com/PoorHttp/PoorWSGI.git
+
+    ~$ cd PoorWSGI
+    ~$ git checkout unstable
+    ~# python setup.py install
+
+Or you can download zip file from github.
+
+    #!text
+    ~$ wget https://github.com/PoorHttp/PoorWSGI/archive/unstable.zip
+    ~$ unzip unstable.zip
+    ~$ cd PoorWSGI-unstable
+    ~$ python setup.py install
+
+Documentation for new version is at
+http://poorhttp.zeropage.cz/unstable/poorwsgi.html.
+
 === Configuration ===
 Poor WSGI is configured via environment variables with poor_* prefix.
 

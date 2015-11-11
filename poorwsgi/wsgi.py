@@ -1,10 +1,9 @@
-"""
-main application function, and functions for working with dispatch table
+"""Application callable class, which is the main point for poorwsgi web
+application.
 """
 
 from os import path, access, R_OK, environ
 from sys import version_info, stderr
-from inspect import stack
 
 if version_info[0] == 2 and version_info[1] < 7:
     from ordereddict import OrderedDict
@@ -584,7 +583,7 @@ class Application(object):
         This method was call before end-point route handler.
         """
         for fn in self.__pre:
-                fn(req)
+            fn(req)
 
     def handler_from_table(self, req):
         """Call right handler from handlers table (fill with route function).
@@ -688,22 +687,16 @@ class Application(object):
         raise SERVER_RETURN(HTTP_NOT_FOUND)
     # enddef
 
-    def __call__(self, environ, start_response):
-        """Callable define for Application instance.
+    def __request__(self, environ, start_response):
+        """Create Request instance and return wsgi response.
 
-        This method create Request object, call pre_process function,
-        handler_from_table, and post_process function. pre_process and
-        post_process functions are not in try except block!
+        This method create Request object, call handlers from
+        Application.__pre (Application.handler_from_pre),
+        uri handler (handler_from_table), default handler
+        (Application.handler_from_default) or error handler
+        (Application.error_from_table), and handlers from
+        Application.__post.
         """
-        if self.__name == '__poorwsgi__':
-            stderr.write("[W] Using deprecated instance of Application in\n")
-            for s in stack()[1:]:
-                stderr.write("  File %s, line %s, in %s\n" % s[1:4])
-                if s[4]:
-                    stderr.write(s[4][0])
-            stderr.write("[W] Please, create your own instance\n")
-            stderr.flush()
-
         req = Request(environ, start_response, self.__config)
 
         try:
@@ -734,15 +727,28 @@ class Application(object):
         return req.__end_of_request__()    # private call of request
     # enddef
 
-    def __profile_call__(self, environ, start_response):
-        """Profiler version of call, which is used if set_profile is used."""
+    def __call__(self, environ, start_response):
+        """Callable define for Application instance.
+
+        This method run __request__ method.
+        """
+        if self.__name == '__poorwsgi__':
+            stderr.write("[W] Using deprecated instance of Application in\n")
+            stderr.write("[W] Please, create your own instance\n")
+            stderr.flush()
+        return self.__request__(environ, start_response)
+
+    def __profile_request__(self, environ, start_response):
+        """Profiler version of __request__.
+
+        This method is used if set_profile is used."""
         def wrapper(rv):
-            rv.append(self.__clear_call__(environ, start_response))
+            rv.append(self.__original_request__(environ, start_response))
 
         rv = []
         uri_dump = (self._dump + environ.get('PATH_INFO').replace('/', '_')
                     + '.profile')
-        self.log_error('Generate %s' % uri_dump)
+        self.log_error('Generate %s' % uri_dump, LOG_INFO)
         self._runctx('wrapper(rv)', globals(), locals(), filename=uri_dump)
         return rv[0]
     # enddef
@@ -768,13 +774,13 @@ class Application(object):
         self._runctx = runctx
         self._dump = dump
 
-        self.__clear_call__ = self.__call__
-        self.__call__ = self.__profile_call__
+        self.__original_request__ = self.__request__
+        self.__request__ = self.__profile_request__
     # enddef
 
     def del_profile(self):
         """Remove profiler from application."""
-        self.__call__ = self.__clear_call__
+        self.__request__ = self.__original_request__
 
     def get_options(self):
         """Returns dictionary with application variables from system environment.

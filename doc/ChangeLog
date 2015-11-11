@@ -20,8 +20,11 @@
     * remove deprecated Request.add_common_vars
     * remove deprecated request.SERVER_RETURN
     * Application name property
-    * __author__, __date__, __version__, application and app are in poorwsgi
-     (__init__.py) now
+    * app and application is at poorwsgi module now (__init__.py)
+    * Profiling rewrite
+
+==== 1.5.2 ====
+    * Info about unstable branch
 
 ==== 1.5.1 ====
     * append missing cmp function when python3 is use

@@ -46,15 +46,6 @@ class Application(object):
             raise RuntimeError('Application with name %s exist yet.' % name)
         Application.__instances.append(name)
 
-        if name == '__poorwsgi__':
-            stderr.write("[W] Using deprecated instance of Application in\n")
-            for s in stack()[1:]:
-                stderr.write("  File %s, line %s, in %s\n" % s[1:4])
-                if s[4]:
-                    stderr.write(s[4][0])
-            stderr.write("[W] Please, create your own instance\n")
-            stderr.flush()
-
         # Application name
         self.__name = name
 
@@ -699,6 +690,15 @@ class Application(object):
         handler_from_table, and post_process function. pre_process and
         post_process functions are not in try except block!
         """
+        if self.__name == '__poorwsgi__':
+            stderr.write("[W] Using deprecated instance of Application in\n")
+            for s in stack()[1:]:
+                stderr.write("  File %s, line %s, in %s\n" % s[1:4])
+                if s[4]:
+                    stderr.write(s[4][0])
+            stderr.write("[W] Please, create your own instance\n")
+            stderr.flush()
+
         req = Request(environ, start_response, self.__config)
 
         try:

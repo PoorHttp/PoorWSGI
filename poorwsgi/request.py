@@ -26,9 +26,8 @@ else:                           # python 3.x
 
 from poorwsgi.state import __version__, methods, levels, \
     LOG_ERR, LOG_WARNING, LOG_INFO, METHOD_POST, METHOD_PUT, METHOD_PATCH, \
-    HTTP_OK, HTTP_INTERNAL_SERVER_ERROR
+    HTTP_OK
 
-from poorwsgi.results import SERVER_RETURN as SERVER_RETURN_RIGHT
 from poorwsgi.results import _unicode_exist, uni
 
 # simple regular expression for construct_url method
@@ -340,20 +339,6 @@ class Request(object):
 
         Information is get from wsgi server.
         """
-        return self.__environ.copy()
-
-    @property
-    def subprocess_env(self):
-        """*DEPRECATED* Apache compatibility property.
-
-        Contains the same as Request.environ.
-        """
-        stderr.write("[W] Using deprecated method subprocess_env in\n")
-        for s in stack()[1:]:
-            stderr.write("  File %s, line %s, in %s\n" % s[1:4])
-            stderr.write(s[4][0])
-        stderr.flush()
-
         return self.__environ.copy()
 
     @property
@@ -750,14 +735,6 @@ class Request(object):
         self._start_response = True
     # enddef
 
-    def add_common_vars(self):
-        """.*DEPRECATED*. Do nothing."""
-        stderr.write("[W] Using deprecated method add_common_vars in\n")
-        for s in stack()[1:]:
-            stderr.write("  File %s, line %s, in %s\n" % s[1:4])
-            stderr.write(s[4][0])
-        stderr.flush()
-
     def get_options(self):
         """Returns dictionary with application variables from environment.
 
@@ -1145,19 +1122,3 @@ class BrokenClientConnection(Exception):
 
     def __str__(self):
         return "Broken client connection %s[%s]" % self.args
-
-
-class SERVER_RETURN(SERVER_RETURN_RIGHT):
-    """Compatible with mod_python.apache exception."""
-    def __init__(self, code=HTTP_INTERNAL_SERVER_ERROR):
-        """.deprecated location, use results.SERVER_RETURN"""
-
-        stderr.write("[W] Using deprecated location of SERVER_RETURN in\n")
-        for s in stack()[1:]:
-            stderr.write("  File %s, line %s, in %s\n" % s[1:4])
-            stderr.write(s[4][0])
-        stderr.write("  Use results.SERVER_RETURN insead of")
-        stderr.write(" requests.SERVER_RETURN.\n\n")
-        stderr.flush()
-
-        SERVER_RETURN_RIGHT.__init__(self, code)

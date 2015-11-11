@@ -16,6 +16,9 @@
     * better html_escape
     * better hbytes as human bytes function
     * results rewrite and fix theis outputs
+    * remove deprecated Request.subprocess_env
+    * remove deprecated Request.add_common_vars
+    * remove deprecated request.SERVER_RETURN
 
 ==== 1.5.1 ====
     * append missing cmp function when python3 is use

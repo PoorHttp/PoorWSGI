@@ -127,6 +127,11 @@ class Application(object):
             raise RuntimeError("Undefined route group filter '%s'" % _filter)
 
     @property
+    def name(self):
+        """Return application name."""
+        return self.__name
+
+    @property
     def filters(self):
         """Copy of filter table.
 
@@ -805,7 +810,7 @@ class Application(object):
         servers error log!
         """
         if self.__log_level[0] >= level[0]:
-            stderr.write("<%s> %s\n" % (level[1], message))
+            stderr.write("<%s> [%s] %s\n" % (level[1], self.__name, message))
             stderr.flush()
     # enddef
 # endclass

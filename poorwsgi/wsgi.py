@@ -710,10 +710,12 @@ class Application(object):
             else:
                 req.status = code
                 self.error_from_table(req, code)
-        except BrokenClientConnection as e:
+        except (BrokenClientConnection, SystemExit) as e:
             req.log_error(str(e), LOG_ERR)
+            req.log_error('   ***   You shoud ignore next error   ***',
+                          LOG_ERR)
             return ()
-        except Exception as e:
+        except:
             self.error_from_table(req, 500)
         # endtry
 

@@ -14,9 +14,8 @@
 
 from wsgiref.simple_server import make_server
 from base64 import decodestring, encodestring
-from poorwsgi import *
+from poorwsgi import Application, state, request, uni, redirect
 from poorwsgi.session import PoorSession
-from inspect import stack
 from sys import version_info
 
 import os
@@ -30,6 +29,13 @@ if version_info[0] >= 3:
     from io import FileIO
     file = FileIO
 
+app = Application()
+app.debug = True
+app.document_root = './'
+app.document_index = True
+app.secret_key = os.urandom(32)     # random key each run
+
+
 class Storage(file):
     def __init__(self, directory, filename):
         self.path = directory + '/' + filename
@@ -38,6 +44,7 @@ class Storage(file):
             raise Exception("File %s exist yet" % filename)
 
         super(Storage, self).__init__(self.path, 'w+b')
+
 
 class StorageFactory:
     def __init__(self, directory):
@@ -50,6 +57,7 @@ class StorageFactory:
 
 app.auto_form = False
 
+
 @app.pre_process()
 def auto_form(req):
     """ This is own implementation of req.form paring before any POST request
@@ -58,12 +66,13 @@ def auto_form(req):
     if req.method_number == state.METHOD_POST:
         factory = StorageFactory('./upload')
         try:
-            req.form = request.FieldStorage(req,
-                        keep_blank_values = app.keep_blank_values,
-                        strict_parsing = app.strict_parsing,
-                        file_callback = factory.create)
+            req.form = request.FieldStorage(
+                req, keep_blank_values=app.keep_blank_values,
+                strict_parsing=app.strict_parsing,
+                file_callback=factory.create)
         except Exception as e:
             req.log_error(e)
+
 
 def get_crumbnav(req):
     navs = [req.hostname]
@@ -82,6 +91,7 @@ def html(s):
     s = s.replace('<', '&lt;')
     return s
 
+
 def get_header(title):
     return (
         "<html>",
@@ -99,7 +109,8 @@ def get_footer():
     return (
         "<hr>",
         "<small>Copyright (c) 2013 Ondřej Tůma. See ",
-        '<a href="http://poorhttp.zeropage.cz">poorhttp.zeropage.cz</a></small>.',
+        '<a href="http://poorhttp.zeropage.cz">poorhttp.zeropage.cz</a>'
+        '</small>.',
         "</body>",
         "</html>"
     )
@@ -109,46 +120,62 @@ def get_variables(req):
     usable = ("REQUEST_METHOD", "QUERY_STRING", "SERVER_NAME", "SERVER_PORT",
               "REMOTE_ADDR", "REMOTE_HOST", "PATH_INFO")
     return sorted(tuple(
-        (key, html(val)) for key, val in req.environ.items() \
-            if key.startswith("wsgi.") or key.startswith("poor_") or key in usable ))
+        (key, html(val)) for key, val in req.environ.items()
+        if key.startswith("wsgi.") or key.startswith("poor_")
+        or key in usable))
 
 app.set_filter('email', r'[\w\.\-]+@[\w\.\-]+', request.uni)
+
 
 def check_login(fn):
     def handler(req):
         cookie = PoorSession(req)
-        if not 'login' in cookie.data:
+        if 'login' not in cookie.data:
             req.log_error('Login cookie not found.', state.LOG_INFO)
-            redirect(req, '/', text = 'Login required')
+            redirect(req, '/', text='Login required')
 
         return fn(req)
     return handler
 
+
 @app.route('/')
 def root(req):
     buff = get_header("Index") + (
-            get_crumbnav(req),
-            "<ul>",
-            '<li><a href="%s">/</a> - This Page</li>' % req.construct_url('/'),
-            '<li><a href="/test/static">/test/static</a> - Testing Static Page</li>',
-            '<li><a href="/test/42">/test/&lt;variable:int&gt;</a> - Testing regular:int Page</li>',
-            '<li><a href="/test/3.14">/test/&lt;variable:float&gt;</a> - Testing regular:float Page</li>',
-            '<li><a href="/test/word">/test/&lt;variable:word&gt;</a> - Testing regular:word Page</li>',
-            '<li><a href="/test/user@example.net">/test/&lt;variable:user&gt;</a> - Testing regular:user Page</li>',
-            '<li><a href="/test/[grr]">/test/&lt;variable:re:.*&gt;</a> - Testing regular:re Page</li>',
-            '<li><a href="/test/one/too/three">/test/&lt;variable0&gt;&lt;variable1&gt;&lt;variable2&gt;</a> - Testing variable args</li>',
-            '<li><a href="/login">/login</a> - Create login session</li>',
-            '<li><a href="/logout">/logout</a> - Destroy login session</li>',
-            '<li><a href="/test/form">/test/form</a> - Testing http form (only if you have login cookie / session)</li>',
-            '<li><a href="/test/upload">/test/upload</a> - Testing file upload (only if you have login cookie / session)</li>',
-            '<li><a href="/debug-info">/debug-info</a> - Debug Page (only if poor_Debug is set)</li>',
-            '<li><a href="/no-page">/no-page</a> - No Exist Page</li>',
-            '<li><a href="/internal-server-error">/internal-server-error</a> - Inernal Server Error</li>',
-            "</ul>",
+        get_crumbnav(req),
+        "<ul>",
+        '<li><a href="%s">/</a> - This Page</li>' % req.construct_url('/'),
+        '<li><a href="/test/static">/test/static</a> - Testing Static Page'
+        '</li>',
+        '<li><a href="/test/42">/test/&lt;variable:int&gt;</a>'
+        ' - Testing regular:int Page</li>',
+        '<li><a href="/test/3.14">/test/&lt;variable:float&gt;</a>'
+        ' - Testing regular:float Page</li>',
+        '<li><a href="/test/word">/test/&lt;variable:word&gt;</a>'
+        ' - Testing regular:word Page</li>',
+        '<li><a href="/test/user@example.net">/test/&lt;variable:user&gt;</a>'
+        ' - Testing regular:user Page</li>',
+        '<li><a href="/test/[grr]">/test/&lt;variable:re:.*&gt;</a>'
+        ' - Testing regular:re Page</li>',
+        '<li><a href="/test/one/too/three">'
+        '/test/&lt;variable0&gt;&lt;variable1&gt;&lt;variable2&gt;</a>'
+        ' - Testing variable args</li>',
+        '<li><a href="/login">/login</a> - Create login session</li>',
+        '<li><a href="/logout">/logout</a> - Destroy login session</li>',
+        '<li><a href="/test/form">/test/form</a>'
+        ' - Testing http form (only if you have login cookie / session)</li>',
+        '<li><a href="/test/upload">/test/upload</a> - '
+        'Testing file upload (only if you have login cookie / session)</li>',
+        '<li><a href="/debug-info">/debug-info</a>'
+        ' - Debug Page (only if poor_Debug is set)</li>',
+        '<li><a href="/no-page">/no-page</a> - No Exist Page</li>',
+        '<li><a href="/internal-server-error">/internal-server-error</a>'
+        ' - Inernal Server Error</li>',
+        "</ul>",
         ) + get_footer()
     for line in buff:
         req.write(line + '\n')
     return state.OK
+
 
 @app.route('/favicon.ico')
 def favicon(req):
@@ -179,10 +206,12 @@ AADwDwAA+B8AAA==
     req.write(decodestring(icon))
     return state.DONE
 
+
 @app.route('/style.css')
 def style(req):
     buff = (
-        "body { width: 90%; max-width: 900px; margin: auto; padding-top: 30px; }",
+        "body { width: 90%; max-width: 900px; margin: auto;"
+        " padding-top: 30px; }",
         "h1 { text-align: center; color: #707070; }",
         "p { text-indent: 30px; margin-top: 30px; margin-bottom: 30px; }",
         "pre { font-size: 90%; background: #ddd; overflow: auto; }",
@@ -202,66 +231,66 @@ def style(req):
 @app.route('/test/<variable:float>')
 @app.route('/test/<variable:int>')
 @app.route('/test/static')
-def test_dynamic(req, variable = None):
+def test_dynamic(req, variable=None):
     var_info = {'type': type(variable),
                 'value': variable,
-                'uri_rule': req.uri_rule
-               }
+                'uri_rule': req.uri_rule}
 
     title = "Variable" if variable is not None else "Static"
 
-    buff = get_header(title + " test") + (
-        get_crumbnav(req),
-        "<h2>Variable</h2>",
-        "<table>"
-    ) + tuple( "<tr><td>%s:</td><td>%s</td></tr>" % \
-                            (key, html(val)) for key, val in var_info.items()
-    ) + ("</table>",
-        "<h2>Browser Headers</h2>",
-        "<table>"
-    ) + tuple( "<tr><td>%s:</td><td>%s</td></tr>" % \
-                            (key, val) for key, val in req.headers_in.items()
-    ) + ("</table>",
-        "<h2>Request Variables </h2>",
-        "<table>"
-    ) + tuple( "<tr><td>%s:</td><td>%s</td></tr>" % \
-                            (key, val) for key, val in get_variables(req)
-    ) + ("</table>",
-    ) + get_footer()
+    buff = get_header(title + " test") + \
+        (get_crumbnav(req),
+         "<h2>Variable</h2>",
+         "<table>") + \
+        tuple("<tr><td>%s:</td><td>%s</td></tr>" %
+              (key, html(val)) for key, val in var_info.items()) + \
+        ("</table>",
+         "<h2>Browser Headers</h2>",
+         "<table>") + \
+        tuple("<tr><td>%s:</td><td>%s</td></tr>" %
+              (key, val) for key, val in req.headers_in.items()) + \
+        ("</table>",
+         "<h2>Request Variables </h2>",
+         "<table>") + \
+        tuple("<tr><td>%s:</td><td>%s</td></tr>" %
+              (key, val) for key, val in get_variables(req)) + \
+        ("</table>",) + \
+        get_footer()
 
     for line in buff:
         req.write(line + '\n')
     return state.OK
+
 
 @app.route('/test/<variable:re:.*>')
 @app.route('/test/<variable0>/<variable1>/<variable2>')
 def test_varargs(req, *args):
-    var_info = {'len': len(args),
-               }
+    var_info = {'len': len(args)}
     var_info.update(req.groups)
 
-    buff = get_header("Variable args test") + (
-        get_crumbnav(req),
-        "<h2>Variables</h2>",
-        "<table>"
-    ) + tuple( "<tr><td>%s:</td><td>%s</td></tr>" % \
-                            (key, html(val)) for key, val in var_info.items()
-    ) + ("</table>",
-        "<h2>Browser Headers</h2>",
-        "<table>"
-    ) + tuple( "<tr><td>%s:</td><td>%s</td></tr>" % \
-                            (key, val) for key, val in req.headers_in.items()
-    ) + ("</table>",
-        "<h2>Request Variables </h2>",
-        "<table>"
-    ) + tuple( "<tr><td>%s:</td><td>%s</td></tr>" % \
-                            (key, val) for key, val in get_variables(req)
-    ) + ("</table>",
-    ) + get_footer()
+    buff = get_header("Variable args test") + \
+        (get_crumbnav(req),
+         "<h2>Variables</h2>",
+         "<table>") + \
+        tuple("<tr><td>%s:</td><td>%s</td></tr>" %
+              (key, html(val)) for key, val in var_info.items()) + \
+        ("</table>",
+         "<h2>Browser Headers</h2>",
+         "<table>") + \
+        tuple("<tr><td>%s:</td><td>%s</td></tr>" %
+              (key, val) for key, val in req.headers_in.items()) + \
+        ("</table>",
+         "<h2>Request Variables </h2>",
+         "<table>") + \
+        tuple("<tr><td>%s:</td><td>%s</td></tr>" %
+              (key, val) for key, val in get_variables(req)) + \
+        ("</table>",) + \
+        get_footer()
 
     for line in buff:
         req.write(line + '\n')
     return state.OK
+
 
 @app.route('/login')
 def login(req):
@@ -272,6 +301,7 @@ def login(req):
     req.log_error("Output headers: %s" % req.headers_out, state.LOG_DEBUG)
     redirect(req, '/')
 
+
 @app.route('/logout')
 def logout(req):
     req.log_error("Input cookies: %s" % repr(req.cookies), state.LOG_DEBUG)
@@ -281,76 +311,90 @@ def logout(req):
     req.log_error("Output headers: %s" % req.headers_out, state.LOG_DEBUG)
     redirect(req, '/')
 
-@app.route('/test/form', method = state.METHOD_GET_POST)
+
+@app.route('/test/form', method=state.METHOD_GET_POST)
 @check_login
 def test_form(req):
-    #get_var_info = {'len': len(args)}
+    # get_var_info = {'len': len(args)}
     var_info = OrderedDict((
-                ('form_keys', req.form.keys()),
-                ('form_values', ', '.join(tuple(uni(req.form.getvalue(key)) for key in req.form.keys()))),
-                ('form_getfirst', '%s,%s' % (req.form.getfirst('pname'), req.form.getfirst('px')) ),
-                ('form_getlist', '%s,%s' % ( req.form.getlist('pname'), req.form.getlist('px') )),
-                ('',''),
-                ('args_keys', req.args.keys()),
-                ('args_values', ', '.join(tuple(uni(req.args[key]) for key in req.args.keys())) ),
-                ('args_getfirst', '%s,%s' % (req.args.getfirst('gname'), req.args.getfirst('gx')) ),
-                ('args_getlist', '%s,%s' % ( req.args.getlist('gname'), req.args.getlist('gx') )),
-                ))
+        ('form_keys', req.form.keys()),
+        ('form_values', ', '.join(tuple(uni(req.form.getvalue(key))
+                                  for key in req.form.keys()))),
+        ('form_getfirst', '%s,%s' % (req.form.getfirst('pname'),
+                                     req.form.getfirst('px'))),
+        ('form_getlist', '%s,%s' % (req.form.getlist('pname'),
+                                    req.form.getlist('px'))),
+        ('', ''),
+        ('args_keys', req.args.keys()),
+        ('args_values', ', '.join(tuple(uni(req.args[key])
+                                        for key in req.args.keys()))),
+        ('args_getfirst', '%s,%s' % (req.args.getfirst('gname'),
+                                     req.args.getfirst('gx'))),
+        ('args_getlist', '%s,%s' % (req.args.getlist('gname'),
+                                    req.args.getlist('gx'))),
+        ))
 
-
-    buff = get_header("HTTP Form args test") + (
-        get_crumbnav(req),
-        "<h2>Get Form</h2>",
-        '<form method="get">',
-        '<input type="text" name="gname" value="Ondřej"><br/>',
-        '<input type="text" name="gsurname" value="Tůma"><br/>',
-        '<input type="text" name="gx" value="1">'
-        '<input type="text" name="gx" value="2">'
-        '<input type="text" name="gx" value="3"><br/>',
-        '<input type="submit" name="btn" value="Send">'
-        '</form>',
-        "<h2>Post Form</h2>",
-        '<form method="post">',
-        '<input type="text" name="pname" value="Ondřej"><br/>',
-        '<input type="text" name="psurname" value="Tůma"><br/>',
-        '<input type="text" name="px" value="8">'
-        '<input type="text" name="px" value="7">'
-        '<input type="text" name="px" value="6"><br/>',
-        '<input type="submit" name="btn" value="Send">'
-        '</form>',
-        "<h2>Variables</h2>",
-        "<table>"
-    ) + tuple( "<tr><td>%s:</td><td>%s</td></tr>" % \
-                            (key, html(val)) for key, val in var_info.items()
-    ) + ("</table>",
-        "<h2>Browser Headers</h2>",
-        "<table>"
-    ) + tuple( "<tr><td>%s:</td><td>%s</td></tr>" % \
-                            (key, val) for key, val in req.headers_in.items()
-    ) + ("</table>",
-        "<h2>Request Variables </h2>",
-        "<table>"
-    ) + tuple( "<tr><td>%s:</td><td>%s</td></tr>" % \
-                            (key, val) for key, val in get_variables(req)
-    ) + ("</table>",
-    ) + get_footer()
+    buff = get_header("HTTP Form args test") + \
+        (get_crumbnav(req),
+         "<h2>Get Form</h2>",
+         '<form method="get">',
+         '<input type="text" name="gname" value="Ondřej"><br/>',
+         '<input type="text" name="gsurname" value="Tůma"><br/>',
+         '<input type="text" name="gx" value="1">'
+         '<input type="text" name="gx" value="2">'
+         '<input type="text" name="gx" value="3"><br/>',
+         '<input type="submit" name="btn" value="Send">'
+         '</form>',
+         "<h2>Post Form</h2>",
+         '<form method="post">',
+         '<input type="text" name="pname" value="Ondřej"><br/>',
+         '<input type="text" name="psurname" value="Tůma"><br/>',
+         '<input type="text" name="px" value="8">'
+         '<input type="text" name="px" value="7">'
+         '<input type="text" name="px" value="6"><br/>',
+         '<input type="submit" name="btn" value="Send">'
+         '</form>',
+         "<h2>Variables</h2>",
+         "<table>") + \
+        tuple("<tr><td>%s:</td><td>%s</td></tr>" %
+              (key, html(val)) for key, val in var_info.items()) + \
+        ("</table>",
+         "<h2>Browser Headers</h2>",
+         "<table>") + \
+        tuple("<tr><td>%s:</td><td>%s</td></tr>" %
+              (key, val) for key, val in req.headers_in.items()) + \
+        ("</table>",
+         "<h2>Request Variables </h2>",
+         "<table>") + \
+        tuple("<tr><td>%s:</td><td>%s</td></tr>" %
+              (key, val) for key, val in get_variables(req)) + \
+        ("</table>",) + \
+        get_footer()
 
     for line in buff:
         req.write(line + '\n')
     return state.OK
 
-@app.route('/test/upload', method = state.METHOD_GET_POST)
+
+@app.route('/test/upload', method=state.METHOD_GET_POST)
 @check_login
 def test_upload(req):
     var_info = OrderedDict((
-                ('form_keys', req.form.keys()),
-                ('form_value_names', ', '.join( tuple(req.form[key].name for key in req.form.keys()) )),
-                ('form_value_types', ', '.join( tuple(req.form[key].type for key in req.form.keys()) )),
-                ('form_value_fnames', ', '.join( tuple(uni(req.form[key].filename) for key in req.form.keys()) )),
-                ('form_value_lenghts', ', '.join( tuple(uni(req.form[key].length) for key in req.form.keys()) )),
-                ('form_value_files', ', '.join( tuple(uni(req.form[key].file) for key in req.form.keys()) )),
-                ('form_value_lists', ', '.join( tuple('Yes' if req.form[key].list else 'No' for key in req.form.keys()) )),
-                ))
+        ('form_keys', req.form.keys()),
+        ('form_value_names', ', '.join(tuple(req.form[key].name
+                                             for key in req.form.keys()))),
+        ('form_value_types', ', '.join(tuple(req.form[key].type
+                                             for key in req.form.keys()))),
+        ('form_value_fnames', ', '.join(tuple(uni(req.form[key].filename)
+                                              for key in req.form.keys()))),
+        ('form_value_lenghts', ', '.join(tuple(uni(req.form[key].length)
+                                               for key in req.form.keys()))),
+        ('form_value_files', ', '.join(tuple(uni(req.form[key].file)
+                                             for key in req.form.keys()))),
+        ('form_value_lists', ', '.join(tuple(
+            'Yes' if req.form[key].list else 'No'
+            for key in req.form.keys()))),
+        ))
 
     files = []
     for key in req.form.keys():
@@ -358,29 +402,33 @@ def test_upload(req):
             files.append("<h2>%s</h2>" % req.form[key].filename)
             files.append("<i>%s</i>" % req.form[key].type)
             if req.form[key].type.startswith('text/'):
-                files.append("<pre>%s</pre>" % html(req.form.getvalue(key).decode('utf-8')))
+                files.append("<pre>%s</pre>" %
+                             html(req.form.getvalue(key).decode('utf-8')))
             else:
-                files.append("<pre>%s</pre>" % encodestring(req.form.getvalue(key)).decode())
+                files.append("<pre>%s</pre>" %
+                             encodestring(req.form.getvalue(key)).decode())
 
-    buff = get_header('HTTP file upload test') + (
-        get_crumbnav(req),
-        "<h2>Upload Form</h2>",
-        '<form method="post" enctype="multipart/form-data">',
-        '<input type="file" name="file_0"><br/>',
-        '<input type="file" name="file_1"><br/>',
-        '<input type="file" name="file_2"><br/>',
-        '<input type="submit" name="btn" value="Upload">'
-        '</form>',
-        "<h2>Uploaded File</h2>",
-        "<table>"
-    ) + tuple( "<tr><td>%s:</td><td>%s</td></tr>" % \
-                            (key, html(val)) for key, val in var_info.items()
-    ) + ("</table>",
-    ) + tuple(files) + get_footer()
+    buff = get_header('HTTP file upload test') + \
+        (get_crumbnav(req),
+         "<h2>Upload Form</h2>",
+         '<form method="post" enctype="multipart/form-data">',
+         '<input type="file" name="file_0"><br/>',
+         '<input type="file" name="file_1"><br/>',
+         '<input type="file" name="file_2"><br/>',
+         '<input type="submit" name="btn" value="Upload">'
+         '</form>',
+         "<h2>Uploaded File</h2>",
+         "<table>") + \
+        tuple("<tr><td>%s:</td><td>%s</td></tr>" %
+              (key, html(val)) for key, val in var_info.items()) + \
+        ("</table>",) + \
+        tuple(files) + \
+        get_footer()
 
     for line in buff:
         req.write(line + '\n')
     return state.OK
+
 
 @app.http_state(state.HTTP_NOT_FOUND)
 def not_found(req):
@@ -403,22 +451,22 @@ def not_found(req):
         req.write(line + '\n')
     return state.DONE
 
+
 @app.pre_process()
 @app.post_process()
 def log(req):
     req.logger("Log this point")
 
+
 @app.post_process()
 def post(req):
     pass
+
 
 @app.route('/internal-server-error')
 def method_raises_errror(req):
     raise RuntimeError('Test of internal server error')
 
 if __name__ == '__main__':
-    app.debug = True
-    app.document_root = './'
-    app.document_index = True
     httpd = make_server('127.0.0.1', 8080, app)
     httpd.serve_forever()

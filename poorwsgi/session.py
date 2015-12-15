@@ -9,12 +9,12 @@ import bz2
 
 if version_info[0] < 3:         # python 2.x
     from Cookie import SimpleCookie
+    bytes = str
 else:                           # python 3.x
     from http.cookies import SimpleCookie
     xrange = range
 
 from poorwsgi.state import LOG_INFO
-from poorwsgi.request import uni
 
 
 def hidden(text, passwd):
@@ -25,7 +25,10 @@ def hidden(text, passwd):
         passwd  password
         returns string
     """
-    passwd = sha512(uni(passwd).encode("utf-8")).digest()
+    if isinstance(passwd, bytes):
+        passwd = sha512(passwd).digest()
+    else:
+        passwd = sha512(passwd.encode("utf-8")).digest()
     passlen = len(passwd)
 
     # text must be str on python 2.x (like bytes in python 3.x)
@@ -135,7 +138,7 @@ class PoorSession:
             try:
                 self.data = loads(hidden(self.__cps.decompress
                                          (b64decode(raw.encode())),
-                                         req.secretkey))
+                                         req.secret_key))
                 if not isinstance(self.data, dict):
                     raise RuntimeError()
             except Exception as e:
@@ -163,7 +166,7 @@ class PoorSession:
         This method is called automatically in header method.
         """
         raw = b64encode(self.__cps.compress(hidden(dumps(self.data),
-                                                   req.secretkey), 9))
+                                                   req.secret_key), 9))
         raw = raw if isinstance(raw, str) else raw.decode()
         self.cookie[self.__SID] = raw
         self.cookie[self.__SID]['path'] = self.__path

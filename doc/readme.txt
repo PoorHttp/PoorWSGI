@@ -735,8 +735,10 @@ hidden function.
 
     from poorwsgi import Application, state, redirect
     from poorwsgi.session import PoorSession
+    from os import urandom
 
     app = Application('test')
+    app.secret_key = urandom(32)                    # random secret_key
 
     def check_login(fn):
         def handler(req):

@@ -578,7 +578,7 @@ def debug_info(req, app):
             ('Secret Key', '*'*5 + ' see in error output (wsgi log)'
              ' when Log Level is <b>debug</b> ' + '*'*5)
         )))
-    req.log_error('SecretKey: %s' % req.secretkey, LOG_DEBUG)
+    req.log_error('SecretKey: %s' % repr(req.secret_key), LOG_DEBUG)
 
     # tranform application variables to html
     app_html = "\n".join((

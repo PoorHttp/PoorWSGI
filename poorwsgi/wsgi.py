@@ -2,8 +2,8 @@
 application.
 """
 
-from os import path, access, R_OK, environ
-from sys import version_info, stderr
+from os import path, access, R_OK, environ, getcwd, uname
+from sys import version_info, stderr, version
 
 if version_info[0] == 2 and version_info[1] < 7:
     from ordereddict import OrderedDict
@@ -15,7 +15,8 @@ import re
 from poorwsgi.state import OK, DONE, DECLINED, HTTP_OK, \
     METHOD_GET, METHOD_POST, METHOD_HEAD, methods, levels, \
     LOG_INFO, LOG_ERR, LOG_WARNING, \
-    HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN
+    HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN, \
+    __version__
 from poorwsgi.request import Request, BrokenClientConnection
 from poorwsgi.results import default_shandlers, not_implemented, internal_server_error, \
     SERVER_RETURN, send_file, directory_index, debug_info, \
@@ -88,6 +89,9 @@ class Application(object):
             'debug': 'Off',
             'document_root': '',
             'document_index': 'Off',
+            'secret_key': '%s%s%s%s' %
+                          (__version__, version, getcwd(),
+                           ''.join(str(x) for x in uname()))
         }
 
         try:
@@ -275,6 +279,19 @@ class Application(object):
     @document_index.setter
     def document_index(self, value):
         self.__config['document_index'] = 'On' if bool(value) else 'Off'
+
+    @property
+    def secret_key(self):
+        """Application secret_key could be replace by poor_SecretKey in request.
+
+        Secret key is used by PoorSession class. It is generate from
+        some server variables, and the best way is set to your own long
+        key."""
+        return self.__config['secret_key']
+
+    @secret_key.setter
+    def secret_key(self, value):
+        self.__config['secret_key'] = value
 
     @property
     def keep_blank_values(self):
@@ -735,8 +752,8 @@ class Application(object):
         This method run __request__ method.
         """
         if self.__name == '__poorwsgi__':
-            stderr.write("[W] Using deprecated instance of Application in\n")
-            stderr.write("[W] Please, create your own instance\n")
+            stderr.write("[W] Using deprecated instance of Application.\n")
+            stderr.write("    Please, create your own instance\n")
             stderr.flush()
         return self.__request__(environ, start_response)
 

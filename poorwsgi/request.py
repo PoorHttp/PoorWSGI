@@ -5,7 +5,7 @@ Headers, Request and FieldStorage classes, which is used for managing requests.
 from collections import Mapping
 from wsgiref.headers import _formatparam
 from cgi import FieldStorage as CgiFieldStorage, parse_header
-from sys import version_info, version, stderr
+from sys import version_info, stderr
 from inspect import stack
 from json import loads as json_loads
 
@@ -24,7 +24,7 @@ else:                           # python 3.x
     from urllib.parse import parse_qs
     from http.cookies import SimpleCookie
 
-from poorwsgi.state import __version__, methods, levels, \
+from poorwsgi.state import methods, levels, \
     LOG_ERR, LOG_WARNING, LOG_INFO, METHOD_POST, METHOD_PUT, METHOD_PATCH, \
     HTTP_OK
 
@@ -598,17 +598,27 @@ class Request(object):
         return self.__environ.get('SERVER_PROTOCOL')
 
     @property
-    def secretkey(self):
+    def secret_key(self):
         """Value of poor_SecretKey variable.
 
         Secret key is used by PoorSession class. It is generate from
-        some server variables, and the best way is set to your own long
-        key.
+        some server variables, and the best way is set programmatically
+        by Application.secret_key from random data.
         """
         return self.__poor_environ.get(
             'poor_SecretKey',
-            '%s%s%s%s%s' % (__version__, self.server_software, version,
-                            os.getcwd(), ''.join(str(x) for x in os.uname())))
+            self.__app_config['secret_key'])
+
+    @property
+    def secretkey(self):
+        """*DEPRECATED* alias for secret_key."""
+        stderr.write("[W] Using deprecated property secretkey in\n")
+        for s in stack()[1:]:
+            stderr.write("  File %s, line %s, in %s\n" % s[1:4])
+            stderr.write(s[4][0])
+            stderr.flush()
+
+        return self.secret_key
 
     @property
     def document_index(self):

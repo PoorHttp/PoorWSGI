@@ -1,4 +1,6 @@
 === 1.6.0 ====
+    * using io.BytesIO insead of StringIO
+    * format python2.6 fix
     * new documentation for some methods and function
     * decode json with content type charset
     * code refactoring

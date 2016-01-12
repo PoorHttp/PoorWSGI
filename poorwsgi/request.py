@@ -8,19 +8,18 @@ from cgi import FieldStorage as CgiFieldStorage, parse_header
 from sys import version_info, stderr
 from inspect import stack
 from json import loads as json_loads
+from io import BytesIO
 
 import os
 import re
 
 if version_info[0] < 3:         # python 2.x
     from httplib import responses
-    from cStringIO import StringIO as BytesIO
     from urlparse import parse_qs
     from Cookie import SimpleCookie
 
 else:                           # python 3.x
     from http.client import responses
-    from io import BytesIO
     from urllib.parse import parse_qs
     from http.cookies import SimpleCookie
 
@@ -85,7 +84,7 @@ class Headers(Mapping):
         for k, v in self.__headers:
             if k.lower() == name:
                 return v
-        raise KeyError("{!r} is not registered".format(name))
+        raise KeyError("{0!r} is not registered".format(name))
 
     def __delitem__(self, name):
         """Delete item identied by lower name."""
@@ -850,7 +849,7 @@ class Request(object):
             self.__call_start_response()
             self._buffer_offset = self._buffer_len
             self._buffer.seek(0)    # na zacatek !!
-            return self._buffer     # return buffer (StringIO or BytesIO)
+            return self._buffer     # return buffer (BytesIO)
         else:
             self._buffer.seek(self._buffer_offset)
             try:

@@ -286,10 +286,10 @@ can use any filter from table filters.
 Filter int is define by {r'-?\d+'} with convert "function" int. So age must be
 number and the input parameter is int instance.
 
-There are fifth predefined filters: *:int*, *:float*, *:word*, *:re:* and
-*none* as default filter. Word is define as {r'\w+'} regular expression, and
-poorwsgi use re.U flag, so it match any Unicode string. That means UTF-8
-string.
+There are predefined filters, for example: *:int*, *:word*, *:re:* and *none*
+as default filter. Word is define as {r'\w+'} regular expression, and poorwsgi
+use re.U flag, so it match any Unicode string. That means UTF-8 string. For
+all filters see Application.filters property or {/debug-info} page.
 
 You can get copy of filters table calling Application.filters property. And this
 filters table is output to debug-info page. Adding your own filter is possible

@@ -24,8 +24,8 @@ else:                           # python 3.x
     from http.cookies import SimpleCookie
 
 from poorwsgi.state import methods, levels, \
-    LOG_ERR, LOG_WARNING, LOG_INFO, METHOD_POST, METHOD_PUT, METHOD_PATCH, \
-    HTTP_OK
+    LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG, METHOD_POST, METHOD_PUT, \
+    METHOD_PATCH, HTTP_OK
 
 from poorwsgi.results import _unicode_exist, uni
 
@@ -822,6 +822,14 @@ class Request(object):
     def log_info(self, message):
         """Logging method, which create message as LOG_INFO level."""
         self.log_error(message, LOG_INFO)
+
+    def log_debug(self, message):
+        """Logging method, which create message as LOG_DEBUG level."""
+        self.log_error(message, LOG_DEBUG)
+
+    def log_warning(self, message):
+        """Logging method, which create message as LOG_WARNING level."""
+        self.log_error(message, LOG_WARNING)
 
     def __reset_buffer__(self):
         """Clean _buffer (*for internal server error use*).

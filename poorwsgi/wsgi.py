@@ -14,7 +14,7 @@ import re
 
 from poorwsgi.state import OK, DONE, DECLINED, HTTP_OK, \
     METHOD_GET, METHOD_POST, METHOD_HEAD, methods, levels, \
-    LOG_INFO, LOG_ERR, LOG_WARNING, \
+    LOG_DEBUG, LOG_INFO, LOG_ERR, LOG_WARNING, \
     HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN, \
     __version__
 from poorwsgi.request import Request, BrokenClientConnection
@@ -63,7 +63,7 @@ class Application(object):
             ':int': (r'-?\d+', int),
             ':float': (r'-?\d+(\.\d+)?', float),
             ':word': (r'\w+', uni),
-            ':hex': (r'[0-9a-fA-F]+', uni),
+            ':hex': (r'[0-9a-fA-F]+', str),
             ':re:': (None, uni),
             'none': (r'[^/]+', uni)
         }
@@ -140,6 +140,17 @@ class Application(object):
 
         Filter table contains regular expressions and convert functions,
         see Application.set_filter and Application.route.
+
+        Default filters are:
+            :int - match number and convert it to int
+            :float - match number and convert it to float
+            :word - match one unicoee word
+            :hex - match hexadecimal value and convert it to str
+            :re: - match user defined regular expression
+            none - match any string withount '/' character
+
+        For more details see {/debug-info} page of your application, where
+        you see all filters with regular expression definition.
         """
         return self.__filters.copy()
 
@@ -838,4 +849,16 @@ class Application(object):
             stderr.write("<%s> [%s] %s\n" % (level[1], self.__name, message))
             stderr.flush()
     # enddef
+
+    def log_info(self, message):
+        """Logging method, which create message as LOG_INFO level."""
+        self.log_error(message, LOG_INFO)
+
+    def log_debug(self, message):
+        """Logging method, which create message as LOG_DEBUG level."""
+        self.log_error(message, LOG_DEBUG)
+
+    def log_warning(self, message):
+        """Logging method, which create message as LOG_WARNING level."""
+        self.log_error(message, LOG_WARNING)
 # endclass

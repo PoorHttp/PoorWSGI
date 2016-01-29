@@ -1,4 +1,5 @@
 === 1.6.0 ====
+    * fix memory leak in python2.x (alias for self.method increment refcount)
     * log_info, log_debug and log_warning methods
     * using io.BytesIO insead of StringIO
     * format python2.6 fix

@@ -327,7 +327,7 @@ class Request(object):
 
         # variables for user use
         self.__config = None
-        self.__logger = self.log_error
+        self.__logger = None
         self.__user = None
     # enddef
 
@@ -643,7 +643,7 @@ class Request(object):
     def logger(self):
         """For special logger object or logger function (default req.log_error).
         """
-        return self.__logger
+        return self.__logger or self.log_info
 
     @logger.setter
     def logger(self, value):
@@ -872,6 +872,9 @@ class Request(object):
             return ()               # data was be sent via write method
         # enddef
     # enddef
+
+    def __del__(self):
+        self.log_debug("Request: Hasta la vista, baby.")
 
     def flush(self):
         """Flushes the output buffer."""

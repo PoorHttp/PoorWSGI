@@ -327,7 +327,6 @@ class Request(object):
 
         # variables for user use
         self.__config = None
-        self.__logger = None
         self.__user = None
     # enddef
 
@@ -640,16 +639,6 @@ class Request(object):
         self.__config = value
 
     @property
-    def logger(self):
-        """For special logger object or logger function (default req.log_error).
-        """
-        return self.__logger or self.log_info
-
-    @logger.setter
-    def logger(self, value):
-        self.__logger = value
-
-    @property
     def user(self):
         """For user object, who is login for example (default None)."""
         return self.__user
@@ -957,7 +946,8 @@ class Args(dict):
         dict.__init__(self, ((key, val[0] if len(val) < 2 else val)
                              for key, val in args.items()))
 
-        self.getvalue = self.get
+    def getvalue(self, name, default=None):
+        return self.get(name, default)
 
     def getfirst(self, name, default=None, fce=uni):
         """Returns first variable value for key or default.
@@ -996,7 +986,9 @@ class Json(dict):
     """
     def __init__(self, req, charset):
         dict.__init__(self, json_loads(req.read().decode(charset)).items())
-        self.getvalue = self.get
+
+    def getvalue(self, name, default=None):
+        return self.get(name, default)
 
     def getfirst(self, name, default=None, fce=uni):
         """Returns first variable value for key or default, if key not exist.

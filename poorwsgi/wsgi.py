@@ -620,7 +620,6 @@ class Application(object):
         resp. Document Index is set. Then try to call default handler for right
         method or call handler for status code 404 - not found.
         """
-
         # static routes
         if req.uri in self.__handlers:
             if req.method_number in self.__handlers[req.uri]:
@@ -726,7 +725,6 @@ class Application(object):
         Application.__post.
         """
         req = Request(environ, start_response, self.__config)
-
         try:
             self.handler_from_table(req)
         except SERVER_RETURN as e:
@@ -746,7 +744,6 @@ class Application(object):
         except:
             self.error_from_table(req, 500)
         # endtry
-
         try:    # call post_process handler
             for fn in self.__post:
                 fn(req)

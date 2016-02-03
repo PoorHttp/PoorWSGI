@@ -327,7 +327,6 @@ class Request(object):
 
         # variables for user use
         self.__config = None
-        self.__logger = None
         self.__user = None
     # enddef
 
@@ -641,13 +640,17 @@ class Request(object):
 
     @property
     def logger(self):
-        """For special logger object or logger function (default req.log_error).
-        """
-        return self.__logger or self.log_info
+        """*DEPRECATED* For special logger function (default req.log_error).
 
-    @logger.setter
-    def logger(self, value):
-        self.__logger = value
+        Use log_error, log_info, log_debug or logging method instead of that.
+        """
+        stderr.write("[W] Using deprecated logger attribute\n")
+        for s in stack()[1:]:
+            stderr.write("  File %s, line %s, in %s\n" % s[1:4])
+            stderr.write(s[4][0])
+        stderr.flush()
+
+        return self.log_error
 
     @property
     def user(self):

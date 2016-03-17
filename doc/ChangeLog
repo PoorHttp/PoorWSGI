@@ -1,4 +1,5 @@
 === 1.6.0 ====
+    * new pop_route, pop_rroute, pop_http_state and pop_default methods
     * send_json request function
     * Request.logger is deprecated now
     * fix circular reference (alias for self.method increment refcount)

@@ -438,6 +438,10 @@ class Application(object):
                 self.__dhandlers[m] = fn
     # enddef
 
+    def pop_default(self, method):
+        """Pop default handler for method."""
+        return self.__dhandlers(method)
+
     def route(self, uri, method=METHOD_HEAD | METHOD_GET):
         """Wrap function to be handler for uri and specified method.
 
@@ -509,6 +513,22 @@ class Application(object):
                     self.__handlers[uri][m] = fn
     # enddef
 
+    def pop_route(self, uri, method):
+        """Pop handler for uri and method from handers table.
+
+        Method must be define unique, so METHOD_GET_POST could not be use.
+        If you want to remove handler for both methods, you must call pop route
+        for each method state.
+        """
+        uri = uni(uri)
+
+        if re_filter.search(uri):
+            r_uri = re_filter.sub(self.__regex, uri) + '$'
+            return self.pop_rroute(r_uri, method)
+        else:
+            handlers = self.__handlers.get(uri, {})
+            return handlers.pop(method)
+
     def rroute(self, ruri, method=METHOD_HEAD | METHOD_GET):
         """Wrap function to be handler for uri defined by regular expression.
 
@@ -553,6 +573,15 @@ class Application(object):
                 self.__rhandlers[r_uri][m] = (fn, convertors)
     # enddef
 
+    def pop_rroute(self, r_uri, method):
+        """Pop handler and convertors for uri and method from handlers table.
+
+        For mor details see Application.pop_route.
+        """
+        r_uri = re.compile(r_uri, re.U)
+        handlers = self.__rhandlers.get(r_uri, {})
+        return handlers.pop(method)
+
     def http_state(self, code, method=METHOD_HEAD | METHOD_GET | METHOD_POST):
         """Wrap function to handle http status codes like http errors."""
         def wrapper(fn):
@@ -569,6 +598,15 @@ class Application(object):
             if method & m:
                 self.__shandlers[code][m] = fn
     # enddef
+
+    def pop_http_state(self, code, method):
+        """Pop handerl for http state and method.
+
+        As Application.pop_route, for pop multimethod handler, you must call
+        pop_http_state for each method.
+        """
+        handlers = self.__shandlers(code, {})
+        return handlers.pop(method)
 
     def error_from_table(self, req, code):
         """Internal method, which is called if error was accured.

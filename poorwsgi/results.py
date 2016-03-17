@@ -6,6 +6,8 @@ from os import path, access, listdir, R_OK, getegid, geteuid, getuid, getgid
 from operator import itemgetter
 from sys import version_info, version, exc_info
 from inspect import cleandoc
+from io import BytesIO
+from json import dumps as json_dumps
 
 import mimetypes
 
@@ -365,6 +367,13 @@ def not_implemented(req, code=None):
     req.write(content)
     return DONE
 # enddef
+
+
+def send_json(req, data, **kwargs):
+    """Send data as application/json."""
+    req.content_type = 'application/json'
+    req._buffer = BytesIO(json_dumps(data, **kwargs))
+    return DONE
 
 
 def send_file(req, path, content_type=None):  # TODO: set content-length !!

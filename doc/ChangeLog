@@ -1,4 +1,5 @@
 === 1.6.0 ====
+    * send_json request function
     * Request.logger is deprecated now
     * fix circular reference (alias for self.method increment refcount)
     * log_info, log_debug and log_warning methods

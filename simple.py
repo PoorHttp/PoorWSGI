@@ -455,7 +455,7 @@ def not_found(req):
 @app.pre_process()
 @app.post_process()
 def log(req):
-    req.logger("Log this point")
+    req.log_info("Log this point")
 
 
 @app.post_process()

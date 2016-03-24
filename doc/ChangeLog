@@ -1,34 +1,37 @@
 === 1.6.0 ====
-    * new pop_route, pop_rroute, pop_http_state and pop_default methods
-    * send_json request function
-    * Request.logger is deprecated now
-    * fix circular reference (alias for self.method increment refcount)
-    * log_info, log_debug and log_warning methods
-    * using io.BytesIO insead of StringIO
-    * format python2.6 fix
-    * new documentation for some methods and function
-    * decode json with content type charset
-    * code refactoring
-    * new hex filter
-    * syntax highlighting for example in readme
-    * log_info method and encoding error message to ascci when is needed
-    * profiling bug fix (problem with Application class)
-    * documentation fix for new jinja24doc
-    * app and appplication is deprecated now
-    * PEP8 code style
-    * new Request is_body_request property
-    * tests in separate directory
+    * Profiling rewrite
+    * app and application is at poorwsgi module now (__init__.py)
+    * Application name property
+    * remove deprecated request.SERVER_RETURN
+    * remove deprecated Request.add_common_vars
+    * remove deprecated Request.subprocess_env
+    * results rewrite and fix theis outputs
+    * better hbytes as human bytes function
+    * better html_escape
     * Application.debug, Application.document_root and
       Application.document_index
-    * better html_escape
-    * better hbytes as human bytes function
-    * results rewrite and fix theis outputs
-    * remove deprecated Request.subprocess_env
-    * remove deprecated Request.add_common_vars
-    * remove deprecated request.SERVER_RETURN
-    * Application name property
-    * app and application is at poorwsgi module now (__init__.py)
-    * Profiling rewrite
+    * tests in separate directory
+    * new Request is_body_request property
+    * PEP8 code style
+    * app and appplication is deprecated now
+    * documentation fix for new jinja24doc
+    * profiling bug fix (problem with Application class)
+    * log_info method and encoding error message to ascci when is needed
+    * syntax highlighting for example in readme
+    * new hex filter
+    * code refactoring
+    * decode json with content type charset
+    * new documentation for some methods and function
+    * format python2.6 fix
+    * using io.BytesIO insead of StringIO
+    * log_info, log_debug and log_warning methods
+    * fix circular reference (alias for self.method increment refcount)
+    * Request.logger is deprecated now
+    * send_json request function
+    * new pop_route, pop_rroute, pop_http_state and pop_default methods
+    * fix log_error in Application and Request to convert unicode to
+      utf-8 string in python2.x
+    * is_route and is_rroute methods
 
 ==== 1.5.2 ====
     * Info about unstable branch

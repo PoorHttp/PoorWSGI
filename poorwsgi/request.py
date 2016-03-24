@@ -810,6 +810,8 @@ class Request(object):
         """
 
         if self._log_level[0] >= level[0]:
+            if _unicode_exist and isinstance(message, unicode):
+                message = message.encode('utf-8')
             try:
                 self._errors.write("<%s> %s\n" % (level[1], message))
             except UnicodeEncodeError:

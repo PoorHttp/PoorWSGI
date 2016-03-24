@@ -527,7 +527,18 @@ class Application(object):
             return self.pop_rroute(r_uri, method)
         else:
             handlers = self.__handlers.get(uri, {})
-            return handlers.pop(method)
+            rv = handlers.pop(method)
+            if not handlers:    # is empty
+                self.__handlers.pop(uri, None)
+            return rv
+
+    def is_route(self, uri):
+        """Check if uri have any registered record."""
+        uri = uni(uri)
+        if re_filter.search(uri):
+            r_uri = re_filter.sub(self.__regex, uri) + '$'
+            return self.is_rroute(r_uri)
+        return uri in self.__handlers
 
     def rroute(self, ruri, method=METHOD_HEAD | METHOD_GET):
         """Wrap function to be handler for uri defined by regular expression.
@@ -580,7 +591,15 @@ class Application(object):
         """
         r_uri = re.compile(r_uri, re.U)
         handlers = self.__rhandlers.get(r_uri, {})
-        return handlers.pop(method)
+        rv = handlers.pop(method)
+        if not handlers:    # is empty
+            self.__rhandlers.pop(r_uri, None)
+        return rv
+
+    def is_rroute(self, r_uri):
+        """Check if regular expression uri have any registered record."""
+        r_uri = re.compile(r_uri, re.U)
+        return r_uri in self.__rhandlers
 
     def http_state(self, code, method=METHOD_HEAD | METHOD_GET | METHOD_POST):
         """Wrap function to handle http status codes like http errors."""
@@ -884,7 +903,21 @@ class Application(object):
         servers error log!
         """
         if self.__log_level[0] >= level[0]:
-            stderr.write("<%s> [%s] %s\n" % (level[1], self.__name, message))
+            if _unicode_exist and isinstance(message, unicode):
+                message = message.encode('utf-8')
+            try:
+                stderr.write("<%s> [%s] %s\n" % (level[1], self.__name,
+                                                 message))
+            except UnicodeEncodeError:
+                if _unicode_exist:
+                    message = message.decode('utf-8').encode(
+                        'ascii', 'backslashreplace')
+                else:
+                    message = message.encode(
+                        'ascii', 'backslashreplace').decode('ascii')
+
+                stderr.write("<%s> [%s] %s\n" % (level[1], self.__name,
+                                                 message))
             stderr.flush()
     # enddef
 

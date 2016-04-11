@@ -581,9 +581,9 @@ def debug_info(req, app):
             ('Server Scheme', req.server_scheme),
             ('HTTP Hostname', req.hostname),
             ('Server Admin', req.server_admin),
-            ('Forward For', req.forwarder_for),
-            ('Forward Host', req.forwarder_host),
-            ('Forward Proto', req.forwarder_proto),
+            ('Forward For', req.forwarded_for),
+            ('Forward Host', req.forwarded_host),
+            ('Forward Proto', req.forwarded_proto),
             ('Log Level', dict((b, a)
              for a, b in levels.items())[req._log_level]),
             ('Buffer Size', req._buffer_size),

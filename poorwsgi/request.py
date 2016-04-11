@@ -611,17 +611,17 @@ class Request(object):
         return self.__environ.get('SERVER_PROTOCOL')
 
     @property
-    def forwarder_for(self):
+    def forwarded_for(self):
         """X-Forward-For http header if exists."""
         return self.__environ.get('HTTP_X_FORWARDED_FOR')
 
     @property
-    def forwarder_host(self):
+    def forwarded_host(self):
         """X-Forward-Host http header if exists."""
         return self.__environ.get('HTTP_X_FORWARDED_HOST')
 
     @property
-    def forwarder_proto(self):
+    def forwarded_proto(self):
         """X-Forward-Proto http header if exists."""
         return self.__environ.get('HTTP_X_FORWARDED_PROTO')
 
@@ -817,8 +817,8 @@ class Request(object):
         same as the default port 80."""
 
         if not re_httpUrlPatern.match(uri):
-            return "%s://%s%s" % (self.forwarder_proto or self.scheme,
-                                  self.forwarder_host or self.hostname, uri)
+            return "%s://%s%s" % (self.forwarded_proto or self.server_scheme,
+                                  self.forwarded_host or self.hostname, uri)
         return uri
     # enddef
 

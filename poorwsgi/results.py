@@ -577,8 +577,13 @@ def debug_info(req, app):
             ('Python Version', version),
             ('Server Software', req.server_software),
             ('Server Hostname', req.server_hostname),
-            ('Server Port', req.port),
+            ('Server Port', req.server_port),
+            ('Server Scheme', req.server_scheme),
+            ('HTTP Hostname', req.hostname),
             ('Server Admin', req.server_admin),
+            ('Forward For', req.forwarder_for),
+            ('Forward Host', req.forwarder_host),
+            ('Forward Proto', req.forwarder_proto),
             ('Log Level', dict((b, a)
              for a, b in levels.items())[req._log_level]),
             ('Buffer Size', req._buffer_size),
@@ -614,6 +619,7 @@ def debug_info(req, app):
           <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
           <style>
            body { width: 80%%; margin: auto; padding-top: 30px; }
+           nav { font-family: monospace; text-align: center; }
            h1 { text-align: center; color: #707070; }
            h2 { font-family: monospace; }
            table { width: 100%%; font-family: monospace; }
@@ -626,7 +632,17 @@ def debug_info(req, app):
          </head>
          <body>
           <h1>Poor Wsgi Debug Info</h1>
-          <h2>Handlers Tanble</h2>
+          <nav>
+            <a href="#uri_handlers">Uri handlers</a>
+            <a href="#state_handlers">State handlers</a>
+            <a href="#pre_post_handlers">Pre &amp; Post handlers</a>
+            <a href="#filters">Filters</a>
+            <a href="#headers">Headers</a>
+            <a href="#poor_variables">Poor Variables</a>
+            <a href="#app_variables">Aplication Variables</a>
+            <a href="#environ">Environ</a>
+          </nav>
+          <h2 id="uri_handlers">Handlers Tanble</h2>
           <table>
            %s
           </table>
@@ -637,40 +653,42 @@ def debug_info(req, app):
            %s
           </table>
 
-          <h2>Http State Handlers Tanble</h2>
+          <h2 id="state_handlers">Http State Handlers Tanble</h2>
           <table>
         %s
           </table>
 
-          <h2>Pre process and Post process Handlers Tanble</h2>
+          <h2 id="pre_post_handlers">
+            Pre process and Post process Handlers Tanble</h2>
           <table>
            <tr><th>Pre</th><th>Post</th></tr>
         %s
           </table>
 
-          <h2>Routing regular expression filters</h2>
+          <h2 id="filters">Routing regular expression filters</h2>
           <table>
         %s
           </table>
 
-          <h2>Request Headers</h2>
+          <h2 id="headers">Request Headers</h2>
           <table>
         %s
           </table>
 
-          <h2>Poor Request variables
-           <small>(with <code>poor_</code> prefix)</small></h2>
+          <h2 id="poor_variables">Poor Request variables
+           <small>(with <code>poor_</code> prefix) and Request properties
+             </small></h2>
           <table>
         %s
           </table>
 
-          <h2>Application variables
+          <h2 id="app_variables">Application variables
            <small>(with <code>app_</code> prefix)</small></h2>
           <table>
         %s
           </table>
 
-          <h2>Request Environ</h2>
+          <h2 id="environ">Request Environ</h2>
           <table style="font-size: 90%%;">
         %s
           </table>

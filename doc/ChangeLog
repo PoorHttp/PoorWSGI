@@ -33,6 +33,7 @@
       utf-8 string in python2.x
     * is_route and is_rroute methods
     * X-Forwarded-* headers support
+    * debug output with navigation and some new request properties
 
 ==== 1.5.2 ====
     * Info about unstable branch

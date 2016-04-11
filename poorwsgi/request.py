@@ -559,8 +559,13 @@ class Request(object):
         return self.__environ.get('HTTP_USER_AGENT')
 
     @property
-    def scheme(self):
+    def server_scheme(self):
         """Request scheme, typical {http} or {https}."""
+        return self.__environ.get('wsgi.url_scheme')
+
+    @property
+    def scheme(self):
+        """Alias for server_scheme property."""
         return self.__environ.get('wsgi.url_scheme')
 
     @property
@@ -583,17 +588,42 @@ class Request(object):
         return self.__environ.get('SERVER_NAME')
 
     @property
-    def port(self):
+    def server_port(self):
         """Server port."""
         return int(self.__environ.get('SERVER_PORT'))
 
     @property
-    def protocol(self):
+    def port(self):
+        """Alias for server_port property."""
+        return int(self.__environ.get('SERVER_PORT'))
+
+    @property
+    def server_protocol(self):
         """Server protocol, as given by the client.
 
         In HTTP/0.9. cgi SERVER_PROTOCOL value.
         """
         return self.__environ.get('SERVER_PROTOCOL')
+
+    @property
+    def protocol(self):
+        """Alias for server_protocol property"""
+        return self.__environ.get('SERVER_PROTOCOL')
+
+    @property
+    def forwarder_for(self):
+        """X-Forward-For http header if exists."""
+        return self.__environ.get('HTTP_X_FORWARDED_FOR')
+
+    @property
+    def forwarder_host(self):
+        """X-Forward-Host http header if exists."""
+        return self.__environ.get('HTTP_X_FORWARDED_HOST')
+
+    @property
+    def forwarder_proto(self):
+        """X-Forward-Proto http header if exists."""
+        return self.__environ.get('HTTP_X_FORWARDED_PROTO')
 
     @property
     def secret_key(self):
@@ -787,7 +817,8 @@ class Request(object):
         same as the default port 80."""
 
         if not re_httpUrlPatern.match(uri):
-            return "%s://%s%s" % (self.scheme, self.hostname, uri)
+            return "%s://%s%s" % (self.forwarder_proto or self.scheme,
+                                  self.forwarder_host or self.hostname, uri)
         return uri
     # enddef
 

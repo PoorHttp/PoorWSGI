@@ -15,14 +15,18 @@ Current Contents:
 
     * state   - constants like http status code, log levels and method types
 
-    * wsgi    - main application function, and functions for working with
-                dispatch table
+    * wsgi    - Application callable class, which is the main point for
+                poorwsgi web application.
 """
 
 from poorwsgi.request import uni
 
-from poorwsgi.results import redirect, SERVER_RETURN, send_file
+from poorwsgi.results import redirect, SERVER_RETURN, send_file, send_json
 
-from poorwsgi.state import __author__, __date__, __version__
+from poorwsgi.wsgi import Application
 
-from poorwsgi.wsgi import application, app
+# Application callable instance, which is need by wsgi server ( *DEPRECATED* )
+application = Application('__poorwsgi__')
+
+# Short reference to application instance ( *DEPRECATED* )
+app = application

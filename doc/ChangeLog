@@ -1,3 +1,43 @@
+=== 1.6.0 ====
+    * Profiling rewrite
+    * app and application is at poorwsgi module now (__init__.py)
+    * Application name property
+    * remove deprecated request.SERVER_RETURN
+    * remove deprecated Request.add_common_vars
+    * remove deprecated Request.subprocess_env
+    * results rewrite and fix theis outputs
+    * better hbytes as human bytes function
+    * better html_escape
+    * Application.debug, Application.document_root and
+      Application.document_index
+    * tests in separate directory
+    * new Request is_body_request property
+    * PEP8 code style
+    * app and appplication is deprecated now
+    * documentation fix for new jinja24doc
+    * profiling bug fix (problem with Application class)
+    * log_info method and encoding error message to ascci when is needed
+    * syntax highlighting for example in readme
+    * new hex filter
+    * code refactoring
+    * decode json with content type charset
+    * new documentation for some methods and function
+    * format python2.6 fix
+    * using io.BytesIO insead of StringIO
+    * log_info, log_debug and log_warning methods
+    * fix circular reference (alias for self.method increment refcount)
+    * Request.logger is deprecated now
+    * send_json request function
+    * new pop_route, pop_rroute, pop_http_state and pop_default methods
+    * fix log_error in Application and Request to convert unicode to
+      utf-8 string in python2.x
+    * is_route and is_rroute methods
+    * X-Forwarded-* headers support
+    * debug output with navigation and some new request properties
+
+==== 1.5.2 ====
+    * Info about unstable branch
+
 ==== 1.5.1 ====
     * append missing cmp function when python3 is use
     * errors must be flushed

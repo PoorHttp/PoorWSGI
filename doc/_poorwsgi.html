@@ -1,6 +1,6 @@
 {% set page = 'poorwsgi' %}{% include "_header.html" %}
 
-{% set sects = load_text("readme.txt") %}
+{% set sects = load_wiki("readme.txt") %}
 
 {#      need api for keywords yea?      #}
 {% set api = load_module('poorwsgi') %}
@@ -14,5 +14,5 @@
 
 
 {% include "_text.html" %}
-      
+
 {% include "_footer.html" %}

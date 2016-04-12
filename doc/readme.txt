@@ -6,7 +6,9 @@ which is post to all uri or http state handler. The simplest way to run and
 test it looks like that:
 
     from wsgiref.simple_server import make_server
-    from poorwsgi import *
+    from poorwsgi import Application
+
+    app = Application('test')
 
     @app.route('/test')
     def root_uri(req):
@@ -40,9 +42,9 @@ If you are new with it, please see fast Tutorial on this page.
 
 
     #!text
-    ~$ wget https://pypi.python.org/packages/source/P/PoorWSGI/PoorWSGI-1.5.1.tar.gz
-    ~$ tar xzf PoorWSGI-1.5.1.tar.gz
-    ~$ cd PoorWSGI-1.5.1
+    ~$ wget https://pypi.python.org/packages/source/P/PoorWSGI/PoorWSGI-1.6.0.tar.gz
+    ~$ tar xzf PoorWSGI-1.6.0.tar.gz
+    ~$ cd PoorWSGI-1.6.0
     ~# python setup.py install
 
     if you have jinja24doc and you want to install this html documentation
@@ -214,7 +216,7 @@ at the moment of call of this method to WSGI server, but WSGI server can send
 data to client at and of your handler.
 
 Before you send data, it could be to set {Content-Type} header of page data.
-Default vaule is '{text/html; charset=utf-8}'. You change content type by
+Default vaule is {text/html; charset=utf-8}. You change content type by
 change Request.content_type variable or via Request.headers_out object.
 {Content-Length} was be set automatically if data are less then
 poor_BufferSize. Or you can set content length via Request.set_content_lenght
@@ -271,10 +273,10 @@ form or in your own regular expressions. Basic use is define by group name.
     def user_detail(req, name):
         return 'Name is %s' % name
 
-There are use filters define by regular expression from table app.filters. This
-filter is use to transport to regular expression define by group. Default
-filter is {r'[^/]+'} with uni convert function. You can use any filter from
-table filters.
+There are use filters define by regular expression from table
+Application.filters. This filter is use to transport to regular expression
+define by group. Default filter is {r'[^/]+'} with uni convert function. You
+can use any filter from table filters.
 
     # group regular expression with filter
     @app.route('/<surname:word>/<age:int>')
@@ -284,12 +286,12 @@ table filters.
 Filter int is define by {r'-?\d+'} with convert "function" int. So age must be
 number and the input parameter is int instance.
 
-There are fifth predefined filters: *:int*, *:float*, *:word*, *:re:* and
-*none* as default filter. Word is define as {r'\w+'} regular expression, and
-poorwsgi use re.U flag, so it match any Unicode string. That means UTF-8
-string.
+There are predefined filters, for example: *:int*, *:word*, *:re:* and *none*
+as default filter. Word is define as {r'\w+'} regular expression, and poorwsgi
+use re.U flag, so it match any Unicode string. That means UTF-8 string. For
+all filters see Application.filters property or {/debug-info} page.
 
-You can get copy of filters table calling app.filters property. And this
+You can get copy of filters table calling Application.filters property. And this
 filters table is output to debug-info page. Adding your own filter is possible
 with function set_filter with name, regular expression and convert function
 which is uni by default. Next you can use this filter in group regular
@@ -371,7 +373,7 @@ too, default poor WSGI internal server error handler is called.
 
 There are too special list of handlers. First is iter and call before each
 request. You can add function with pre_process decorator or add_pre_process
-method. Functions are called in order how is add to list. They don'ŧ return
+method. Functions are called in order how is add to list. They don't return
 anything, resp. their return values are ignored. If they crash with error,
 internal_server_error was return and http state handler was called.
 
@@ -399,13 +401,13 @@ PoorWSGI has two extra classes for get arguments. From request uri, typical
 for GET method and from request body, typical for POST method.ore details. If
 this automatic parsing is disabled, a EmptyForm class is use.
 
-==== app.auto_args ====
+==== Application.auto_args ====
 If auto_args is set to {True}, which is default, Request object parse input
 arguments from request uri at initialisation. There will be {args} variable in
 Request object, which is instance of Args class. If you want to off this
 functionality, set this property to {False}.
 
-==== app.auto_form ====
+==== Application.auto_form ====
 If auto_form is set to {True}, which is default, Request object parse input
 arguments from request body at initialisation when request type is POST, PUT
 or PATCH. There will be {form} variable which is instance of FieldStorage class.
@@ -413,18 +415,18 @@ If you want to off this functionality, set this property to {False}.
 
 You must do it, if you want to set your own file_callback for FieldStorage.
 
-==== app.auto_json ====
+==== Application.auto_json ====
 If it is True (default), method is POST, PUT or PATCH and requset content type
 is application/json, than Request object do automatic parsing request body to
 json dict variable.
 
-==== app.keep_blank_values ====
+==== Application.keep_blank_values ====
 This property is set for input parameters to automatically calling Args and
 FieldStorage classes, when auto_args resp. auto_form is set. By default this
 property is set to {0}. If it set to {1}, blank values should be interpret as
 empty strings.
 
-==== app.strict_parsing ====
+==== Application.strict_parsing ====
 This property is set for input parameter to automatically calling Args and
 FieldStorage classes. when auto_args resp. auto_form is set. By default this
 variable is set to {0}. If is set to {1}, ValueError exception
@@ -441,16 +443,17 @@ variable to {1}. If so, use it in your own parsing.
 
         try:
             req.args = request.Args(req,
-                        keep_blank_values = app.keep_blank_values,
-                        strict_parsing = app.strict_parsing)
+                                    keep_blank_values=app.keep_blank_values,
+                                    strict_parsing=app.strict_parsing)
         except Exception as e:
             req.log_error("Bad request uri: %s", e)
 
         if req.method_number == state.METHOD_POST:
             try:
-                req.form = request.FieldStorage(req,
-                            keep_blank_values = app.keep_blank_values,
-                            strict_parsing = app.strict_parsing)
+                req.form = request.FieldStorage(
+                    req,
+                    keep_blank_values=app.keep_blank_values,
+                    strict_parsing=app.strict_parsing)
             except Exception as e:
                 req.log_error("Bad request body: %s", e)
 
@@ -474,7 +477,7 @@ poor_AutoArgs is set to On, which is default.
     @app.route('/test/get')
     def test_get(req)
         name = req.args.getfirst('name')
-        colors = req.args.getlist('color', fce = int)
+        colors = req.args.getlist('color', fce=int)
         return "Get arguments are %s" % uni(req.args)
 
 If no arguments are parsed, or if poor_AutoArgs is set to Off, req.args is
@@ -499,7 +502,7 @@ variable, which is configurable by XXX.
                                              # is convert to number with zero
                                              # as default
         name = req.form.getfirst('name')
-        colors = req.form.getlist('color', fce = int)
+        colors = req.form.getlist('color', fce=int)
         return "Post arguments for id are %s" % (id, uni(req.args))
 
 As like Args class, if poor_AutoForm is set to Off, or if method is no POST,
@@ -509,13 +512,14 @@ PUT or PATCH, req.form is EmptyForm is instance instead of FieldStorage.
 
 In the first place JSON request are from AJAX. There are automatic JSON
 parsing in Request object, which parse request body to JSON variable. This
-parsing starts only when app.auto_json variable is set to True (default)
+parsing starts only when Application.auto_json variable is set to True (default)
 and if content type of POST, PUT or PATCH request is application/json.
 Then request body is parsed to json property.
 
     import json
 
-    @app.route('/test/json', methods = state.METHOD_POST | state.METHOD_PUT | state.METHOD_PATCH)
+    @app.route('/test/json',
+               methods=state.METHOD_POST | state.METHOD_PUT | state.METHOD_PATCH)
     def test_json(req):
         for key, val in req.json.items():
             req.error_log('%s: %v' % (key, str(val)))
@@ -565,12 +569,14 @@ use TemporaryFile as storage for this upload files. You can do it with simple
 adding {file} class. But if you want to do in Python 3.x, you must add
 io.FileIO class, cause file class not exist in Python 3.x.
 
-    from poorwsgi import *
+    from poorwsgi import Application, state, request
     from sys import version_info
 
     if version_info.major >= 3:
         from io import FileIO
         file = FileIO
+
+    app = Application('test')
 
     app.auto_form = False   # disable automatic request body parsing - IMPORTANT !
 
@@ -578,22 +584,25 @@ io.FileIO class, cause file class not exist in Python 3.x.
     def auto_form(req):
         if req.method_number == state.METHOD_POST:
             # store upload files permanently with their right file names
-            req.form = request.FieldStorage(req,
-                        keep_blank_values = app.keep_blank_values,
-                        strict_parsing = app.strict_parsing,
-                        file_callback = file)
+            req.form = request.FieldStorage(
+                req,
+                keep_blank_values=app.keep_blank_values,
+                strict_parsing=app.strict_parsing,
+                file_callback=file)
 
 As you can see, this example works, but it is so bad solution of your problem.
 Little bit better solution will be, if you store files only if exist and only
 to special separate dictionary, which could be configurable. That you need use
 factory to create file_callback.
 
-    from poorwsgi import *
+    from poorwsgi import Application, state, request
     from sys import version_info
 
     if version_info.major >= 3:
         from io import FileIO
         file = FileIO
+
+    app = Application('test')
 
     class Storage(file):
         def __init__(self, directory, filename):
@@ -615,18 +624,19 @@ factory to create file_callback.
 
     @app.pre_process()
     def auto_form(req):
-    """ Own implementation of req.form paring before any POST request
-        with own file_callback.
-    """
-    if req.method_number == state.METHOD_POST:
-        factory = StorageFactory('./upload')
-        try:
-            req.form = request.FieldStorage(req,
-                        keep_blank_values = app.keep_blank_values,
-                        strict_parsing = app.strict_parsing,
-                        file_callback = factory.create)
-        except Exception as e:
-            req.log_error(e)
+        """ Own implementation of req.form paring before any POST request
+            with own file_callback.
+        """
+        if req.method_number == state.METHOD_POST:
+            factory = StorageFactory('./upload')
+            try:
+                req.form = request.FieldStorage(
+                    req,
+                    keep_blank_values=app.keep_blank_values,
+                    strict_parsing=app.strict_parsing,
+                    file_callback=factory.create)
+            except Exception as e:
+                req.log_error(e)
 
 ==== Application / User options ====
 Like in mod_python Request, Poor WSGI Request have get_options method too.
@@ -689,7 +699,7 @@ So if you want to add any other variable, be careful to named it.
     def test(req):
         req.logger('test call')
         ...
-        
+
 
 === Headers and Sessions ===
 ==== Headers ====
@@ -723,25 +733,29 @@ are check from data, so client can't change it in simple way. That is
 important to right set poor_SecretKey variable which is used in class by
 hidden function.
 
-    from poorwsgi import *
+    from poorwsgi import Application, state, redirect
     from poorwsgi.session import PoorSession
+    from os import urandom
+
+    app = Application('test')
+    app.secret_key = urandom(32)                    # random secret_key
 
     def check_login(fn):
         def handler(req):
             cookie = PoorSession(req)
-            if not 'passwd' in cookie.data:         # expires or didn't set
+            if 'passwd' not in cookie.data:         # expires or didn't set
                 req.log_error('Login cookie not found.', state.LOG_INFO)
-                redirect(req, '/login', text = 'Login required')
+                redirect(req, '/login', text='Login required')
             return fn(req)
         return handler
 
     @app.route('/login', method = state.METHOD_GET_POST)
     def login(req):
         if req.method == 'POST':
-            passwd = req.form.getfirst('passwd', fce = str)
+            passwd = req.form.getfirst('passwd', fce=str)
             if passwd != 'SecretPasswds':
                 req.log_error('Bad password', state.LOG_INFO)
-                redirect(req, '/login', text = 'Bad password')
+                redirect(req, '/login', text='Bad password')
 
             cookie = PoorSession(req)
             cookie.data['passwd'] = passwd
@@ -852,7 +866,7 @@ there are more programmers then he, which use this little project, let's call
 it WSGI connector.
 
 If you have any questions, proposals, bug fixes, text corrections, or any
-other things, please send me email to {*mcbig at zeropage.cz*} or you can
+other things, please send me email to *mcbig at zeropage.cz* or you can
 create issue on GutHub:
 https://github.com/PoorHttp/PoorWSGI/issues Thank you so much.
 

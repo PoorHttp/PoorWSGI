@@ -24,7 +24,8 @@ else:                           # python 3.x
 from poorwsgi.state import DONE, METHOD_ALL, methods, sorted_methods, levels, \
     LOG_ERR, LOG_DEBUG, HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, \
     HTTP_NOT_MODIFIED, HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_NOT_FOUND, \
-    HTTP_METHOD_NOT_ALLOWED, HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_IMPLEMENTED, \
+    HTTP_METHOD_NOT_ALLOWED, HTTP_INTERNAL_SERVER_ERROR, \
+    HTTP_NOT_IMPLEMENTED, \
     __version__, __date__
 
 html_escape_table = {'&': "&amp;",
@@ -718,6 +719,7 @@ def __fill_default_shandlers(code, handler):
     default_shandlers[code] = {}
     for m in methods.values():
         default_shandlers[code][m] = handler
+
 
 __fill_default_shandlers(HTTP_NOT_MODIFIED, not_modified)
 __fill_default_shandlers(HTTP_BAD_REQUEST, bad_request)

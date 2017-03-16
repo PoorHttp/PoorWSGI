@@ -5,11 +5,6 @@ application.
 from os import path, access, R_OK, environ, getcwd, uname
 from sys import version_info, stderr, version
 
-if version_info[0] == 2 and version_info[1] < 7:
-    from ordereddict import OrderedDict
-else:
-    from collections import OrderedDict
-
 import re
 
 from poorwsgi.state import OK, DONE, DECLINED, HTTP_OK, \
@@ -18,9 +13,15 @@ from poorwsgi.state import OK, DONE, DECLINED, HTTP_OK, \
     HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN, \
     __version__
 from poorwsgi.request import Request, BrokenClientConnection
-from poorwsgi.results import default_shandlers, not_implemented, internal_server_error, \
+from poorwsgi.results import default_shandlers, not_implemented, \
+    internal_server_error, \
     SERVER_RETURN, send_file, directory_index, debug_info, \
     _unicode_exist, uni
+
+if version_info[0] == 2 and version_info[1] < 7:
+    from ordereddict import OrderedDict
+else:
+    from collections import OrderedDict
 
 # check, if there is define filter in uri
 re_filter = re.compile(r'<(\w+)(:[^>]+)?>')

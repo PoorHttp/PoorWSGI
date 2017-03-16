@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from distutils.core import setup, Command
 from distutils.command.install_data import install_data
 from distutils.dir_util import remove_tree
@@ -8,20 +9,26 @@ from shutil import copyfile
 from subprocess import call
 from sys import version_info
 
+from poorwsgi.state import __version__
+
 if version_info[0] >= 3:
     from io import FileIO
     file = FileIO
 
-from poorwsgi.state import __version__
 environ.update({'PYTHONPATH': 'poorwsgi'})
 
-def find_data_files (directory, targetFolder=""):
+
+def find_data_files(directory, targetFolder=""):
     rv = []
     for root, dirs, files in walk(directory):
         if targetFolder:
-            rv.append (( targetFolder, list(root+'/'+f for f in files if f[0]!='.' and f[-1]!='~') ))
+            rv.append((targetFolder,
+                       list(root+'/'+f
+                            for f in files if f[0] != '.' and f[-1] != '~')))
         else:
-            rv.append (( root, list(root+'/'+f for f in files if f[0]!='.' and f[-1]!='~') ))
+            rv.append((root,
+                       list(root+'/'+f
+                            for f in files if f[0] != '.' and f[-1] != '~')))
     log.info(str(rv))
     return rv
 
@@ -29,7 +36,8 @@ def find_data_files (directory, targetFolder=""):
 class build_html(Command):
     description = "build html documentation, need jinja24doc >= 1.1.0"
     user_options = [
-            ('build-base=', 'b', "base build directory (default: 'build.build-base')"),
+            ('build-base=', 'b',
+             "base build directory (default: 'build.build-base')"),
             ('html-temp=', 't', "temporary documentation directory")
         ]
 
@@ -50,14 +58,14 @@ class build_html(Command):
 
         if not path.exists(self.html_temp):
             makedirs(self.html_temp)
-        if call(['jinja24doc', '-v','_poorwsgi.html', 'doc'],
-                        stdout=file(self.html_temp + '/index.html', 'w')):
+        if call(['jinja24doc', '-v', '_poorwsgi.html', 'doc'],
+                stdout=file(self.html_temp + '/index.html', 'w')):
             raise IOError(1, 'jinja24doc failed')
-        if call(['jinja24doc', '-v','_poorwsgi_api.html', 'doc'],
-                        stdout=file(self.html_temp + '/api.html', 'w')):
+        if call(['jinja24doc', '-v', '_poorwsgi_api.html', 'doc'],
+                stdout=file(self.html_temp + '/api.html', 'w')):
             raise IOError(1, 'jinja24doc failed')
         if call(['jinja24doc', '-v', '_licence.html', 'doc'],
-                        stdout=file(self.html_temp + '/licence.html', 'w')):
+                stdout=file(self.html_temp + '/licence.html', 'w')):
             raise IOError(1, 'jinja24doc failed')
         copyfile('doc/style.css', self.html_temp + '/style.css')
 
@@ -66,9 +74,9 @@ class clean_html(Command):
     description = "clean up temporary files from 'build_html' command"
     user_options = [
             ('build-base=', 'b',
-                    "base build directory (default: 'build-html.build-base')"),
+             "base build directory (default: 'build-html.build-base')"),
             ('html-temp=', 't',
-                    "temporary documentation directory")
+             "temporary documentation directory")
         ]
 
     def initialize_options(self):
@@ -86,13 +94,14 @@ class clean_html(Command):
         else:
             log.warn("'%s' does not exist -- can't clean it", self.html_temp)
 
+
 class install_html(install_data):
     description = "install html documentation"
     user_options = install_data.user_options + [
             ('build-base=', 'b',
-                    "base build directory (default: 'build-html.build-base')"),
+             "base build directory (default: 'build-html.build-base')"),
             ('html-temp=', 't',
-                    "temporary documentation directory"),
+             "temporary documentation directory"),
             ('skip-build', None, "skip the build step"),
         ]
 
@@ -113,7 +122,8 @@ class install_html(install_data):
     def run(self):
         if not self.skip_build:
             self.run_command('build_html')
-        self.data_files = find_data_files(self.html_temp, 'share/doc/poorwsgi/html')
+        self.data_files = find_data_files(self.html_temp,
+                                          'share/doc/poorwsgi/html')
         install_data.run(self)
 
 
@@ -122,26 +132,30 @@ def _setup(**kwargs):
         kwargs['install_requires'] = ['ordereddict >= 1.1']
     setup(**kwargs)
 
+
 def doc():
     with open('README.rst', 'r') as readme:
         return readme.read().strip()
 
+
 _setup(
-    name                = "PoorWSGI",
-    version             = __version__,
-    description         = "Poor WSGI connector for Python",
-    author              = "Ondrej Tuma",
-    author_email        = "mcbig@zeropage.cz",
-    url                 = "http://poorhttp.zeropage.cz/poorwsgi.html",
-    packages            = ['poorwsgi'],
-    data_files          = [
+    name="PoorWSGI",
+    version=__version__,
+    description="Poor WSGI connector for Python",
+    author="Ondřej Tůma",
+    author_email="mcbig@zeropage.cz",
+    maintainer="Ondrej Tuma",
+    maintainer_email="mcbig@zeropage.cz",
+    url="http://poorhttp.zeropage.cz/poorwsgi.html",
+    packages=['poorwsgi'],
+    data_files=[
             ('share/doc/poorwsgi',
-                        ['doc/ChangeLog', 'doc/licence.txt', 'doc/readme.txt']),
+             ['doc/ChangeLog', 'doc/licence.txt', 'doc/readme.txt']),
             ('share/poorwsgi/example',
-                        ['simple.py']) ],
-    license             = "BSD",
-    long_description    = doc(),
-    classifiers         = [
+             ['simple.py'])],
+    license="BSD",
+    long_description=doc(),
+    classifiers=[
             "Development Status :: 5 - Production/Stable",
             "Environment :: Web Environment",
             "Intended Audience :: Developers",
@@ -162,7 +176,7 @@ _setup(
             "Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware",
             "Topic :: Software Development :: Libraries :: Python Modules"
     ],
-    cmdclass            = {'build_html': build_html,
-                           'clean_html': clean_html,
-                           'install_html': install_html},
+    cmdclass={'build_html': build_html,
+              'clean_html': clean_html,
+              'install_html': install_html},
 )

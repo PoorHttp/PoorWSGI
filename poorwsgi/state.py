@@ -1,5 +1,7 @@
 """Constants like http status code, log levels and method types."""
 
+from operator import itemgetter
+
 __author__ = "Ondrej Tuma (McBig) <mcbig@zeropage.cz>"
 __date__ = "16 Mar 2017"
 __version__ = "1.7.0"     # https://www.python.org/dev/peps/pep-0386/
@@ -104,5 +106,4 @@ methods = {'HEAD': METHOD_HEAD,
            'CONNECT': METHOD_CONNECT,
            'PATCH': METHOD_PATCH}
 
-from operator import itemgetter
 sorted_methods = sorted(methods.items(), key=itemgetter(1))

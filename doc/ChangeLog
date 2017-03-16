@@ -1,6 +1,7 @@
 ==== 1.7.0 ====
     * New Application config list form_content_types
     * Form is parsed only when content-type is one of form_content_types
+    * Some PEP8 cleaning
 
 ==== 1.6.0 ====
     * Profiling rewrite

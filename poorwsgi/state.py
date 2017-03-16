@@ -1,8 +1,8 @@
 """Constants like http status code, log levels and method types."""
 
 __author__ = "Ondrej Tuma (McBig) <mcbig@zeropage.cz>"
-__date__ = "11 Nov 2015"
-__version__ = "1.6.1"     # https://www.python.org/dev/peps/pep-0386/
+__date__ = "16 Mar 2017"
+__version__ = "1.7.0"     # https://www.python.org/dev/peps/pep-0386/
 
 OK = 0
 DONE = 1

@@ -285,7 +285,8 @@ class Request(object):
             self.__json = Json(self, pdict.get('charset', 'utf-8'))
             self.__form = EmptyForm()
         # test auto form parsing
-        elif app_config['auto_form'] and self.is_body_request:
+        elif app_config['auto_form'] and self.is_body_request \
+                and ctype in app_config['form_content_types']:
             self.__form = FieldStorage(
                 self, keep_blank_values=app_config['keep_blank_values'],
                 strict_parsing=app_config['strict_parsing'])
@@ -500,8 +501,9 @@ class Request(object):
     def form(self):
         """Dictionary like class (FieldStorage instance) of body arguments.
 
-        Arguments must be send in request body, which is typical for POST, PUT
-        or PATCH method. Request body is parsed when Application.auto_form
+        Arguments must be send in request body with content type
+        one of Application.form_content_types. Method must be POST, PUT
+        or PATCH. Request body is parsed when Application.auto_form
         is set, which default and when method is POST, PUT or PATCH.
 
         This property could be *set only once*.

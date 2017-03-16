@@ -1,4 +1,8 @@
-=== 1.6.0 ====
+==== 1.7.0 ====
+    * New Application config list form_content_types
+    * Form is parsed only when content-type is one of form_content_types
+
+==== 1.6.0 ====
     * Profiling rewrite
     * app and application is at poorwsgi module now (__init__.py)
     * Application name property

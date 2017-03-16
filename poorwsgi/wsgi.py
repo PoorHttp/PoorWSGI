@@ -85,6 +85,10 @@ class Application(object):
                 'application/json',
                 'application/javascript',
                 'application/merge-patch+json'],
+            'form_content_types': [
+                'application/x-www-form-urlencoded',
+                'multipart/form-data'
+            ],
             'auto_cookies': True,
             'debug': 'Off',
             'document_root': '',
@@ -219,7 +223,8 @@ class Application(object):
     def auto_form(self):
         """Automatic parsing arguments from request body.
 
-        If it is True (default) and method is POST, PUT or PATCH, Request
+        If it is True (default) and method is POST, PUT or PATCH, and
+        request content type is one of form_content_types, Request
         object do automatic parsing request body to its form variable.
         """
         return self.__config['auto_form']
@@ -338,6 +343,15 @@ class Application(object):
         testing, when automatics Json object is create from request body.
         """
         return self.__config['json_content_types']
+
+    @property
+    def form_content_types(self):
+        """Copy of form content type list.
+
+        Containt list of strings as form content types, which is use for
+        testing, when automatics Form object is create from request body.
+        """
+        return self.__config['form_content_types']
 
     def set_filter(self, name, regex, convertor=uni):
         """Create new filter or overwrite builtins.

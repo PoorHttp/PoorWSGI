@@ -3,16 +3,10 @@ from hashlib import sha512
 from time import time
 from pickle import dumps, loads
 from base64 import b64decode, b64encode
-from sys import version_info
 
 import bz2
 
-if version_info[0] < 3:         # python 2.x
-    from Cookie import SimpleCookie
-    bytes = str
-else:                           # python 3.x
-    from http.cookies import SimpleCookie
-    xrange = range
+from http.cookies import SimpleCookie
 
 from poorwsgi.state import LOG_INFO
 
@@ -21,7 +15,7 @@ def hidden(text, passwd):
     """(en|de)crypt text with sha hash of passwd via xor.
 
     Arguments:
-        text    raw data to (en|de)crypt. Could be str, unicode or bytes
+        text    raw data to (en|de)crypt. Could be str, or bytes
         passwd  password
         returns string
     """
@@ -31,20 +25,17 @@ def hidden(text, passwd):
         passwd = sha512(passwd.encode("utf-8")).digest()
     passlen = len(passwd)
 
-    # text must be str on python 2.x (like bytes in python 3.x)
-    if version_info[0] < 3 and isinstance(text, unicode):
-        text = text.encode("utf-8")
     # text must be bytes
-    elif version_info[0] >= 3 and isinstance(text, str):
+    if isinstance(text, str):
         text = text.encode("utf-8")
 
     if isinstance(text, str):       # text is str, we are in python 2.x
         retval = ''
-        for i in xrange(len(text)):
+        for i in range(len(text)):
             retval += chr(ord(text[i]) ^ ord(passwd[i % passlen]))
     else:                           # text is bytes, we are in python 3.x
         retval = bytearray()
-        for i in xrange(len(text)):
+        for i in range(len(text)):
             retval.append(text[i] ^ passwd[i % passlen])
 
     return retval

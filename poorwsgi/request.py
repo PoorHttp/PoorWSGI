@@ -5,7 +5,7 @@ Headers, Request and FieldStorage classes, which is used for managing requests.
 from collections import Mapping
 from wsgiref.headers import _formatparam
 from cgi import FieldStorage as CgiFieldStorage, parse_header
-from sys import version_info, stderr
+from sys import stderr
 from inspect import stack
 from json import loads as json_loads
 from io import BytesIO
@@ -13,21 +13,14 @@ from io import BytesIO
 import os
 import re
 
-if version_info[0] < 3:         # python 2.x
-    from httplib import responses
-    from urlparse import parse_qs
-    from Cookie import SimpleCookie
-
-else:                           # python 3.x
-    from http.client import responses
-    from urllib.parse import parse_qs
-    from http.cookies import SimpleCookie
+from http.client import responses
+from urllib.parse import parse_qs
+from http.cookies import SimpleCookie
 
 from poorwsgi.state import methods, levels, \
     LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG, METHOD_POST, METHOD_PUT, \
     METHOD_PATCH, HTTP_OK
 
-from poorwsgi.results import _unicode_exist, uni
 
 # simple regular expression for construct_url method
 re_httpUrlPatern = re.compile(r"^(http|https):\/\/")
@@ -41,7 +34,7 @@ class Headers(Mapping):
     be store in string encoded in ISO-8859-1. This class methods Headers.add
     and Headers.add_header do auto convert values from UTF-8 to ISO-8859-1
     encoding if it is possible. So on every modification methods must be use
-    UTF-8 string or unicode.
+    UTF-8 string.
     """
 
     def __init__(self, headers=list(), strict=True):
@@ -70,7 +63,7 @@ class Headers(Mapping):
                 self.__headers = list((k, v) for k, v in headers.items())
         else:
             raise AssertionError("headers must be tuple, list or set "
-                                 "of str or unicode, or dict "
+                                 "of str, or dict "
                                  "(got {0})".format(type(headers)))
     # enddef
 
@@ -175,28 +168,18 @@ class Headers(Mapping):
     def iso88591(value):
         """Doing automatic conversion to iso-8859-1 strings.
 
-        In python 2.x can convert unicode to iso-8859-1 strings, or from utf-8
-        string to iso-8859-1 string. On python 3.x converts from utf-8 to
-        iso-8859-1 string. That means, all input value of Headers class
-        must be UTF-8 stings.
+        Converts from utf-8 to iso-8859-1 string. That means, all input value
+        of Headers class must be UTF-8 stings.
         """
         try:
-            if not _unicode_exist and isinstance(value, str):
+            if isinstance(value, str):
                 return value.encode('utf-8').decode('iso-8859-1')
-            if _unicode_exist and isinstance(value, str):
-                return value.decode('utf-8').encode('iso-8859-1')
-            if _unicode_exist and isinstance(value, unicode):
-                return value.encode('iso-8859-1')
 
         except UnicodeError:
                 raise AssertionError("Header name/value must be iso-8859-1 "
                                      "encoded (got {0})".format(value))
-        if not _unicode_exist:
-            raise AssertionError("Header name/value must be of type str "
-                                 "(got {0})".format(value))
-        else:
-            raise AssertionError("Header name/value must be of type str or "
-                                 "unicode (got {0})".format(value))
+        raise AssertionError("Header name/value must be of type str "
+                             "(got {0})".format(value))
 # endclass Headers
 
 
@@ -360,7 +343,7 @@ class Request(object):
     @property
     def uri(self):
         """The path portion of the URI."""
-        return uni(self.__environ.get('PATH_INFO'))
+        return self.__environ.get('PATH_INFO')
 
     @property
     def uri_rule(self):
@@ -721,8 +704,7 @@ class Request(object):
         to client via old write method (directly). Otherwise, data was be sent
         at the end of request as iterable object.
         """
-        if (not _unicode_exist and isinstance(data, str)) \
-                or (_unicode_exist and isinstance(data, unicode)):
+        if isinstance(data, str):
             data = data.encode('utf-8')
 
         # FIXME: self._buffer is not FIFO
@@ -843,17 +825,11 @@ class Request(object):
         """
 
         if self._log_level[0] >= level[0]:
-            if _unicode_exist and isinstance(message, unicode):
-                message = message.encode('utf-8')
             try:
                 self._errors.write("<%s> %s\n" % (level[1], message))
             except UnicodeEncodeError:
-                if _unicode_exist:
-                    message = message.decode('utf-8').encode(
-                        'ascii', 'backslashreplace')
-                else:
-                    message = message.encode(
-                        'ascii', 'backslashreplace').decode('ascii')
+                message = message.encode(
+                    'ascii', 'backslashreplace').decode('ascii')
                 self._errors.write("<%s> %s\n" % (level[1], message))
             self._errors.flush()
 
@@ -976,11 +952,12 @@ class EmptyForm(dict):
     def getvalue(self, name, default=None):
         return default
 
-    def getfirst(self, name, default=None, fce=uni):
+    def getfirst(self, name, default=None, fce=str):
         return fce(default) if default is not None else default
 
-    def getlist(self, name, fce=uni):
-        return []
+    def getlist(self, name, fce=str):
+        return
+        yield
 
 
 class Args(dict):
@@ -997,7 +974,7 @@ class Args(dict):
 
         self.getvalue = self.get
 
-    def getfirst(self, name, default=None, fce=uni):
+    def getfirst(self, name, default=None, fce=str):
         """Returns first variable value for key or default.
 
         Arguments:
@@ -1012,7 +989,7 @@ class Args(dict):
         return fce(val)
     # enddef
 
-    def getlist(self, name, fce=uni):
+    def getlist(self, name, fce=str):
         """Returns list of variable values for key or empty list.
 
         Arguments:
@@ -1020,11 +997,13 @@ class Args(dict):
         """
         val = self.get(name, None)
         if val is None:
-            return []
+            return
 
         if isinstance(val, list):
-            return map(fce, val)
-        return [fce(val)]
+            for it in val:
+                yield fce(it)
+        else:
+            yield fce(val)
 
 
 class Json(dict):
@@ -1036,7 +1015,7 @@ class Json(dict):
         dict.__init__(self, json_loads(req.read().decode(charset)).items())
         self.getvalue = self.get
 
-    def getfirst(self, name, default=None, fce=uni):
+    def getfirst(self, name, default=None, fce=str):
         """Returns first variable value for key or default, if key not exist.
 
         Arguments:
@@ -1051,19 +1030,21 @@ class Json(dict):
         return fce(val)
     # enddef
 
-    def getlist(self, name, fce=uni):
-        """Returns list of variable values for key or empty list.
+    def getlist(self, name, fce=str):
+        """Returns generoator of variable values for key.
 
         Arguments:
             fce - function which processed value.
         """
         val = self.get(name, None)
         if val is None:
-            return []
+            return
 
         if isinstance(val, list):
-            return map(fce, val)
-        return [fce(val)]
+            for it in val:
+                yield fce(it)
+        else:
+            yield fce(val)
 
 
 class FieldStorage(CgiFieldStorage):
@@ -1122,14 +1103,9 @@ class FieldStorage(CgiFieldStorage):
             req = req.environ.get('wsgi.input')
 
         self.environ = environ
-        if version_info[0] < 3:
-            CgiFieldStorage.__init__(self, req, headers, outerboundary,
-                                     environ, keep_blank_values,
-                                     strict_parsing)
-        else:
-            CgiFieldStorage.__init__(self, req, headers, outerboundary,
-                                     environ, keep_blank_values,
-                                     strict_parsing, limit, encoding, errors)
+        CgiFieldStorage.__init__(self, req, headers, outerboundary,
+                                 environ, keep_blank_values,
+                                 strict_parsing, limit, encoding, errors)
     # enddef
 
     def make_file(self, binary=None):
@@ -1148,7 +1124,7 @@ class FieldStorage(CgiFieldStorage):
         """Compatibility methods with dict, alias for getvalue."""
         return self.getvalue(key, default)
 
-    def getfirst(self, name, default=None, fce=uni):
+    def getfirst(self, name, default=None, fce=str):
         """Returns first variable value for key or default, if key not exist.
 
         Arguments:
@@ -1161,14 +1137,15 @@ class FieldStorage(CgiFieldStorage):
         return fce(val)
     # enddef
 
-    def getlist(self, name, fce=uni):
+    def getlist(self, name, fce=str):
         """Returns list of variable values for key or empty list.
 
         Arguments:
             fce - function which processed value, str is default.
         """
         val = CgiFieldStorage.getlist(self, name)
-        return map(fce, val)
+        for it in val:
+            yield fce(it)
     # enddef
 # endclass
 

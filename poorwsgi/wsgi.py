@@ -3,7 +3,7 @@ application.
 """
 
 from os import path, access, R_OK, environ, getcwd, uname
-from sys import version_info, stderr, version
+from sys import stderr, version
 
 import re
 
@@ -15,13 +15,9 @@ from poorwsgi.state import OK, DONE, DECLINED, HTTP_OK, \
 from poorwsgi.request import Request, BrokenClientConnection
 from poorwsgi.results import default_shandlers, not_implemented, \
     internal_server_error, \
-    SERVER_RETURN, send_file, directory_index, debug_info, \
-    _unicode_exist, uni
+    SERVER_RETURN, send_file, directory_index, debug_info
 
-if version_info[0] == 2 and version_info[1] < 7:
-    from ordereddict import OrderedDict
-else:
-    from collections import OrderedDict
+from collections import OrderedDict
 
 # check, if there is define filter in uri
 re_filter = re.compile(r'<(\w+)(:[^>]+)?>')
@@ -63,10 +59,10 @@ class Application(object):
         self.__filters = {
             ':int': (r'-?\d+', int),
             ':float': (r'-?\d+(\.\d+)?', float),
-            ':word': (r'\w+', uni),
+            ':word': (r'\w+', str),
             ':hex': (r'[0-9a-fA-F]+', str),
-            ':re:': (None, uni),
-            'none': (r'[^/]+', uni)
+            ':re:': (None, str),
+            'none': (r'[^/]+', str)
         }
 
         # handlers of regex paths: {r'/user/([a-z]?)': {METHOD_GET: handler}}
@@ -149,7 +145,7 @@ class Application(object):
         Default filters are:
             :int - match number and convert it to int
             :float - match number and convert it to float
-            :word - match one unicoee word
+            :word - match one string word
             :hex - match hexadecimal value and convert it to str
             :re: - match user defined regular expression
             none - match any string withount '/' character
@@ -354,16 +350,16 @@ class Application(object):
         """
         return self.__config['form_content_types']
 
-    def set_filter(self, name, regex, convertor=uni):
+    def set_filter(self, name, regex, convertor=str):
         """Create new filter or overwrite builtins.
 
         Arguments:
             name      - Name of filter which is used in route or set_route
                         method.
             regex     - regular expression which used for filter
-            convertor - convertor function or class, which gets unicode in
-                        input. Default is uni function, which is wrapper
-                        to unicode string.
+            convertor - convertor function or class, which gets string in
+                        input. Default is str function, which call __str__
+                        method on input object.
 
             app.set_filter('uint', r'\d+', int)
         """
@@ -512,8 +508,6 @@ class Application(object):
 
             app.set_route('/use/post', user_create, METHOD_POST)
         """
-        uri = uni(uri)
-
         if re_filter.search(uri):
             r_uri = re_filter.sub(self.__regex, uri) + '$'
             convertors = tuple((g[0], self.__convertor(g[1]))
@@ -535,8 +529,6 @@ class Application(object):
         If you want to remove handler for both methods, you must call pop route
         for each method state.
         """
-        uri = uni(uri)
-
         if re_filter.search(uri):
             r_uri = re_filter.sub(self.__regex, uri) + '$'
             return self.pop_rroute(r_uri, method)
@@ -549,7 +541,6 @@ class Application(object):
 
     def is_route(self, uri):
         """Check if uri have any registered record."""
-        uri = uni(uri)
         if re_filter.search(uri):
             r_uri = re_filter.sub(self.__regex, uri) + '$'
             return self.is_rroute(r_uri)
@@ -702,8 +693,7 @@ class Application(object):
                 self.handler_from_pre(req)  # call pre handlers now
                 retval = handler(req)       # call right handler now
                 # return text is allowed
-                if isinstance(retval, str) \
-                        or (_unicode_exist and isinstance(retval, unicode)):
+                if isinstance(retval, str):
                     req.write(retval, 1)    # write data and flush
                     retval = DONE
                 if retval != DECLINED:
@@ -732,8 +722,7 @@ class Application(object):
                     req.groups = match.groupdict()
                     retval = handler(req, *match.groups())
                 # return text is allowed
-                if isinstance(retval, str) \
-                        or (_unicode_exist and isinstance(retval, unicode)):
+                if isinstance(retval, str):
                     req.write(retval, 1)    # write data and flush
                     retval = DONE
                 if retval != DECLINED:
@@ -743,8 +732,8 @@ class Application(object):
 
         # try file or index
         if req.document_root():
-            rfile = "%s%s" % (uni(req.document_root()),
-                              path.normpath("%s" % uni(req.uri)))
+            rfile = "%s%s" % (req.document_root(),
+                              path.normpath("%s" % req.uri))
 
             if not path.exists(rfile):
                 if req.debug and req.uri == '/debug-info':      # work if debug
@@ -918,17 +907,11 @@ class Application(object):
         servers error log!
         """
         if self.__log_level[0] >= level[0]:
-            if _unicode_exist and isinstance(message, unicode):
-                message = message.encode('utf-8')
             try:
                 stderr.write("<%s> [%s] %s\n" % (level[1], self.__name,
                                                  message))
             except UnicodeEncodeError:
-                if _unicode_exist:
-                    message = message.decode('utf-8').encode(
-                        'ascii', 'backslashreplace')
-                else:
-                    message = message.encode(
+                message = message.encode(
                         'ascii', 'backslashreplace').decode('ascii')
 
                 stderr.write("<%s> [%s] %s\n" % (level[1], self.__name,

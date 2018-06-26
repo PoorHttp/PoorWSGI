@@ -19,8 +19,6 @@ Current Contents:
                 poorwsgi web application.
 """
 
-from poorwsgi.request import uni
-
 from poorwsgi.results import redirect, SERVER_RETURN, send_file, send_json
 
 from poorwsgi.wsgi import Application

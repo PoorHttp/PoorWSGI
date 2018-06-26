@@ -4,22 +4,13 @@ from traceback import format_exception
 from time import strftime, gmtime
 from os import path, access, listdir, R_OK, getegid, geteuid, getuid, getgid
 from operator import itemgetter
-from sys import version_info, version, exc_info
+from sys import version, exc_info
 from inspect import cleandoc
 from io import BytesIO
 from json import dumps as json_dumps
 
 import mimetypes
 
-if version_info[0] < 3:      # python 2.x
-    _unicode_exist = True
-
-else:                           # python 3.x
-    xrange = range
-    _unicode_exist = False
-
-    def cmp(a, b):
-        return (a > b) - (a < b)
 
 from poorwsgi.state import DONE, METHOD_ALL, methods, sorted_methods, levels, \
     LOG_ERR, LOG_DEBUG, HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, \
@@ -37,16 +28,9 @@ html_escape_table = {'&': "&amp;",
 # http state handlers, which is called if programmer don't defined his own
 default_shandlers = {}
 
-if _unicode_exist:
-    def uni(text):
-        """Automatic conversion from str to unicode with utf-8 encoding."""
-        if isinstance(text, str):
-            return unicode(text, encoding='utf-8')
-        return unicode(text)
-else:
-    def uni(text):
-        """Automatic conversion from str to unicode with utf-8 encoding."""
-        return str(text)
+
+def cmp(a, b):
+    return (a > b) - (a < b)
 
 
 def html_escape(s):
@@ -171,7 +155,7 @@ def internal_server_error(req):
             "  <pre>\n")
 
         # Traceback
-        for i in xrange(len(traceback)):
+        for i in range(len(traceback)):
             traceback_line = html_escape(traceback[i])
             req.write('<span class="line%s">%s</span>\n' %
                       (i % 2, traceback_line))
@@ -562,17 +546,17 @@ def debug_info(req, app):
     # filters
     filters_html = "\n".join(
         "   <tr><td>%s</td><td>%s</td><td>%s</td></tr>" %
-        (f, uni(r), c.__name__) for f, (r, c) in app.filters.items())
+        (f, r, c.__name__) for f, (r, c) in app.filters.items())
 
     # transform actual request headers to hml
     headers_html = "\n".join((
         "   <tr><td>%s:</td><td>%s</td></tr>" %
-        (key, uni(val)) for key, val in req.headers_in.items()))
+        (key, val) for key, val in req.headers_in.items()))
 
     # transform some poor wsgi variables to html
     poor_html = "\n".join((
         "   <tr><td>%s:</td><td>%s</td></tr>" %
-        (key, uni(val)) for key, val in (
+        (key, val) for key, val in (
             ('Debug', req.debug),
             ('Version', "%s (%s)" % (__version__, __date__)),
             ('Python Version', version),
@@ -598,7 +582,7 @@ def debug_info(req, app):
     # tranform application variables to html
     app_html = "\n".join((
         "   <tr><td>%s:</td><td>%s</td></tr>" %
-        (key, uni(val)) for key, val in req.get_options().items()))
+        (key, val) for key, val in req.get_options().items()))
 
     environ = req.environ.copy()
     environ['os.pgid'] = getgid()
@@ -609,7 +593,7 @@ def debug_info(req, app):
     # transfotm enviroment variables to html
     environ_html = "\n".join((
         "   <tr><td>%s:</td><td>%s</td></tr>" %
-        (key, html_escape(uni(val))) for key, val in sorted(environ.items())))
+        (key, html_escape(str(val))) for key, val in sorted(environ.items())))
 
     content_html = cleandoc(
         """
@@ -696,18 +680,18 @@ def debug_info(req, app):
           <hr>
           <small><i>%s / Poor WSGI for Python , webmaster: %s </i></small>
          </body>
-        </html>""") % (uni(shandlers_html),
-                       uni(rhandlers_html),
-                       uni(dhandlers_html),
-                       uni(ehandlers_html),
-                       uni(pre_post_html),
-                       filters_html,           # some variable are unicode yet
+        </html>""") % (shandlers_html,
+                       rhandlers_html,
+                       dhandlers_html,
+                       ehandlers_html,
+                       pre_post_html,
+                       filters_html,
                        headers_html,
                        poor_html,
                        app_html,
                        environ_html,
-                       uni(req.server_software),
-                       uni(req.server_admin))
+                       req.server_software,
+                       req.server_admin)
 
     req.content_type = "text/html"
     req.write(content_html)

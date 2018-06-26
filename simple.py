@@ -1,33 +1,20 @@
 # -*- coding: utf-8 -*-
 #
-# This is example and test application for PoorWSGI connector. As PoorWSGI is
-# write for both pythons major versions (2.x and 3.x), this example is write
-# for both pythons major versions too. So if you will study this code, you will
-# found some useless operations for python 2.x, but they are need for
-# python 3.x. For example, some decode methods calling or using uni instead of
-# str. That is, because there is no unicode and str in python 3.x, but there is
-# str, which is unicode, and many functions and methods works with bytes, which
-# is near to pythons 2.x str.
+# This is example and test application for PoorWSGI connector.
 #
 # This sample testing example is free to use, modify and study under same BSD
 # licence as PoorWSGI. So enjoy it ;)
 
 from wsgiref.simple_server import make_server
 from base64 import decodestring, encodestring
-from poorwsgi import Application, state, request, uni, redirect
+from poorwsgi import Application, state, request, redirect
 from poorwsgi.session import PoorSession
-from sys import version_info
 
 import os
 
-if version_info[0] == 2 and version_info[1] < 7:
-    from ordereddict import OrderedDict
-else:
-    from collections import OrderedDict
+from collections import OrderedDict
 
-if version_info[0] >= 3:
-    from io import FileIO
-    file = FileIO
+from io import FileIO as file
 
 app = Application()
 app.debug = True
@@ -85,7 +72,7 @@ def get_crumbnav(req):
 
 
 def html(s):
-    s = uni(s)
+    s = str(s)
     s = s.replace('&', '&amp;')
     s = s.replace('>', '&gt;')
     s = s.replace('<', '&lt;')
@@ -124,7 +111,7 @@ def get_variables(req):
         if key.startswith("wsgi.") or key.startswith("poor_")
         or key in usable))
 
-app.set_filter('email', r'[\w\.\-]+@[\w\.\-]+', request.uni)
+app.set_filter('email', r'[\w\.\-]+@[\w\.\-]+')
 
 
 def check_login(fn):
@@ -318,20 +305,20 @@ def test_form(req):
     # get_var_info = {'len': len(args)}
     var_info = OrderedDict((
         ('form_keys', req.form.keys()),
-        ('form_values', ', '.join(tuple(uni(req.form.getvalue(key))
+        ('form_values', ', '.join(tuple(str(req.form.getvalue(key))
                                   for key in req.form.keys()))),
         ('form_getfirst', '%s,%s' % (req.form.getfirst('pname'),
                                      req.form.getfirst('px'))),
-        ('form_getlist', '%s,%s' % (req.form.getlist('pname'),
-                                    req.form.getlist('px'))),
+        ('form_getlist', '%s,%s' % (list(req.form.getlist('pname')),
+                                    list(req.form.getlist('px')))),
         ('', ''),
         ('args_keys', req.args.keys()),
-        ('args_values', ', '.join(tuple(uni(req.args[key])
+        ('args_values', ', '.join(tuple(str(req.args[key])
                                         for key in req.args.keys()))),
         ('args_getfirst', '%s,%s' % (req.args.getfirst('gname'),
                                      req.args.getfirst('gx'))),
-        ('args_getlist', '%s,%s' % (req.args.getlist('gname'),
-                                    req.args.getlist('gx'))),
+        ('args_getlist', '%s,%s' % (list(req.args.getlist('gname')),
+                                    list(req.args.getlist('gx')))),
         ))
 
     buff = get_header("HTTP Form args test") + \
@@ -385,11 +372,11 @@ def test_upload(req):
                                              for key in req.form.keys()))),
         ('form_value_types', ', '.join(tuple(req.form[key].type
                                              for key in req.form.keys()))),
-        ('form_value_fnames', ', '.join(tuple(uni(req.form[key].filename)
+        ('form_value_fnames', ', '.join(tuple(str(req.form[key].filename)
                                               for key in req.form.keys()))),
-        ('form_value_lenghts', ', '.join(tuple(uni(req.form[key].length)
+        ('form_value_lenghts', ', '.join(tuple(str(req.form[key].length)
                                                for key in req.form.keys()))),
-        ('form_value_files', ', '.join(tuple(uni(req.form[key].file)
+        ('form_value_files', ', '.join(tuple(str(req.form[key].file)
                                              for key in req.form.keys()))),
         ('form_value_lists', ', '.join(tuple(
             'Yes' if req.form[key].list else 'No'

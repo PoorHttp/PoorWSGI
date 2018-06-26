@@ -11,9 +11,7 @@ from sys import version_info
 
 from poorwsgi.state import __version__
 
-if version_info[0] >= 3:
-    from io import FileIO
-    file = FileIO
+from io import FileIO as file
 
 environ.update({'PYTHONPATH': 'poorwsgi'})
 
@@ -166,12 +164,7 @@ _setup(
             "Operating System :: POSIX",
             "Operating System :: POSIX :: BSD :: NetBSD",
             "Operating System :: POSIX :: Linux",
-            "Programming Language :: Python :: 2.6",
-            "Programming Language :: Python :: 2.7",
-            "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.2",
-            "Programming Language :: Python :: 3.3",
-            "Programming Language :: Python :: 3.4",
+            "Programming Language :: Python :: 3 :: Only",
             "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
             "Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware",
             "Topic :: Software Development :: Libraries :: Python Modules"

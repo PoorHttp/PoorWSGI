@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from distutils.core import setup, Command
+from distutils.core import Command
 from distutils.command.install_data import install_data
 from distutils.dir_util import remove_tree
 from distutils import log
@@ -8,6 +8,8 @@ from os import path, makedirs, walk, environ
 from shutil import copyfile
 from subprocess import call
 from sys import version_info
+
+from setuptools import setup
 
 from poorwsgi.state import __version__
 
@@ -96,11 +98,11 @@ class clean_html(Command):
 class install_html(install_data):
     description = "install html documentation"
     user_options = install_data.user_options + [
-            ('build-base=', 'b',
-             "base build directory (default: 'build-html.build-base')"),
-            ('html-temp=', 't',
-             "temporary documentation directory"),
-            ('skip-build', None, "skip the build step"),
+        ('build-base=', 'b',
+         "base build directory (default: 'build-html.build-base')"),
+        ('html-temp=', 't',
+         "temporary documentation directory"),
+        ('skip-build', None, "skip the build step"),
         ]
 
     def initialize_options(self):
@@ -147,27 +149,27 @@ _setup(
     url="http://poorhttp.zeropage.cz/poorwsgi.html",
     packages=['poorwsgi'],
     data_files=[
-            ('share/doc/poorwsgi',
-             ['doc/ChangeLog', 'doc/licence.txt', 'doc/readme.txt']),
-            ('share/poorwsgi/example',
-             ['simple.py'])],
+        ('share/doc/poorwsgi',
+         ['doc/ChangeLog', 'doc/licence.txt', 'doc/readme.txt']),
+        ('share/poorwsgi/example',
+         ['simple.py'])],
     license="BSD",
     long_description=doc(),
     classifiers=[
-            "Development Status :: 5 - Production/Stable",
-            "Environment :: Web Environment",
-            "Intended Audience :: Developers",
-            "License :: OSI Approved :: BSD License",
-            "Natural Language :: English",
-            "Natural Language :: Czech",
-            "Operating System :: MacOS :: MacOS X",
-            "Operating System :: POSIX",
-            "Operating System :: POSIX :: BSD :: NetBSD",
-            "Operating System :: POSIX :: Linux",
-            "Programming Language :: Python :: 3 :: Only",
-            "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
-            "Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware",
-            "Topic :: Software Development :: Libraries :: Python Modules"
+        "Development Status :: 5 - Production/Stable",
+        "Environment :: Web Environment",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: BSD License",
+        "Natural Language :: English",
+        "Natural Language :: Czech",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: POSIX",
+        "Operating System :: POSIX :: BSD :: NetBSD",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3 :: Only",
+        "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+        "Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware",
+        "Topic :: Software Development :: Libraries :: Python Modules"
     ],
     cmdclass={'build_html': build_html,
               'clean_html': clean_html,

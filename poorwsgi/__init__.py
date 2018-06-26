@@ -23,8 +23,5 @@ from poorwsgi.results import redirect, SERVER_RETURN, send_file, send_json
 
 from poorwsgi.wsgi import Application
 
-# Application callable instance, which is need by wsgi server ( *DEPRECATED* )
-application = Application('__poorwsgi__')
-
-# Short reference to application instance ( *DEPRECATED* )
-app = application
+__all__ = ["Application", "redirect", "SERVER_RETURN", "send_file",
+           "send_json"]

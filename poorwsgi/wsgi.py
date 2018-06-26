@@ -4,6 +4,7 @@ application.
 
 from os import path, access, R_OK, environ, getcwd, uname
 from sys import stderr, version
+from collections import OrderedDict
 
 import re
 
@@ -16,8 +17,6 @@ from poorwsgi.request import Request, BrokenClientConnection
 from poorwsgi.results import default_shandlers, not_implemented, \
     internal_server_error, \
     SERVER_RETURN, send_file, directory_index, debug_info
-
-from collections import OrderedDict
 
 # check, if there is define filter in uri
 re_filter = re.compile(r'<(\w+)(:[^>]+)?>')
@@ -98,7 +97,7 @@ class Application(object):
         try:
             self.__log_level = levels[environ.get('poor_LogLevel',
                                                   'warn').lower()]
-        except:
+        except KeyError:
             self.__log_level = LOG_WARNING
             self.log_error('Bad poor_LogLevel, default is warn.', LOG_WARNING)
         # endtry
@@ -451,7 +450,7 @@ class Application(object):
 
     def pop_default(self, method):
         """Pop default handler for method."""
-        return self.__dhandlers(method)
+        return self.__dhandlers.pop(method)
 
     def route(self, uri, method=METHOD_HEAD | METHOD_GET):
         """Wrap function to be handler for uri and specified method.
@@ -630,7 +629,7 @@ class Application(object):
         As Application.pop_route, for pop multimethod handler, you must call
         pop_http_state for each method.
         """
-        handlers = self.__shandlers(code, {})
+        handlers = self.__shandlers.get(code, {})
         return handlers.pop(method)
 
     def error_from_table(self, req, code):
@@ -648,7 +647,7 @@ class Application(object):
                     req.uri_handler = handler
                 self.handler_from_pre(req)       # call pre handlers now
                 handler(req)
-            except:
+            except BaseException:
                 internal_server_error(req)
         elif code in default_shandlers:
             handler = default_shandlers[code][METHOD_GET]
@@ -776,7 +775,7 @@ class Application(object):
         raise SERVER_RETURN(HTTP_NOT_FOUND)
     # enddef
 
-    def __request__(self, environ, start_response):
+    def __request__(self, env, start_response):
         """Create Request instance and return wsgi response.
 
         This method create Request object, call handlers from
@@ -786,7 +785,7 @@ class Application(object):
         (Application.error_from_table), and handlers from
         Application.__post.
         """
-        req = Request(environ, start_response, self.__config)
+        req = Request(env, start_response, self.__config)
 
         try:
             self.handler_from_table(req)
@@ -804,21 +803,21 @@ class Application(object):
             req.log_error('   ***   You shoud ignore next error   ***',
                           LOG_ERR)
             return ()
-        except:
+        except BaseException:
             self.error_from_table(req, 500)
         # endtry
 
         try:    # call post_process handler
             for fn in self.__post:
                 fn(req)
-        except:
+        except BaseException:
             self.error_from_table(req, 500)
         # endtry
 
         return req.__end_of_request__()    # private call of request
     # enddef
 
-    def __call__(self, environ, start_response):
+    def __call__(self, env, start_response):
         """Callable define for Application instance.
 
         This method run __request__ method.
@@ -827,17 +826,17 @@ class Application(object):
             stderr.write("[W] Using deprecated instance of Application.\n")
             stderr.write("    Please, create your own instance\n")
             stderr.flush()
-        return self.__request__(environ, start_response)
+        return self.__request__(env, start_response)
 
-    def __profile_request__(self, environ, start_response):
+    def __profile_request__(self, env, start_response):
         """Profiler version of __request__.
 
         This method is used if set_profile is used."""
         def wrapper(rv):
-            rv.append(self.__original_request__(environ, start_response))
+            rv.append(self.__original_request__(env, start_response))
 
         rv = []
-        uri_dump = (self._dump + environ.get('PATH_INFO').replace('/', '_')
+        uri_dump = (self._dump + env.get('PATH_INFO').replace('/', '_')
                     + '.profile')
         self.log_error('Generate %s' % uri_dump, LOG_INFO)
         self._runctx('wrapper(rv)', globals(), locals(), filename=uri_dump)
@@ -873,7 +872,8 @@ class Application(object):
         """Remove profiler from application."""
         self.__request__ = self.__original_request__
 
-    def get_options(self):
+    @staticmethod
+    def get_options():
         """Returns dictionary with application variables from system environment.
 
         Application variables start with {app_} prefix,

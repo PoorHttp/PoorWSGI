@@ -5,8 +5,6 @@ Headers, Request and FieldStorage classes, which is used for managing requests.
 from collections import Mapping
 from wsgiref.headers import _formatparam
 from cgi import FieldStorage as CgiFieldStorage, parse_header
-from sys import stderr
-from inspect import stack
 from json import loads as json_loads
 from io import BytesIO
 
@@ -297,14 +295,14 @@ class Request(object):
         try:
             self._log_level = levels[self.__poor_environ.get(
                 'poor_LogLevel', 'warn').lower()]
-        except:
+        except KeyError:
             self._log_level = LOG_WARNING
             self.log_error('Bad poor_LogLevel, default is warn.', LOG_WARNING)
 
         try:
             self._buffer_size = int(self.__poor_environ.get('poor_BufferSize',
                                                             '16384'))
-        except:
+        except ValueError:
             self._buffer_size = 16384
             self.log_error('Bad poor_BufferSize, default is 16384 B (16 KiB).',
                            LOG_WARNING)
@@ -623,17 +621,6 @@ class Request(object):
             self.__app_config['secret_key'])
 
     @property
-    def secretkey(self):
-        """*DEPRECATED* alias for secret_key."""
-        stderr.write("[W] Using deprecated property secretkey in\n")
-        for s in stack()[1:]:
-            stderr.write("  File %s, line %s, in %s\n" % s[1:4])
-            stderr.write(s[4][0])
-            stderr.flush()
-
-        return self.secret_key
-
-    @property
     def document_index(self):
         """Value of poor_DocumentIndex variable.
 
@@ -652,20 +639,6 @@ class Request(object):
     @config.setter
     def config(self, value):
         self.__config = value
-
-    @property
-    def logger(self):
-        """*DEPRECATED* For special logger function (default req.log_error).
-
-        Use log_error, log_info, log_debug or logging method instead of that.
-        """
-        stderr.write("[W] Using deprecated logger attribute\n")
-        for s in stack()[1:]:
-            stderr.write("  File %s, line %s, in %s\n" % s[1:4])
-            stderr.write(s[4][0])
-        stderr.flush()
-
-        return self.log_error
 
     @property
     def user(self):
@@ -928,19 +901,6 @@ class Request(object):
 
         return length
     # enddef
-
-    def set_content_lenght(self, length):
-        """*DEPRECATED* Use req.clength = length instead of call this method.
-        """
-        self.clength = length
-
-        stderr.write("[W] Using deprecated method set_content_lenght in\n")
-        for s in stack()[1:]:
-            stderr.write("  File %s, line %s, in %s\n" % s[1:4])
-            stderr.write(s[4][0])
-        stderr.flush()
-    # enddef
-
 # endclass
 
 

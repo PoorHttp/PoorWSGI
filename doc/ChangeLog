@@ -1,5 +1,6 @@
 ==== 2.0.0 ====
     * Python3 support only
+    * Removed deprecated methods
 
 ==== 1.7.0 ====
     * New Application config list form_content_types

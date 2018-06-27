@@ -10,10 +10,10 @@ from io import BytesIO
 from json import dumps as json_dumps
 
 import mimetypes
+import logging as log
 
-
-from poorwsgi.state import DONE, METHOD_ALL, methods, sorted_methods, levels, \
-    LOG_ERR, LOG_DEBUG, HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, \
+from poorwsgi.state import DONE, METHOD_ALL, methods, sorted_methods, \
+    HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, \
     HTTP_NOT_MODIFIED, HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_NOT_FOUND, \
     HTTP_METHOD_NOT_ALLOWED, HTTP_INTERNAL_SERVER_ERROR, \
     HTTP_NOT_IMPLEMENTED, \
@@ -122,7 +122,7 @@ def internal_server_error(req):
                                  exc_value,
                                  exc_traceback)
     traceback = ''.join(traceback)
-    req.log_error(traceback, LOG_ERR)
+    log.error(traceback)
     traceback = traceback.split('\n')
 
     req.status = HTTP_INTERNAL_SERVER_ERROR
@@ -331,8 +331,8 @@ def not_implemented(req, code=None):
         content += (
             "  <p>Your reqeuest <code>%s</code> returned not implemented\n"
             "   status <code>%s</code>.</p>\n" % (req.uri, code))
-        req.log_error('Your reqeuest %s returned not implemented status %d' %
-                      (req.uri, code))
+        log.error('Your reqeuest %s returned not implemented status %d',
+                  req.uri, code)
     else:
         content += (
             " <p>Response for Your reqeuest <code>%s</code>\n"
@@ -383,7 +383,7 @@ def directory_index(req, _path):
     Returns directory index as html page
     """
     if not path.isdir(_path):
-        req.log_error(
+        log.error(
             "Only directory_index can be send with directory_index handler. "
             "`%s' is not directory.",
             _path)
@@ -569,15 +569,13 @@ def debug_info(req, app):
             ('Forward For', req.forwarded_for),
             ('Forward Host', req.forwarded_host),
             ('Forward Proto', req.forwarded_proto),
-            ('Log Level', dict((b, a)
-             for a, b in levels.items())[req._log_level]),
             ('Buffer Size', req._buffer_size),
             ('Document Root', req.document_root()),
             ('Document Index', req.document_index),
             ('Secret Key', '*'*5 + ' see in error output (wsgi log)'
              ' when Log Level is <b>debug</b> ' + '*'*5)
         )))
-    req.log_error('SecretKey: %s' % repr(req.secret_key), LOG_DEBUG)
+    log.debug('SecretKey: %s', repr(req.secret_key))
 
     # tranform application variables to html
     app_html = "\n".join((

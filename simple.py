@@ -11,11 +11,14 @@ from poorwsgi import Application, state, request, redirect
 from poorwsgi.session import PoorSession
 
 import os
+import logging as log
 
 from collections import OrderedDict
 
 from io import FileIO as file
 
+logger = log.getLogger()
+logger.setLevel("DEBUG")
 app = Application()
 app.debug = True
 app.document_root = './'
@@ -58,7 +61,7 @@ def auto_form(req):
                 strict_parsing=app.strict_parsing,
                 file_callback=factory.create)
         except Exception as e:
-            req.log_error(e)
+            log.error(e)
 
 
 def get_crumbnav(req):
@@ -118,7 +121,7 @@ def check_login(fn):
     def handler(req):
         cookie = PoorSession(req)
         if 'login' not in cookie.data:
-            req.log_error('Login cookie not found.', state.LOG_INFO)
+            log.info('Login cookie not found.')
             redirect(req, '/', text='Login required')
 
         return fn(req)
@@ -281,21 +284,21 @@ def test_varargs(req, *args):
 
 @app.route('/login')
 def login(req):
-    req.log_error("Input cookies: %s" % repr(req.cookies), state.LOG_DEBUG)
+    log.debug("Input cookies: %s", repr(req.cookies))
     cookie = PoorSession(req)
     cookie.data['login'] = True
     cookie.header(req, req.headers_out)
-    req.log_error("Output headers: %s" % req.headers_out, state.LOG_DEBUG)
+    log.debug("Output headers: %s", req.headers_out)
     redirect(req, '/')
 
 
 @app.route('/logout')
 def logout(req):
-    req.log_error("Input cookies: %s" % repr(req.cookies), state.LOG_DEBUG)
+    log.debug("Input cookies: %s", repr(req.cookies))
     cookie = PoorSession(req)
     cookie.destroy()
     cookie.header(req, req.headers_out)
-    req.log_error("Output headers: %s" % req.headers_out, state.LOG_DEBUG)
+    log.debug("Output headers: %s", req.headers_out)
     redirect(req, '/')
 
 
@@ -441,8 +444,8 @@ def not_found(req):
 
 @app.pre_process()
 @app.post_process()
-def log(req):
-    req.log_info("Log this point")
+def log_request(req):
+    log.info("Log this point")
 
 
 @app.post_process()

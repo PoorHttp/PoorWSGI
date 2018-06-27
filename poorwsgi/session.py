@@ -5,10 +5,9 @@ from pickle import dumps, loads
 from base64 import b64decode, b64encode
 
 import bz2
+import logging as log
 
 from http.cookies import SimpleCookie
-
-from poorwsgi.state import LOG_INFO
 
 
 def hidden(text, passwd):
@@ -133,11 +132,11 @@ class PoorSession:
                 if not isinstance(self.data, dict):
                     raise RuntimeError()
             except Exception as e:
-                req.log_error(e.__repr__(), LOG_INFO)
-                req.log_error('Bad session data.')
+                log.info(e.__repr__())
+                log.error('Bad session data.')
 
             if 'expires' in self.data and self.data['expires'] < int(time()):
-                req.log_error('I: Session was expired, generating new.')
+                log.error('I: Session was expired, generating new.')
                 self.data = {}
         # endif
     # enddef

@@ -10,14 +10,14 @@ from io import BytesIO
 
 import os
 import re
+import logging as log
 
 from http.client import responses
 from urllib.parse import parse_qs
 from http.cookies import SimpleCookie
 
-from poorwsgi.state import methods, levels, \
-    LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG, METHOD_POST, METHOD_PUT, \
-    METHOD_PATCH, HTTP_OK
+from poorwsgi.state import methods, \
+    METHOD_POST, METHOD_PUT, METHOD_PATCH, HTTP_OK
 
 
 # simple regular expression for construct_url method
@@ -293,19 +293,11 @@ class Request(object):
         self._buffer_offset = 0
 
         try:
-            self._log_level = levels[self.__poor_environ.get(
-                'poor_LogLevel', 'warn').lower()]
-        except KeyError:
-            self._log_level = LOG_WARNING
-            self.log_error('Bad poor_LogLevel, default is warn.', LOG_WARNING)
-
-        try:
             self._buffer_size = int(self.__poor_environ.get('poor_BufferSize',
                                                             '16384'))
         except ValueError:
             self._buffer_size = 16384
-            self.log_error('Bad poor_BufferSize, default is 16384 B (16 KiB).',
-                           LOG_WARNING)
+            log.warning('Bad poor_BufferSize, default is 16384 B (16 KiB).')
 
         # variables for user use
         self.__config = None
@@ -661,8 +653,7 @@ class Request(object):
         """
         content_length = int(self.__headers_in.get("Content-Length", 0))
         if content_length == 0:
-            self.log_error("No Content-Length found, read was failed!",
-                           LOG_ERR)
+            log.error("No Content-Length found, read was failed!")
             return ''
         if length > -1 and length < content_length:
             self.read = self.__read
@@ -711,18 +702,16 @@ class Request(object):
                     or 'Content-MD5' in self.__headers_out \
                     or 'Content-Range' in self.__headers_out \
                     or 'Content-Type' in self.__headers_out:
-                self.log_error('Some entity header in Not Modified response',
-                               LOG_WARNING)
+                log.warning('Some entity header in Not Modified response')
             if 'Date' not in self.__headers_out:
-                self.log_error('Missing Date header in Not Modified response',
-                               LOG_WARNING)
+                log.warning('Missing Date header in Not Modified response')
         else:
             if self.__content_type \
                     and not self.__headers_out.get('Content-Type'):
                 self.__headers_out.add('Content-Type', self.__content_type)
             elif not self.__content_type \
                     and not self.__headers_out.get('Content-Type'):
-                self.log_error('Content-type not set!', LOG_WARNING)
+                log.warning('Content-type not set!')
 
             if self.__clength and not self.__headers_out.get('Content-Length'):
                 self.__headers_out.add('Content-Length', str(self.__clength))
@@ -761,8 +750,7 @@ class Request(object):
         document_root = self.__poor_environ.get(
             'poor_DocumentRoot',
             self.__app_config['document_root'])
-        self.log_error("poor_DocumentRoot: %s" % document_root,
-                       LOG_INFO)
+        log.info("poor_DocumentRoot: %s", document_root)
         return document_root
 
     def construct_url(self, uri):
@@ -778,45 +766,6 @@ class Request(object):
                                   self.forwarded_host or self.hostname, uri)
         return uri
     # enddef
-
-    def log_error(self, message, level=LOG_ERR, server=None):
-        """An interface to log error via wsgi.errors.
-
-        Arguments:
-            message - string with the error message
-            level - is one of the following flags constants:
-                        LOG_EMERG
-                        LOG_ALERT
-                        LOG_CRIT
-                        LOG_ERR     (default)
-                        LOG_WARNING
-                        LOG_NOTICE
-                        LOG_INFO
-                        LOG_DEBUG
-                        LOG_NOERRNO
-            server - interface only compatibility parameter
-        """
-
-        if self._log_level[0] >= level[0]:
-            try:
-                self._errors.write("<%s> %s\n" % (level[1], message))
-            except UnicodeEncodeError:
-                message = message.encode(
-                    'ascii', 'backslashreplace').decode('ascii')
-                self._errors.write("<%s> %s\n" % (level[1], message))
-            self._errors.flush()
-
-    def log_info(self, message):
-        """Logging method, which create message as LOG_INFO level."""
-        self.log_error(message, LOG_INFO)
-
-    def log_debug(self, message):
-        """Logging method, which create message as LOG_DEBUG level."""
-        self.log_error(message, LOG_DEBUG)
-
-    def log_warning(self, message):
-        """Logging method, which create message as LOG_WARNING level."""
-        self.log_error(message, LOG_WARNING)
 
     def __reset_buffer__(self):
         """Clean _buffer (*for internal server error use*).
@@ -861,7 +810,7 @@ class Request(object):
     # enddef
 
     def __del__(self):
-        self.log_debug("Request: Hasta la vista, baby.")
+        log.debug("Request: Hasta la vista, baby.")
 
     def flush(self):
         """Flushes the output buffer."""
@@ -886,7 +835,7 @@ class Request(object):
             def myfile(req):
                 req.content_type('text/plain')
                 length = req.sendfile('myfile.txt')
-                req.log_error('sending myfile.txt with %d length' % length)
+                logging.info('sending myfile.txt with %d length', length)
         """
         if not os.access(path, os.R_OK):
             raise IOError("Could not stat file for reading")

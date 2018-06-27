@@ -7,10 +7,10 @@ from sys import stderr, version
 from collections import OrderedDict
 
 import re
+import logging as log
 
 from poorwsgi.state import OK, DONE, DECLINED, HTTP_OK, \
-    METHOD_GET, METHOD_POST, METHOD_HEAD, methods, levels, \
-    LOG_DEBUG, LOG_INFO, LOG_ERR, LOG_WARNING, \
+    METHOD_GET, METHOD_POST, METHOD_HEAD, methods, \
     HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN, \
     __version__
 from poorwsgi.request import Request, BrokenClientConnection
@@ -93,13 +93,6 @@ class Application(object):
                           (__version__, version, getcwd(),
                            ''.join(str(x) for x in uname()))
         }
-
-        try:
-            self.__log_level = levels[environ.get('poor_LogLevel',
-                                                  'warn').lower()]
-        except KeyError:
-            self.__log_level = LOG_WARNING
-            self.log_error('Bad poor_LogLevel, default is warn.', LOG_WARNING)
         # endtry
     # enddef
 
@@ -748,13 +741,13 @@ class Application(object):
                 req.uri_rule = '_send_file_'
                 req.uri_handler = send_file
                 self.handler_from_pre(req)      # call pre handlers now
-                req.log_error("Return file: %s" % req.uri, LOG_INFO)
+                log.info("Return file: %s", req.uri)
                 raise SERVER_RETURN(send_file(req, rfile))
 
             # return directory index
             if req.document_index and path.isdir(rfile) \
                     and access(rfile, R_OK):
-                req.log_error("Return directory: %s" % req.uri, LOG_INFO)
+                log.info("Return directory: %s", req.uri)
                 req.uri_rule = '_directory_index_'
                 req.uri_handler = directory_index
                 self.handler_from_pre(req)      # call pre handlers now
@@ -771,7 +764,7 @@ class Application(object):
 
         self.handler_from_default(req)
 
-        req.log_error("404 Not Found: %s" % req.uri, LOG_ERR)
+        log.error("404 Not Found: %s", req.uri)
         raise SERVER_RETURN(HTTP_NOT_FOUND)
     # enddef
 
@@ -799,9 +792,8 @@ class Application(object):
                 req.status = code
                 self.error_from_table(req, code)
         except (BrokenClientConnection, SystemExit) as e:
-            req.log_error(str(e), LOG_ERR)
-            req.log_error('   ***   You shoud ignore next error   ***',
-                          LOG_ERR)
+            log.warning(str(e))
+            log.warning('   ***   You shoud ignore next error   ***')
             return ()
         except BaseException:
             self.error_from_table(req, 500)
@@ -838,7 +830,7 @@ class Application(object):
         rv = []
         uri_dump = (self._dump + env.get('PATH_INFO').replace('/', '_')
                     + '.profile')
-        self.log_error('Generate %s' % uri_dump, LOG_INFO)
+        log.info('Generate %s', uri_dump)
         self._runctx('wrapper(rv)', globals(), locals(), filename=uri_dump)
         return rv[0]
     # enddef
@@ -880,7 +872,6 @@ class Application(object):
         but in returned dictionary is set without this prefix.
 
             #!ini
-            poor_LogLevel = warn        # Poor WSGI variable
             app_db_server = localhost   # application variable db_server
             app_templates = app/templ   # application variable templates
 
@@ -896,38 +887,4 @@ class Application(object):
                 options[key[4:].lower()] = val.strip()
         return options
     # enddef
-
-    def log_error(self, message, level=LOG_ERR):
-        """Logging method with the same functionality like in Request object.
-
-        But as get_options read configuration from os.environ which could
-        not work in same wsgi servers like Apaches mod_wsgi.
-
-        This method write to stderr so messages, could not be found in
-        servers error log!
-        """
-        if self.__log_level[0] >= level[0]:
-            try:
-                stderr.write("<%s> [%s] %s\n" % (level[1], self.__name,
-                                                 message))
-            except UnicodeEncodeError:
-                message = message.encode(
-                        'ascii', 'backslashreplace').decode('ascii')
-
-                stderr.write("<%s> [%s] %s\n" % (level[1], self.__name,
-                                                 message))
-            stderr.flush()
-    # enddef
-
-    def log_info(self, message):
-        """Logging method, which create message as LOG_INFO level."""
-        self.log_error(message, LOG_INFO)
-
-    def log_debug(self, message):
-        """Logging method, which create message as LOG_DEBUG level."""
-        self.log_error(message, LOG_DEBUG)
-
-    def log_warning(self, message):
-        """Logging method, which create message as LOG_WARNING level."""
-        self.log_error(message, LOG_WARNING)
 # endclass

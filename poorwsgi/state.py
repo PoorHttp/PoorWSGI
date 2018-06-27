@@ -1,4 +1,4 @@
-"""Constants like http status code, log levels and method types."""
+"""Constants like http status code and method types."""
 
 from operator import itemgetter
 
@@ -59,26 +59,6 @@ HTTP_VERSION_NOT_SUPPORTED = 505
 HTTP_VARIANT_ALSO_VARIES = 506
 HTTP_INSUFFICIENT_STORAGE = 507
 HTTP_NOT_EXTENDED = 510
-
-LOG_EMERG = (0, 'S')
-LOG_ALERT = (1, 'A')
-LOG_CRIT = (2, 'C')
-LOG_ERR = (3, 'E')
-LOG_WARNING = (4, 'W')
-LOG_NOTICE = (5, 'N')
-LOG_INFO = (6, 'I')
-LOG_DEBUG = (7, 'D')
-LOG_NOERRNO = (8, '0')
-
-# log levels which could be set with poor_LogLevel environment variable
-levels = {'emerg':  LOG_EMERG,
-          'alert':  LOG_ALERT,
-          'crit':   LOG_CRIT,
-          'error':  LOG_ERR,
-          'warn':   LOG_WARNING,
-          'notice': LOG_NOTICE,
-          'info':   LOG_INFO,
-          'debug':  LOG_DEBUG}
 
 METHOD_HEAD = 1
 METHOD_GET = 2

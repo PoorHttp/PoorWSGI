@@ -2,6 +2,7 @@
     * Python3 support only
     * Removed deprecated methods
     * Using python logging
+    * Renamed Request clength property to content_length
 
 ==== 1.7.0 ====
     * New Application config list form_content_types

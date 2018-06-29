@@ -213,7 +213,7 @@ class Request(object):
         # headers_out object property. Default is text/html; charset=utf-8
         self.__content_type = "text/html; charset=utf-8"
 
-        self.__clength = 0
+        self.__content_length = 0
 
         self.__body_bytes_sent = 0
 
@@ -379,17 +379,17 @@ class Request(object):
         self.__content_type = value
 
     @property
-    def clength(self):
+    def content_length(self):
         """Property to store output content length for header.
 
         This value was set automatically when size of output data are less then
         buffer size.
         """
-        return self.__clength
+        return self.__content_length
 
-    @clength.setter
-    def clength(self, value):
-        self.__clength = value
+    @content_length.setter
+    def content_length(self, value):
+        self.__content_length = value
 
     @property
     def body_bytes_sent(self):
@@ -713,8 +713,10 @@ class Request(object):
                     and not self.__headers_out.get('Content-Type'):
                 log.warning('Content-type not set!')
 
-            if self.__clength and not self.__headers_out.get('Content-Length'):
-                self.__headers_out.add('Content-Length', str(self.__clength))
+            if self.__content_length \
+                    and not self.__headers_out.get('Content-Length'):
+                self.__headers_out.add('Content-Length',
+                                       str(self.__content_length))
         # endif
 
         self.__write = self.start_response(

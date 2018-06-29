@@ -127,7 +127,7 @@ class Headers(Mapping):
     def add(self, name, value):
         """Set header name to value.
 
-        Duplicate names are not allowed instead of {Set-Cookie}.
+        Duplicate names are not allowed instead of ``Set-Cookie``.
         """
         if name != "Set-Cookie" and name in self:
             raise KeyError("Key %s exist." % name)
@@ -140,6 +140,8 @@ class Headers(Mapping):
         additional parameters for the header field, with underscores converted
         to dashes.  Normally the parameter will be added as name="value" unless
         value is None, in which case only the name will be added.
+
+        .. code:: python
 
             h.add_header('Content-Disposition', 'attachment',
                          filename='image.png')
@@ -185,11 +187,7 @@ class Request(object):
     """HTTP request object with all server elements.
 
     It could be compatible as soon as possible with mod_python.apache.request.
-
-    Special variables for user use:
-        app_            - as prefix for any your application variable (not
-                          defined)
-
+    Special variables for user use are prefixed with ``app_``.
     """
 
     def __init__(self, environ, start_response, app_config):
@@ -320,7 +318,7 @@ class Request(object):
 
     @property
     def method(self):
-        """String containing the method - {GET}, {HEAD}, {POST}, etc."""
+        """String containing the method, ``GET, HEAD, POST``, etc."""
         return self.__environ.get('REQUEST_METHOD')
 
     @property
@@ -341,8 +339,8 @@ class Request(object):
 
         This property could be set once, and that do Application object. There
         are some internal uri_rules which is set typical if some internal
-        handler was called. There are: {_default_handler_, _directory_index_,
-        _debug_info_ and _send_file_ }. In other case, there be url or regex.
+        handler was called. There are: _default_handler_, _directory_index_,
+        _debug_info_ and _send_file_. In other case, there be url or regex.
         """
         return self.__uri_rule
 
@@ -368,7 +366,7 @@ class Request(object):
 
     @property
     def content_type(self):
-        """Content-Type header string, by default {text/html; charset=utf-8}.
+        """Content-Type header string, by default ``text/html; charset=utf-8``.
 
         Another way to set content_type is via headers_out object property.
         """
@@ -398,10 +396,10 @@ class Request(object):
 
     @property
     def status(self):
-        """Http status code, which is *state.HTTP_OK (200)* by default.
+        """Http status code, which is **state.HTTP_OK (200)** by default.
 
         If you want to set this variable (which is very good idea in http_state
-        handlers), it is good solution to use some of HTTP_ constant from
+        handlers), it is good solution to use some of ``HTTP_`` constant from
         state module.
         """
         return self.__status
@@ -447,7 +445,7 @@ class Request(object):
 
     @property
     def poor_environ(self):
-        """Environ with poor_ variables.
+        """Environ with ``poor_`` variables.
 
         It is environ from request, or os.environ
         """
@@ -461,7 +459,7 @@ class Request(object):
         for GET method. Arguments are parsed when Application.auto_args is set
         which is default.
 
-        This property could be *set only once*.
+        This property could be **set only once**.
         """
         return self.__args
 
@@ -479,7 +477,7 @@ class Request(object):
         or PATCH. Request body is parsed when Application.auto_form
         is set, which default and when method is POST, PUT or PATCH.
 
-        This property could be *set only once*.
+        This property could be **set only once**.
         """
         return self.__form
 
@@ -493,7 +491,7 @@ class Request(object):
         """Json dictionary if request content type is JSON.
 
         Json types is defined in Application.json_content_types, typical is
-        {application/json} and request method must be POST, PUT or PATCH and
+        ``application/json`` and request method must be POST, PUT or PATCH and
         Application.auto_json must be set to true (default). Otherwise json
         is EmptyForm.
         """
@@ -535,7 +533,7 @@ class Request(object):
 
     @property
     def server_scheme(self):
-        """Request scheme, typical {http} or {https}."""
+        """Request scheme, typical ``http`` or ``https``."""
         return self.__environ.get('wsgi.url_scheme')
 
     @property
@@ -728,13 +726,14 @@ class Request(object):
     def get_options(self):
         """Returns dictionary with application variables from environment.
 
-        Application variables start with {app_} prefix, but in returned
+        Application variables start with ``app_`` prefix, but in returned
         dictionary is set without this prefix.
 
-                #!ini
-                poor_LogLevel = warn        # Poor WSGI variable
-                app_db_server = localhost   # application variable db_server
-                app_templates = app/templ   # application variable templates
+        .. code:: ini
+
+            poor_LogLevel = warn        # Poor WSGI variable
+            app_db_server = localhost   # application variable db_server
+            app_templates = app/templ   # application variable templates
         """
         options = {}
         for key, val in self.__poor_environ.items():
@@ -770,7 +769,7 @@ class Request(object):
     # enddef
 
     def __reset_buffer__(self):
-        """Clean _buffer (*for internal server error use*).
+        """Clean _buffer (**for internal server error use**).
 
         It could be used in error pages, typical in internal_server_error.
         But be careful, this method not help you, when any data was sent
@@ -785,7 +784,7 @@ class Request(object):
     # enddef
 
     def __end_of_request__(self):
-        """Method *for internal use only!*.
+        """Method **for internal use only!**.
 
         This method was called from Application object at the end of request
         for returning right value to wsgi server.
@@ -833,6 +832,8 @@ class Request(object):
 
         Offset and len is not supported yet.
 
+        .. code:: python
+
             @app.route('myfile.txt')
             def myfile(req):
                 req.content_type('text/plain')
@@ -851,7 +852,6 @@ class Request(object):
                 data = bf.read(self._buffer_size)
 
         return length
-    # enddef
 # endclass
 
 
@@ -860,13 +860,13 @@ class EmptyForm(dict):
 
     This class is used when poor_AutoArgs or poor_AutoForm is set to Off.
     """
-    def getvalue(self, name, default=None):
+    def getvalue(self, key, default=None):
         return default
 
-    def getfirst(self, name, default=None, fce=str):
+    def getfirst(self, key, default=None, fce=str):
         return fce(default) if default is not None else default
 
-    def getlist(self, name, fce=str):
+    def getlist(self, key, fce=str):
         return
         yield
 
@@ -885,28 +885,27 @@ class Args(dict):
 
         self.getvalue = self.get
 
-    def getfirst(self, name, default=None, fce=str):
+    def getfirst(self, key, default=None, fce=str):
         """Returns first variable value for key or default.
 
-        Arguments:
-            fce - function which processed value.
+        fce : convertor (str)
+            function which processed value.
         """
-        val = self.get(name, default)
+        val = self.get(key, default)
         if val is None:
             return None
 
         if isinstance(val, list):
             return fce(val[0])
         return fce(val)
-    # enddef
 
-    def getlist(self, name, fce=str):
+    def getlist(self, key, fce=str):
         """Returns list of variable values for key or empty list.
 
-        Arguments:
-            fce - function which processed value.
+        fce : convertor (str)
+            function which processed value.
         """
-        val = self.get(name, None)
+        val = self.get(key, None)
         if val is None:
             return
 
@@ -926,28 +925,29 @@ class Json(dict):
         dict.__init__(self, json_loads(req.read().decode(charset)).items())
         self.getvalue = self.get
 
-    def getfirst(self, name, default=None, fce=str):
+    def getfirst(self, key, default=None, fce=str):
         """Returns first variable value for key or default, if key not exist.
 
-        Arguments:
-            fce - function which processed value.
+        default : any
+            Default value if key not exists.
+        fce : convertor
+            Function which processed value.
         """
-        val = self.get(name, default)
+        val = self.get(key, default)
         if val is None:
             return None
 
         if isinstance(val, list):
             return fce(val[0])
         return fce(val)
-    # enddef
 
-    def getlist(self, name, fce=str):
+    def getlist(self, key, fce=str):
         """Returns generoator of variable values for key.
 
-        Arguments:
-            fce - function which processed value.
+        fce : convertor (str)
+            Function which processed value.
         """
-        val = self.get(name, None)
+        val = self.get(key, None)
         if val is None:
             return
 
@@ -971,31 +971,34 @@ class FieldStorage(CgiFieldStorage):
 
     There are some usable variables, which you can use, if you want to test
     what variable it is:
-        name - variable name, the same name from input attribute.
-        type - content-type of variable. All variables have internal
-              content-type, if that is no file, content-type is text/plain.
-        filename - if variable is file, filename is its name from form.
-        file - file type instance, from you can read variable. This instance
-              could be TemporaryFile as default for files, StringIO for normal
-              variables or instance of your own file type class, create from
-              file_callback.
-        lists - if variable is list of variables, this contains instances of
-              FieldStorage.
+
+    :name:      variable name, the same name from input attribute.
+    :type:      content-type of variable. All variables have internal
+                content-type, if that is no file, content-type is text/plain.
+    :filename:  if variable is file, filename is its name from form.
+    :file:      file type instance, from you can read variable. This instance
+                could be TemporaryFile as default for files, StringIO for
+                normal variables or instance of your own file type class,
+                create from file_callback.
+    :lists:     if variable is list of variables, this contains instances of
+                FieldStorage.
     """
-    def __init__(self, req, headers=None, outerboundary=b'', environ={},
+    def __init__(self, req, headers=None, outerboundary=b'', environ=None,
                  keep_blank_values=0, strict_parsing=0, limit=None,
                  encoding='utf-8', errors='replace', file_callback=None):
         """Constructor of FieldStorage.
 
         Many of input parameters are need only for next internal use, because
-            FieldStorage parse variables recursive. You need add only:
-                req             - Request object.
-                keep_blank_values - if you want to parse blank values as right
-                                 empty values.
-                strict_parsing  - if you want to raise exception on parsing
-                                 error.
-                file_callback   - callback for creating instance of uploading
-                                 files.
+        FieldStorage parse variables recursive. You need add only:
+
+        req : Request
+            Input request.
+        keep_blank_values : int (0)
+            If you want to parse blank values as right empty values.
+        strict_parsing : int (0)
+            If you want to raise exception on parsing error.
+        file_callback : callback
+            Callback for creating instance of uploading files.
         """
 
         if isinstance(req, Request):
@@ -1012,6 +1015,8 @@ class FieldStorage(CgiFieldStorage):
 
             headers = req.headers_in
             req = req.environ.get('wsgi.input')
+        if environ is None:
+            environ = {}
 
         self.environ = environ
         CgiFieldStorage.__init__(self, req, headers, outerboundary,
@@ -1023,41 +1028,46 @@ class FieldStorage(CgiFieldStorage):
         """Return readable and writable temporary file.
 
         Arguments:
-            binary - unused. Here is only for backward compatibility
+            binary : None
+                Unused. Here is only for backward compatibility
         """
         if 'wsgi.file_callback' in self.environ:
             return self.environ['wsgi.file_callback'](self.filename)
         else:
             return CgiFieldStorage.make_file(self)
-    # enddef
 
     def get(self, key, default=None):
         """Compatibility methods with dict, alias for getvalue."""
         return self.getvalue(key, default)
 
-    def getfirst(self, name, default=None, fce=str):
+    def getfirst(self, key, default=None, fce=str):
         """Returns first variable value for key or default, if key not exist.
 
         Arguments:
-            fce - function which processed value.
+            key : str
+                key name
+            default : None
+                default value if key not found
+            fce : convertor (str)
+                Function or class which processed value.
         """
-        val = CgiFieldStorage.getfirst(self, name, default)
+        val = CgiFieldStorage.getfirst(self, key, default)
         if val is None:
             return None
-
         return fce(val)
-    # enddef
 
-    def getlist(self, name, fce=str):
+    def getlist(self, key, fce=str):
         """Returns list of variable values for key or empty list.
 
         Arguments:
-            fce - function which processed value, str is default.
+            key : str
+                key name
+            fce : convertor (str)
+                Function or class which processed value.
         """
-        val = CgiFieldStorage.getlist(self, name)
+        val = CgiFieldStorage.getlist(self, key)
         for it in val:
             yield fce(it)
-    # enddef
 # endclass
 
 

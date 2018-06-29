@@ -1,20 +1,20 @@
-{% set prev = 'none' %}
+{% set ns = namespace(prev='none') %}
 {% for type, name, args, doc in api %}
-  {% if type not in ('submodule', 'dependence') and prev in ('submodule', 'dependence') %}
+  {% if type not in ('submodule', 'dependence') and ns.prev in ('submodule', 'dependence') %}
       </div><!-- /submodules -->
-  {% endif%}
+  {% endif %}
   {% if type == 'module' %}
     <h2 class="{{ type }}"><i>module</i> {{ name }}
       <span class="links">
         <a name="{{ name }}" href="#{{ name }}">link</a> |
         <a href="#">top</a></span></h2>
   {% elif type in ('submodule', 'dependence') %}
-    {% if prev not in ('submodule', 'dependence') %}
+    {% if ns.prev not in ('submodule', 'dependence') %}
     <div class="submodules">
       <small>Module dependences:</small>
     {% else %},
     {% endif %}
-      <span class="{{ type }}">{{ wiki(name) }}</span>
+      <span class="{{ type }}">{{ rst(name) }}</span>
   {% elif type == 'class' %}
     <h3 class="{{ type }}"><i>class</i> {{ name }}
       <span class="links">
@@ -56,7 +56,7 @@
     <small>odpad</small>#}
   {% endif %}
   {% if type not in ('dontwant', 'submodule', 'dependence') %}
-    <div class="{{ type }}">{{ wiki(doc) }}</div>
+    <div class="{{ type }}">{{ rst(doc) }}</div>
   {% endif %}
-  {% set prev = type %}
+  {% set ns.prev = type %}
 {% endfor %}

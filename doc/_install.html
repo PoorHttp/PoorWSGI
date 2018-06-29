@@ -1,5 +1,4 @@
-{% set page = 'poorwsgi' %}{% include "_header.html" %}
-
+{% set page = 'install' %}{% include "_header.html" %}
 
 {#      need api for keywords yea?      #}
 {% set api = load_module('poorwsgi') %}
@@ -10,7 +9,7 @@
 {% set api = api + load_module('state') %}
 
 {% do keywords(api, 'api.html') %}
-{% set sects = load_rst("about.rst") %}
+{% set sects = load_rst("install.rst") %}
 
 {% include "_text.html" %}
 {% include "_footer.html" %}

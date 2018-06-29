@@ -379,9 +379,7 @@ def send_file(req, path, content_type=None):  # TODO: set content-length !!
 
 
 def directory_index(req, _path):
-    """
-    Returns directory index as html page
-    """
+    """Returns directory index as html page."""
     if not path.isdir(_path):
         log.error(
             "Only directory_index can be send with directory_index handler. "

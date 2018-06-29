@@ -51,6 +51,14 @@ class build_html(Command):
         if self.html_temp is None:
             self.html_temp = path.join(self.build_base, 'html')
 
+    def page(self, in_name, out_name=None):
+        """Generate page."""
+        if out_name is None:
+            out_name = in_name
+        if call(['jinja24doc', '-v', '_%s.html' % in_name, 'doc'],
+                stdout=file(self.html_temp + '/%s.html' % out_name, 'w')):
+            raise IOError(1, 'jinja24doc failed')
+
     def run(self):
         log.info("building html docmuentation")
         if self.dry_run:
@@ -58,15 +66,11 @@ class build_html(Command):
 
         if not path.exists(self.html_temp):
             makedirs(self.html_temp)
-        if call(['jinja24doc', '-v', '_poorwsgi.html', 'doc'],
-                stdout=file(self.html_temp + '/index.html', 'w')):
-            raise IOError(1, 'jinja24doc failed')
-        if call(['jinja24doc', '-v', '_poorwsgi_api.html', 'doc'],
-                stdout=file(self.html_temp + '/api.html', 'w')):
-            raise IOError(1, 'jinja24doc failed')
-        if call(['jinja24doc', '-v', '_licence.html', 'doc'],
-                stdout=file(self.html_temp + '/licence.html', 'w')):
-            raise IOError(1, 'jinja24doc failed')
+        self.page('poorwsgi', 'index')
+        self.page('install')
+        self.page('documentation')
+        self.page('poorwsgi_api', 'api')
+        self.page('licence')
         copyfile('doc/style.css', self.html_temp + '/style.css')
 
 
@@ -127,18 +131,12 @@ class install_html(install_data):
         install_data.run(self)
 
 
-def _setup(**kwargs):
-    if version_info[0] == 2 and version_info[1] < 7:
-        kwargs['install_requires'] = ['ordereddict >= 1.1']
-    setup(**kwargs)
-
-
 def doc():
     with open('README.rst', 'r') as readme:
         return readme.read().strip()
 
 
-_setup(
+setup(
     name="PoorWSGI",
     version=__version__,
     description="Poor WSGI connector for Python",

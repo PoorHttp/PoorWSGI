@@ -14,9 +14,10 @@ def hidden(text, passwd):
     """(en|de)crypt text with sha hash of passwd via xor.
 
     Arguments:
-        text    raw data to (en|de)crypt. Could be str, or bytes
-        passwd  password
-        returns string
+        text : str
+            raw data to (en|de)crypt. Could be str, or bytes
+        passwd : str
+            password
     """
     if isinstance(passwd, bytes):
         passwd = sha512(passwd).digest()
@@ -65,6 +66,8 @@ class PoorSession:
     must be dictionary. Data is stored to cookie by pickle dump. Be careful
     with stored object. You can add object with litle python trick:
 
+    .. code:: python
+
         sess = PoorSession(req)
 
         sess.data['class'] = obj.__class__          # write to cookie
@@ -75,6 +78,8 @@ class PoorSession:
 
     Or for beter solution, you can create export and import methods for you
     object like that:
+
+    .. code:: python
 
         class Obj(object):
             def import(self, d):
@@ -99,14 +104,16 @@ class PoorSession:
         """Constructor.
 
         Arguments:
-            req      Request object
-            expires  cookie expire time in seconds, if it 0, no expire is set
-            path     cookie path
-            SID      cookie key name
-            compress compress module or class. Could be bz2, gzip.zlib, or any
-                     other, which have standard compress and decompress
-                     methods. Or it could be None to not use any compressing
-                     method.
+            expires : int
+                cookie expire time in seconds, if it 0, no expire is set
+            path : str
+                cookie path
+            SID : str
+                cookie key name
+            compress : compress module or class.
+                Could be bz2, gzip.zlib, or any other, which have standard
+                compress and decompress methods. Or it could be None to not use
+                any compressing method.
         """
         if req.secret_key is None:
             raise RuntimeError("poor_SecretKey is not set!")

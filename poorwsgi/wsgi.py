@@ -1,6 +1,4 @@
-"""Application callable class, which is the main point for poorwsgi web
-application.
-"""
+"""Application callable class, which is the main point for wsgi application."""
 
 from os import path, access, R_OK, environ
 from sys import stderr
@@ -132,12 +130,18 @@ class Application(object):
         see Application.set_filter and Application.route.
 
         Default filters are:
-            :int - match number and convert it to int
-            :float - match number and convert it to float
-            :word - match one string word
-            :hex - match hexadecimal value and convert it to str
-            :re: - match user defined regular expression
-            none - match any string withount '/' character
+
+            **:int**    match number and convert it to int
+
+            **:float**  match number and convert it to float
+
+            **:word**   match one string word
+
+            **:hex**    match hexadecimal value and convert it to str
+
+            **:re:**    match user defined regular expression
+
+            **none**    match any string without '/' character
 
         For more details see {/debug-info} page of your application, where
         you see all filters with regular expression definition.
@@ -343,12 +347,16 @@ class Application(object):
         """Create new filter or overwrite builtins.
 
         Arguments:
-            name      - Name of filter which is used in route or set_route
-                        method.
-            regex     - regular expression which used for filter
-            convertor - convertor function or class, which gets string in
-                        input. Default is str function, which call __str__
-                        method on input object.
+
+        name : str
+            Name of filter which is used in route or set_route method.
+        regex : str
+            Regular expression which used for filter.
+        convertor : function
+            Convertor function or class, which gets string in input. Default is
+            str function, which call __str__ method on input object.
+
+        .. code:: python
 
             app.set_filter('uint', r'\d+', int)
         """
@@ -360,26 +368,31 @@ class Application(object):
 
         This is decorator for function to call before each request.
 
+        .. code:: python
+
             @app.pre_process()
             def before_each_request(req):
-                ...
+                print("Request coming")
         """
         def wrapper(fn):
             self.__pre.append(fn)
             return fn
         return wrapper
-    # enddef
 
     def add_pre_process(self, fn):
-        """Append pre proccess handler.
+        """Append pre process handler.
 
         Method adds function to list functions which is call before each
         request.
 
+        .. code:: python
+
+            def def before_each_request(req):
+                print("Request coming")
+
             app.add_pre_process(before_each_request)
         """
         self.__pre.append(fn)
-    # enddef
 
     def post_process(self):
         """Append post process handler.
@@ -387,9 +400,11 @@ class Application(object):
         This decorator append function to be called after each request,
         if you want to use it redefined all outputs.
 
+        .. code:: python
+
             @app.pre_process()
             def after_each_request(req):
-                ...
+                print("Request out")
         """
         def wrapper(fn):
             self.__post.append(fn)
@@ -403,6 +418,11 @@ class Application(object):
         Method for direct append function to list functions which are called
         after each request.
 
+        .. code:: python
+
+            def after_each_request(req):
+                print("Request out")
+
             app.add_post_process(after_each_request)
         """
         self.__post.append(fn)
@@ -413,6 +433,8 @@ class Application(object):
 
         This is decorator for default handler for http method (called before
         error_not_found).
+
+        .. code:: python
 
             @app.default(METHOD_GET_POST)
             def default_get_post(req):
@@ -431,6 +453,8 @@ class Application(object):
 
         Set fn default handler for http method called befor error_not_found.
 
+        .. code:: python
+
             app.set_default(default_get_post, METHOD_GET_POST)
         """
         for m in methods.values():
@@ -447,6 +471,8 @@ class Application(object):
 
         You can define uri as static path or as groups which are hand
         to handler as next parameters.
+
+        .. code:: python
 
             # static uri
             @app.route('/user/post', method=METHOD_POST)
@@ -469,12 +495,14 @@ class Application(object):
                 ...
 
         If you can use some name of group which is python keyword, like class,
-        you can use **kwargs syntax:
+        you can use \**kwargs syntax:
+
+        .. code:: python
 
             @app.route('/<class>/<len:int>')
             def classes(req, **kwargs):
-                return "'%s' class is %d lenght." % \
-                    (kwargs['class'], kwargs['len'])
+                return ("'%s' class is %d lenght." %
+                        (kwargs['class'], kwargs['len']))
 
         Be sure with ordering of call this decorator or set_route function with
         groups regular expression. Regular expression routes are check with the
@@ -494,6 +522,8 @@ class Application(object):
 
         Another way to add fn as handler for uri. See Application.route
         documentation for details.
+
+        .. code:: python
 
             app.set_route('/use/post', user_create, METHOD_POST)
         """
@@ -541,6 +571,8 @@ class Application(object):
         Both of function, rroute and set_rroute store routes to special
         internal table, which is another to table of static routes.
 
+        .. code:: python
+
             @app.rroute(r'/user/\w+')               # simple regular expression
             def any_user(req):
                 ...
@@ -565,6 +597,9 @@ class Application(object):
 
         Another way to add fn as handler for uri defined by regular expression.
         See Application.rroute documentation for details.
+
+
+        .. code:: python
 
             app.set_rroute('/use/\w+/post', user_create, METHOD_POST)
 
@@ -839,10 +874,15 @@ class Application(object):
         """Set profiler for __call__ function.
 
         Arguments:
-            runctx - function from profiler module
-            dump - path and prefix for .profile files
+
+        runctx : function
+            function from profiler module
+        dump : str
+            path and prefix for .profile files
 
         Typical usage:
+
+        .. code:: python
 
             import cProfile
 
@@ -865,10 +905,11 @@ class Application(object):
     def get_options():
         """Returns dictionary with application variables from system environment.
 
-        Application variables start with {app_} prefix,
+        Application variables start with ``app_`` prefix,
         but in returned dictionary is set without this prefix.
 
-            #!ini
+        .. code:: python
+
             app_db_server = localhost   # application variable db_server
             app_templates = app/templ   # application variable templates
 

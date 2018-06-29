@@ -2,8 +2,8 @@
 application.
 """
 
-from os import path, access, R_OK, environ, getcwd, uname
-from sys import stderr, version
+from os import path, access, R_OK, environ
+from sys import stderr
 from collections import OrderedDict
 
 import re
@@ -11,8 +11,7 @@ import logging as log
 
 from poorwsgi.state import OK, DONE, DECLINED, HTTP_OK, \
     METHOD_GET, METHOD_POST, METHOD_HEAD, methods, \
-    HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN, \
-    __version__
+    HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN
 from poorwsgi.request import Request, BrokenClientConnection
 from poorwsgi.results import default_shandlers, not_implemented, \
     internal_server_error, \
@@ -89,9 +88,7 @@ class Application(object):
             'debug': 'Off',
             'document_root': '',
             'document_index': 'Off',
-            'secret_key': '%s%s%s%s' %
-                          (__version__, version, getcwd(),
-                           ''.join(str(x) for x in uname()))
+            'secret_key': None
         }
         # endtry
     # enddef

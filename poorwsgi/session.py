@@ -48,7 +48,7 @@ class NoCompress:
     """
 
     @staticmethod
-    def compress(data, compresslevel=9):
+    def compress(data, compresslevel=0):
         """Get two params, data, and compresslevel. Method only return data."""
         return data
 
@@ -61,7 +61,7 @@ class NoCompress:
 class PoorSession:
     """Self-contained cookie with session data.
 
-    You cat store or read data from object via PoorSesssion.data variable which
+    You cat store or read data from object via PoorSession.data variable which
     must be dictionary. Data is stored to cookie by pickle dump. Be careful
     with stored object. You can add object with litle python trick:
 
@@ -108,6 +108,8 @@ class PoorSession:
                      methods. Or it could be None to not use any compressing
                      method.
         """
+        if req.secret_key is None:
+            raise RuntimeError("poor_SecretKey is not set!")
 
         self.__SID = SID
         self.__expires = expires

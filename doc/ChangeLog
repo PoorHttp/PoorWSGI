@@ -3,6 +3,7 @@
     * Removed deprecated methods
     * Using python logging
     * Renamed Request clength property to content_length
+    * poor_SecretKey is not set by default
 
 ==== 1.7.0 ====
     * New Application config list form_content_types

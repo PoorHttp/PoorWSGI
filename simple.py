@@ -6,9 +6,10 @@
 # licence as PoorWSGI. So enjoy it ;)
 
 from wsgiref.simple_server import make_server
-from base64 import decodestring, encodestring
+from base64 import decodebytes, encodestring
 from poorwsgi import Application, state, request, redirect
 from poorwsgi.session import PoorSession
+from poorwsgi.response import Response, RedirectResponse
 
 import os
 import logging as log
@@ -21,7 +22,7 @@ logger = log.getLogger()
 logger.setLevel("DEBUG")
 app = Application()
 app.debug = True
-app.document_root = './'
+app.document_root = '.'
 app.document_index = True
 app.secret_key = os.urandom(32)     # random key each run
 
@@ -48,7 +49,7 @@ class StorageFactory:
 app.auto_form = False
 
 
-@app.pre_process()
+@app.before_request()
 def auto_form(req):
     """ This is own implementation of req.form paring before any POST request
         with own file_callback.
@@ -122,8 +123,7 @@ def check_login(fn):
         cookie = PoorSession(req)
         if 'login' not in cookie.data:
             log.info('Login cookie not found.')
-            redirect(req, '/', text='Login required')
-
+            redirect("/", message="Login required",)
         return fn(req)
     return handler
 
@@ -147,7 +147,7 @@ def root(req):
         '<li><a href="/test/[grr]">/test/&lt;variable:re:.*&gt;</a>'
         ' - Testing regular:re Page</li>',
         '<li><a href="/test/one/too/three">'
-        '/test/&lt;variable0&gt;&lt;variable1&gt;&lt;variable2&gt;</a>'
+        '/test/&lt;variable0&gt;/&lt;variable1&gt;/&lt;variable2&gt;</a>'
         ' - Testing variable args</li>',
         '<li><a href="/login">/login</a> - Create login session</li>',
         '<li><a href="/logout">/logout</a> - Destroy login session</li>',
@@ -162,9 +162,10 @@ def root(req):
         ' - Inernal Server Error</li>',
         "</ul>",
         ) + get_footer()
+    response = Response()
     for line in buff:
-        req.write(line + '\n')
-    return state.OK
+        response.write(line + '\n')
+    return response
 
 
 @app.route('/favicon.ico')
@@ -192,28 +193,24 @@ AP///wAAi0q1AIdHhwCERc4AgEL/AH0//wB5PP8Adjr/AHI3k////wD///8A////AP///wD///8A
 //8A/D8AAPAPAADwDwAA8A8AAIABAACAAQAAAAAAAAAAAAAAAAAAAAAAAIABAACAAQAA8A8AAPAP
 AADwDwAA+B8AAA==
 """
-    req.content_type = "image/vnd.microsoft.icon"
-    req.write(decodestring(icon))
-    return state.DONE
+    return decodebytes(icon), "image/vnd.microsoft.icon"
 
 
 @app.route('/style.css')
 def style(req):
-    buff = (
-        "body { width: 90%; max-width: 900px; margin: auto;"
-        " padding-top: 30px; }",
-        "h1 { text-align: center; color: #707070; }",
-        "p { text-indent: 30px; margin-top: 30px; margin-bottom: 30px; }",
-        "pre { font-size: 90%; background: #ddd; overflow: auto; }",
-        "table { width: 100%; font-family: monospace; }",
-        "td { word-break:break-word; }",
-        "td:first-child { white-space: nowrap; word-break:keep-all; }",
-        "tr:hover { background: #e0e0e0; }"
-    )
-    req.content_type = "text/css"
-    for line in buff:
-        req.write(line + '\n')
-    return state.OK
+    buff = \
+    """
+        body { width: 90%; max-width: 900px; margin: auto;
+        padding-top: 30px; }
+        h1 { text-align: center; color: #707070; }
+        p { text-indent: 30px; margin-top: 30px; margin-bottom: 30px; }
+        pre { font-size: 90%; background: #ddd; overflow: auto; }
+        table { width: 100%; font-family: monospace; }
+        td { word-break:break-word; }
+        td:first-child { white-space: nowrap; word-break:keep-all; }
+        tr:hover { background: #e0e0e0; }
+    """
+    return buff, "text/css"
 
 
 @app.route('/test/<variable:email>')
@@ -238,7 +235,7 @@ def test_dynamic(req, variable=None):
          "<h2>Browser Headers</h2>",
          "<table>") + \
         tuple("<tr><td>%s:</td><td>%s</td></tr>" %
-              (key, val) for key, val in req.headers_in.items()) + \
+              (key, val) for key, val in req.headers.items()) + \
         ("</table>",
          "<h2>Request Variables </h2>",
          "<table>") + \
@@ -247,15 +244,17 @@ def test_dynamic(req, variable=None):
         ("</table>",) + \
         get_footer()
 
+    response = Response()
     for line in buff:
-        req.write(line + '\n')
-    return state.OK
+        response.write(line + '\n')
+    return response
 
 
 @app.route('/test/<variable:re:.*>')
 @app.route('/test/<variable0>/<variable1>/<variable2>')
 def test_varargs(req, *args):
-    var_info = {'len': len(args)}
+    var_info = {'len': len(args),
+                'uri_rule': req.uri_rule}
     var_info.update(req.groups)
 
     buff = get_header("Variable args test") + \
@@ -268,7 +267,7 @@ def test_varargs(req, *args):
          "<h2>Browser Headers</h2>",
          "<table>") + \
         tuple("<tr><td>%s:</td><td>%s</td></tr>" %
-              (key, val) for key, val in req.headers_in.items()) + \
+              (key, val) for key, val in req.headers.items()) + \
         ("</table>",
          "<h2>Request Variables </h2>",
          "<table>") + \
@@ -277,9 +276,10 @@ def test_varargs(req, *args):
         ("</table>",) + \
         get_footer()
 
+    response = Response()
     for line in buff:
-        req.write(line + '\n')
-    return state.OK
+        response.write(line + '\n')
+    return response
 
 
 @app.route('/login')
@@ -287,9 +287,9 @@ def login(req):
     log.debug("Input cookies: %s", repr(req.cookies))
     cookie = PoorSession(req)
     cookie.data['login'] = True
-    cookie.header(req, req.headers_out)
-    log.debug("Output headers: %s", req.headers_out)
-    redirect(req, '/')
+    response = RedirectResponse('/')
+    cookie.header(response)
+    return response
 
 
 @app.route('/logout')
@@ -297,9 +297,9 @@ def logout(req):
     log.debug("Input cookies: %s", repr(req.cookies))
     cookie = PoorSession(req)
     cookie.destroy()
-    cookie.header(req, req.headers_out)
-    log.debug("Output headers: %s", req.headers_out)
-    redirect(req, '/')
+    response = RedirectResponse('/')
+    cookie.header(response)
+    return response
 
 
 @app.route('/test/form', method=state.METHOD_GET_POST)
@@ -352,7 +352,7 @@ def test_form(req):
          "<h2>Browser Headers</h2>",
          "<table>") + \
         tuple("<tr><td>%s:</td><td>%s</td></tr>" %
-              (key, val) for key, val in req.headers_in.items()) + \
+              (key, val) for key, val in req.headers.items()) + \
         ("</table>",
          "<h2>Request Variables </h2>",
          "<table>") + \
@@ -361,9 +361,10 @@ def test_form(req):
         ("</table>",) + \
         get_footer()
 
+    response = Response()
     for line in buff:
-        req.write(line + '\n')
-    return state.OK
+        response.write(line + '\n')
+    return response
 
 
 @app.route('/test/upload', method=state.METHOD_GET_POST)
@@ -415,9 +416,10 @@ def test_upload(req):
         tuple(files) + \
         get_footer()
 
+    response = Response()
     for line in buff:
-        req.write(line + '\n')
-    return state.OK
+        response.write(line + '\n')
+    return response
 
 
 @app.http_state(state.HTTP_NOT_FOUND)
@@ -435,20 +437,26 @@ def not_found(req):
         "<p>Your reqeuest <code>%s</code> was not found.</p>" % req.uri,
     ) + get_footer()
 
-    req.status = state.HTTP_NOT_FOUND
-    req.headers_out = req.err_headers_out
+    response = Response(state.HTTP_NOT_FOUND)
     for line in buff:
-        req.write(line + '\n')
-    return state.DONE
+        response.write(line + '\n')
+    return response
 
 
-@app.pre_process()
-@app.post_process()
+@app.route('/yield')
+def yielded(req):
+    return (b"ahoj", b"svete")
+    # for i in range(10):
+    #    yield b"line %d\n" % i
+
+
+@app.before_request()
+@app.after_request()
 def log_request(req):
     log.info("Log this point")
 
 
-@app.post_process()
+@app.after_request()
 def post(req):
     pass
 

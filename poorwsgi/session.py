@@ -9,6 +9,8 @@ import logging as log
 
 from http.cookies import SimpleCookie
 
+from poorwsgi.request import Headers
+
 
 def hidden(text, passwd):
     """(en|de)crypt text with sha hash of passwd via xor.
@@ -118,6 +120,7 @@ class PoorSession:
         if req.secret_key is None:
             raise RuntimeError("poor_SecretKey is not set!")
 
+        self.__secret_key = req.secret_key
         self.__SID = SID
         self.__expires = expires
         self.__path = path
@@ -137,17 +140,16 @@ class PoorSession:
             try:
                 self.data = loads(hidden(self.__cps.decompress
                                          (b64decode(raw.encode())),
-                                         req.secret_key))
+                                         self.__secret_key))
                 if not isinstance(self.data, dict):
                     raise RuntimeError()
-            except Exception as e:
-                log.info(e.__repr__())
-                log.error('Bad session data.')
+            except Exception as err:
+                log.info(err.__repr__())
+                log.warning('Bad session data.')
 
             if 'expires' in self.data and self.data['expires'] < int(time()):
-                log.error('I: Session was expired, generating new.')
+                log.info('Session was expired, generating new.')
                 self.data = {}
-        # endif
     # enddef
 
     def renew(self):
@@ -159,13 +161,13 @@ class PoorSession:
         if 'expires' in self.data:
             self.data.pop('expires')
 
-    def write(self, req):
+    def write(self):
         """Store data to cookie value.
 
         This method is called automatically in header method.
         """
         raw = b64encode(self.__cps.compress(hidden(dumps(self.data),
-                                                   req.secret_key), 9))
+                                                   self.__secret_key), 9))
         raw = raw if isinstance(raw, str) else raw.decode()
         self.cookie[self.__SID] = raw
         self.cookie[self.__SID]['path'] = self.__path
@@ -183,20 +185,22 @@ class PoorSession:
         self.data['expires'] = -1
         self.cookie[self.__SID]['expires'] = -1
 
-    def header(self, req, headers_out=None):
-        """Generate cookie headers and append it to headers_out if it set.
+    def header(self, headers=None):
+        """Generate cookie headers and append it to headers if it set.
 
         Returns list of cookie header pairs.
+
+            **headers** headers is Headers or Response object, which is used
+                        to write header directly.
         """
-        self.write(req)
+        self.write()
         cookies = self.cookie.output().split('\r\n')
-        header = []
+        retval = []
         for cookie in cookies:
             var = cookie[:10]   # Set-Cookie
             val = cookie[12:]   # SID=###; expires=###; Path=/
-            header.append((var, val))
-            if headers_out:
-                headers_out.add(var, val)
-        return header
-    # enddef
-# endclass
+            retval.append((var, val))
+            if headers:
+                headers.add_header(var, val)
+        return retval
+    # endclass

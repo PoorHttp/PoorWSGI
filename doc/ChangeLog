@@ -1,10 +1,31 @@
 ==== 2.0.0 ====
     * Python3 support only
     * Removed deprecated methods
-    * Using python logging
+    * Using python logging with 'poorwsgi' logger
     * Renamed Request clength property to content_length
     * poor_SecretKey is not set by default
     * Documentation rewrited to rst
+    * Request is now input object only
+        * properties and attributes clean
+        * document_root is property now
+        * uri_rule contain original definition of regular rule
+    * Response classes for output
+        * not use buffer size
+        * callable for use in application
+    * HTTPException instead of SERVER_RETURN
+    * New abort function
+    * New make_response function use internaly for handlers return values
+    * Some results are move to Response subclasses
+    * PoorSession can write headers to Response, and no Request is need for that
+    * Only DECLINED special return status_code are posible
+    * pre_process is pre_request and post_process is post_request
+    * internal parse_negotiation function
+    * accept_* properties from headers in Request
+    * mime_type is stored in mime_type properties
+    * pre_ and post_ handlers are before_ and after_
+    * file_callback application property
+    * states and routes application property
+    * Documentation update
 
 ==== 1.7.0 ====
     * New Application config list form_content_types

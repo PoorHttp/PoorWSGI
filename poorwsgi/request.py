@@ -6,22 +6,37 @@ from collections import Mapping
 from wsgiref.headers import _formatparam
 from cgi import FieldStorage as CgiFieldStorage, parse_header
 from json import loads as json_loads
-from io import BytesIO
 
 import os
 import re
-import logging as log
+from logging import getLogger
 
-from http.client import responses
 from urllib.parse import parse_qs
 from http.cookies import SimpleCookie
 
 from poorwsgi.state import methods, \
-    METHOD_POST, METHOD_PUT, METHOD_PATCH, HTTP_OK
+    METHOD_POST, METHOD_PUT, METHOD_PATCH
 
+log = getLogger("poorwsgi")
 
 # simple regular expression for construct_url method
 re_httpUrlPatern = re.compile(r"^(http|https):\/\/")
+
+
+def parse_negotiation(value):
+    """Parse Content Negotiation headers to list of value, quality tuples."""
+    values = []
+    for it in value.split(','):
+        pair = it.split(';')
+        if pair[0] == it:
+            values.append((it, 1.0))
+            continue
+        try:
+            quality = float(pair[1].split('=')[1])
+        except (IndexError, ValueError):
+            quality = 1.0
+        values.append((pair[0], quality))
+    return values
 
 
 class Headers(Mapping):
@@ -190,7 +205,7 @@ class Request(object):
     Special variables for user use are prefixed with ``app_``.
     """
 
-    def __init__(self, environ, start_response, app_config):
+    def __init__(self, environ, app_config):
         """Object was created automatically in wsgi module.
 
         It's input parameters are the same, which Application object gets from
@@ -204,19 +219,8 @@ class Request(object):
         # The path portion of the URI.
         self.__uri_rule = None
 
-        # Reference to final uri_handler, user can use some handler attributes
+        # Reference to final uri_handler, user can use some uri_handler attributes
         self.__uri_handler = None
-
-        # String. The content type. Another way to set content_type is via
-        # headers_out object property. Default is text/html; charset=utf-8
-        self.__content_type = "text/html; charset=utf-8"
-
-        self.__content_length = 0
-
-        self.__body_bytes_sent = 0
-
-        # Status. One of http.enums.HTTP_* values.
-        self.__status = HTTP_OK
 
         # A table object containing headers sent by the client.
         tmp = []
@@ -230,16 +234,18 @@ class Request(object):
                                    key.split('_')))
                 tmp.append((key, val))
 
-        self.__headers_in = Headers(tmp, False)  # do not convert to iso-8859-1
+        self.__headers = Headers(tmp, False)  # do not convert to iso-8859-1
 
-        # A Headers object representing the headers to be sent to the client.
-        self.__headers_out = Headers(
-            (("X-Powered-By", "Poor WSGI for Python"),))
+        ctype, pdict = parse_header(self.__headers.get('Content-Type', ''))
+        self.__mime_type = ctype
+        self.__charset = pdict.get('charset', 'utf-8')
 
-        # These headers get send with the error response, instead of
-        # headers_out.
-        self.__err_headers_out = Headers(
-            (("X-Powered-By", "Poor WSGI for Python"),))
+        self.__content_length = int(self.__headers.get("Content-Length") or -1)
+        # will be set with first property call
+        self.__accept = None
+        self.__accept_charset = None
+        self.__accept_encoding = None
+        self.__accept_language = None
 
         # uwsgi do not sent environ variables to apps environ
         if 'uwsgi.version' in self.__environ or 'poor.Version' in os.environ:
@@ -257,45 +263,31 @@ class Request(object):
         else:
             self.__args = EmptyForm()
 
-        ctype, pdict = parse_header(self.__headers_in.get('content-type', ''))
         # test auto json parsing
         if app_config['auto_json'] and self.is_body_request \
-                and ctype in app_config['json_content_types']:
-            self.__json = Json(self, pdict.get('charset', 'utf-8'))
+                and self.__mime_type in app_config['json_mime_types']:
+            self.__json = Json(self, self.__charset)
             self.__form = EmptyForm()
         # test auto form parsing
         elif app_config['auto_form'] and self.is_body_request \
-                and ctype in app_config['form_content_types']:
+                and self.__mime_type in app_config['form_mime_types']:
             self.__form = FieldStorage(
                 self, keep_blank_values=app_config['keep_blank_values'],
-                strict_parsing=app_config['strict_parsing'])
+                strict_parsing=app_config['strict_parsing'],
+                file_callback=app_config['file_callback'])
             self.__json = EmptyForm()
         else:
             self.__form = EmptyForm()
             self.__json = EmptyForm()
 
-        if app_config['auto_cookies'] and 'Cookie' in self.__headers_in:
+        if app_config['auto_cookies'] and 'Cookie' in self.__headers:
             self.__cookies = SimpleCookie()
-            self.__cookies.load(self.__headers_in['Cookie'])
+            self.__cookies.load(self.__headers['Cookie'])
         else:
             self.__cookies = tuple()
 
         self.__debug = self.__poor_environ.get(
             'poor_Debug', app_config['debug']).lower() == 'on'
-
-        self.start_response = start_response
-        self._start_response = False
-
-        self._buffer = BytesIO()
-        self._buffer_len = 0
-        self._buffer_offset = 0
-
-        try:
-            self._buffer_size = int(self.__poor_environ.get('poor_BufferSize',
-                                                            '16384'))
-        except ValueError:
-            self._buffer_size = 16384
-            log.warning('Bad poor_BufferSize, default is 16384 B (16 KiB).')
 
         # variables for user use
         self.__config = None
@@ -303,6 +295,21 @@ class Request(object):
     # enddef
 
     # -------------------------- Properties --------------------------- #
+    @property
+    def mime_type(self):
+        """Request Content-Type header string."""
+        return self.__mime_type
+
+    @property
+    def charset(self):
+        """Request Content-Type charset header string, utf-8 if not set."""
+        return self.__charset
+
+    @property
+    def content_length(self):
+        """Request Content-Length header value, -1 if not set."""
+        return self.__content_length
+
     @property
     def environ(self):
         """Copy of table object containing request environment.
@@ -339,8 +346,9 @@ class Request(object):
 
         This property could be set once, and that do Application object. There
         are some internal uri_rules which is set typical if some internal
-        handler was called. There are: _default_handler_, _directory_index_,
-        _debug_info_ and _send_file_. In other case, there be url or regex.
+        handler was called. There are: /* for default, directory and file
+        handler and /debug-info for debug handler. In other case, there be url
+        or regex.
         """
         return self.__uri_rule
 
@@ -356,6 +364,10 @@ class Request(object):
         It was set by Application object when end point handler is known before
         calling all pre handlers. Typical use case is set some special
         attribute to handler, and read them in pre handler.
+
+        Property was set when any route is found for request uri. Sending file
+        internaly when document_root is set, or by Error handlers leave uri_handler
+        None.
         """
         return self.__uri_handler
 
@@ -365,83 +377,67 @@ class Request(object):
             self.__uri_handler = value
 
     @property
-    def content_type(self):
-        """Content-Type header string, by default ``text/html; charset=utf-8``.
-
-        Another way to set content_type is via headers_out object property.
-        """
-        return self.__content_type
-
-    @content_type.setter
-    def content_type(self, value):
-        self.__content_type = value
-
-    @property
-    def content_length(self):
-        """Property to store output content length for header.
-
-        This value was set automatically when size of output data are less then
-        buffer size.
-        """
-        return self.__content_length
-
-    @content_length.setter
-    def content_length(self, value):
-        self.__content_length = value
-
-    @property
-    def body_bytes_sent(self):
-        """Internal variable to store count of bytes which are really sent."""
-        return self.__body_bytes_sent
-
-    @property
-    def status(self):
-        """Http status code, which is **state.HTTP_OK (200)** by default.
-
-        If you want to set this variable (which is very good idea in http_state
-        handlers), it is good solution to use some of ``HTTP_`` constant from
-        state module.
-        """
-        return self.__status
-
-    @status.setter
-    def status(self, value):
-        if value not in responses:
-            raise ValueError("Bad response status %s" % value)
-        self.__status = value
-
-    @property
-    def headers_in(self):
+    def headers(self):
         """Reference to input headers object."""
-        return self.__headers_in
+        return self.__headers
+
+    @property
+    def accept(self):
+        """Tuple of client supported mime types from Accept header."""
+        if self.__accept is None:
+            self.__accept = tuple(parse_negotiation(
+                self.__headers.get("Accept", '')))
+        return self.__accept
+
+    @property
+    def accept_charset(self):
+        """Tuple of client supported charset from Accept-Charset header."""
+        if self.__accept_charset is None:
+            self.__accept_charset = tuple(parse_negotiation(
+                self.__headers.get("Accept-Charset", '')))
+        return self.__accept_charset
+
+    @property
+    def accept_encoding(self):
+        """Tuple of client supported charset from Accept-Encoding header."""
+        if self.__accept_encoding is None:
+            self.__accept_encoding = tuple(parse_negotiation(
+                self.__headers.get("Accept-Encoding", '')))
+        return self.__accept_encoding
+
+    @property
+    def accept_language(self):
+        """List of client supported languages from Accept-Language header."""
+        if self.__accept_language is None:
+            self.__accept_language = tuple(parse_negotiation(
+                self.__headers.get("Accept-Language", '')))
+        return self.__accept_language
+
+    @property
+    def accept_html(self):
+        """Return true if text/html mime type is in accept neogetions values."""
+        return "text/html" in dict(self.accept).items()
+
+    @property
+    def accept_xhtml(self):
+        """Return true if text/xhtml mime type is in accept neogetions values."""
+        return "text/xhtml" in dict(self.accept).items()
+
+    @property
+    def accept_json(self):
+        """Return true if application/json mime type is in accept neogetions values."""
+        return "application/json" in dict(self.accept).items()
 
     @property
     def is_xhr(self):
         """.If X-Requested-With header is set and have XMLHttpRequest value."""
-        return self.__headers_in.get('X-Requested-With') == 'XMLHttpRequest'
+        return self.__headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     @property
     def is_body_request(self):
         """True if request is body request type, so it is PATCH, POST or PUT.
         """
         return self.method_number & (METHOD_PATCH | METHOD_POST | METHOD_PUT)
-
-    @property
-    def headers_out(self):
-        """Reference to output headers object."""
-        return self.__headers_out
-
-    @headers_out.setter
-    def headers_out(self, value):
-        if not isinstance(value, Headers):
-            raise ValueError("Headers must be instance of "
-                             "wsgiref.headers.Headers")
-        self.__headers_out = value
-
-    @property
-    def err_headers_out(self):
-        """Reference to output headers object for error pages."""
-        return self.__err_headers_out
 
     @property
     def poor_environ(self):
@@ -472,8 +468,8 @@ class Request(object):
     def form(self):
         """Dictionary like class (FieldStorage instance) of body arguments.
 
-        Arguments must be send in request body with content type
-        one of Application.form_content_types. Method must be POST, PUT
+        Arguments must be send in request body with mime type
+        one of Application.form_mime_types. Method must be POST, PUT
         or PATCH. Request body is parsed when Application.auto_form
         is set, which default and when method is POST, PUT or PATCH.
 
@@ -488,9 +484,9 @@ class Request(object):
 
     @property
     def json(self):
-        """Json dictionary if request content type is JSON.
+        """Json dictionary if request mime type is JSON.
 
-        Json types is defined in Application.json_content_types, typical is
+        Json types is defined in Application.json_mime_types, typical is
         ``application/json`` and request method must be POST, PUT or PATCH and
         Application.auto_json must be set to true (default). Otherwise json
         is EmptyForm.
@@ -622,6 +618,13 @@ class Request(object):
             self.__app_config['document_index']).lower() == 'on'
 
     @property
+    def document_root(self):
+        """Returns DocumentRoot setting."""
+        return self.__poor_environ.get(
+            'poor_DocumentRoot',
+            self.__app_config['document_root'])
+
+    @property
     def config(self):
         """For config object (default None)."""
         return self.__config
@@ -649,78 +652,13 @@ class Request(object):
         If length is not set, or if is lower then zero, Content-Length was
         be use.
         """
-        content_length = int(self.__headers_in.get("Content-Length", 0))
-        if content_length == 0:
+        if self.__content_length <= 0:
             log.error("No Content-Length found, read was failed!")
             return ''
-        if length > -1 and length < content_length:
+        if length > -1 and length < self.__content_length:
             self.read = self.__read
             return self.read(length)
-        return self._file.read(content_length)
-    # enddef
-
-    def write(self, data, flush=0):
-        """Write data to buffer.
-
-        If len of data is bigger then poor_BufferSize, data was be sent
-        to client via old write method (directly). Otherwise, data was be sent
-        at the end of request as iterable object.
-        """
-        if isinstance(data, str):
-            data = data.encode('utf-8')
-
-        # FIXME: self._buffer is not FIFO
-        self._buffer_len += len(data)
-        self._buffer.write(data)
-        if self._buffer_len - self._buffer_offset > self._buffer_size:
-            if not self._start_response:
-                self.__call_start_response()
-            # endif
-            self._buffer.seek(self._buffer_offset)
-            try:
-                self.__write(self._buffer.read(self._buffer_size))
-            except Exception:
-                raise BrokenClientConnection(self.remote_host,
-                                             self.remote_addr)
-            self._buffer_offset += self._buffer_size
-            self._buffer.seek(0, 2)  # seek to EOF
-            self.__body_bytes_sent = self._buffer_offset
-        if flush == 1:
-            self.flush()
-    # enddef
-
-    def __call_start_response(self):
-        if self.__status == 304:
-            # Not Modified MUST NOT include other entity-headers
-            # http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
-            if 'Content-Encoding' in self.__headers_out \
-                    or 'Content-Language' in self.__headers_out \
-                    or 'Content-Length' in self.__headers_out \
-                    or 'Content-Location' in self.__headers_out \
-                    or 'Content-MD5' in self.__headers_out \
-                    or 'Content-Range' in self.__headers_out \
-                    or 'Content-Type' in self.__headers_out:
-                log.warning('Some entity header in Not Modified response')
-            if 'Date' not in self.__headers_out:
-                log.warning('Missing Date header in Not Modified response')
-        else:
-            if self.__content_type \
-                    and not self.__headers_out.get('Content-Type'):
-                self.__headers_out.add('Content-Type', self.__content_type)
-            elif not self.__content_type \
-                    and not self.__headers_out.get('Content-Type'):
-                log.warning('Content-type not set!')
-
-            if self.__content_length \
-                    and not self.__headers_out.get('Content-Length'):
-                self.__headers_out.add('Content-Length',
-                                       str(self.__content_length))
-        # endif
-
-        self.__write = self.start_response(
-            "%d %s" % (self.__status, responses[self.__status]),
-            list(self.__headers_out.items()))
-        self._start_response = True
+        return self._file.read(self.__content_length)
     # enddef
 
     def get_options(self):
@@ -731,7 +669,7 @@ class Request(object):
 
         .. code:: ini
 
-            poor_LogLevel = warn        # Poor WSGI variable
+            poor_Debug = on             # Poor WSGI variable
             app_db_server = localhost   # application variable db_server
             app_templates = app/templ   # application variable templates
         """
@@ -741,18 +679,6 @@ class Request(object):
             if key[:4].lower() == 'app_':
                 options[key[4:].lower()] = val.strip()
         return options
-
-    def get_remote_host(self):
-        """Returns REMOTE_ADDR CGI enviroment variable."""
-        return self.remote_addr
-
-    def document_root(self):
-        """Returns DocumentRoot setting."""
-        document_root = self.__poor_environ.get(
-            'poor_DocumentRoot',
-            self.__app_config['document_root'])
-        log.info("poor_DocumentRoot: %s", document_root)
-        return document_root
 
     def construct_url(self, uri):
         """This function returns a fully qualified URI string.
@@ -768,98 +694,13 @@ class Request(object):
         return uri
     # enddef
 
-    def __reset_buffer__(self):
-        """Clean _buffer (**for internal server error use**).
-
-        It could be used in error pages, typical in internal_server_error.
-        But be careful, this method not help you, when any data was sent
-        to wsgi server.
-        """
-        self._buffer = BytesIO()    # reset method not exist in python3.x
-        # self._buffer.reset()
-        # self._buffer.truncate()
-        self._buffer_len = 0
-        self._buffer_offset = 0
-        self.__body_bytes_sent = 0
-    # enddef
-
-    def __end_of_request__(self):
-        """Method **for internal use only!**.
-
-        This method was called from Application object at the end of request
-        for returning right value to wsgi server.
-        """
-        if not self._start_response:
-            self.__clength = self._buffer_len
-            self.__call_start_response()
-            self._buffer_offset = self._buffer_len
-            self._buffer.seek(0)    # na zacatek !!
-            return self._buffer     # return buffer (BytesIO)
-        else:
-            self._buffer.seek(self._buffer_offset)
-            try:
-                self.__write(self._buffer.read())   # flush all from buffer
-            except Exception:
-                raise BrokenClientConnection(self.remote_host,
-                                             self.remote_addr)
-            finally:
-                self._buffer.close()
-            self._buffer_offset = self._buffer_len
-            self.__body_bytes_sent = self._buffer_len
-            return ()               # data was be sent via write method
-        # enddef
-    # enddef
-
     def __del__(self):
         log.debug("Request: Hasta la vista, baby.")
-
-    def flush(self):
-        """Flushes the output buffer."""
-        if not self._start_response:
-            self.__call_start_response()
-
-        self._buffer.seek(self._buffer_offset)
-        try:
-            self.__write(self._buffer.read())       # flush all from buffer
-        except Exception:
-            raise BrokenClientConnection(self.remote_host, self.remote_addr)
-        self._buffer_offset = self._buffer_len
-        self.__body_bytes_sent = self._buffer_len
-    # enddef
-
-    def sendfile(self, path, offset=0, limit=-1):
-        """Send file defined by path to client.
-
-        Offset and len is not supported yet.
-
-        .. code:: python
-
-            @app.route('myfile.txt')
-            def myfile(req):
-                req.content_type('text/plain')
-                length = req.sendfile('myfile.txt')
-                logging.info('sending myfile.txt with %d length', length)
-        """
-        if not os.access(path, os.R_OK):
-            raise IOError("Could not stat file for reading")
-
-        length = 0
-        with open(path, 'r') as bf:
-            data = bf.read(self._buffer_size)
-            while data:
-                length += len(data)
-                self.write(data)
-                data = bf.read(self._buffer_size)
-
-        return length
 # endclass
 
 
 class EmptyForm(dict):
-    """Compatibility class as fallback.
-
-    This class is used when poor_AutoArgs or poor_AutoForm is set to Off.
-    """
+    """Compatibility class as fallback."""
     def getvalue(self, key, default=None):
         return default
 
@@ -973,8 +814,8 @@ class FieldStorage(CgiFieldStorage):
     what variable it is:
 
     :name:      variable name, the same name from input attribute.
-    :type:      content-type of variable. All variables have internal
-                content-type, if that is no file, content-type is text/plain.
+    :type:      mime-type of variable. All variables have internal
+                mime-type, if that is no file, mime-type is text/plain.
     :filename:  if variable is file, filename is its name from form.
     :file:      file type instance, from you can read variable. This instance
                 could be TemporaryFile as default for files, StringIO for
@@ -1013,7 +854,7 @@ class FieldStorage(CgiFieldStorage):
             if file_callback:
                 environ['wsgi.file_callback'] = file_callback
 
-            headers = req.headers_in
+            headers = req.headers
             req = req.environ.get('wsgi.input')
         if environ is None:
             environ = {}
@@ -1069,12 +910,3 @@ class FieldStorage(CgiFieldStorage):
         for it in val:
             yield fce(it)
 # endclass
-
-
-class BrokenClientConnection(Exception):
-    """Helping class for Broken Connection Pipe detect."""
-    def __init__(self, remote_host, remote_addr):
-        Exception.__init__(self, remote_host, remote_addr)
-
-    def __str__(self):
-        return "Broken client connection %s[%s]" % self.args

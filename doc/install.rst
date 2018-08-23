@@ -8,10 +8,10 @@ Source tarbal
     ~$ wget https://pypi.python.org/packages/source/P/PoorWSGI/PoorWSGI-2.0.0.tar.gz
     ~$ tar xzf PoorWSGI-2.0.0.tar.gz
     ~$ cd PoorWSGI-2.0.0
-    ~# pip install .
+    ~$ pip3 install .
 
     # if you have jinja24doc and you want to install this html documentation
-    ~# python setup.py install_html
+    ~$ python3 setup.py install_html
 
 Source from git
 ---------------
@@ -23,16 +23,16 @@ Source from git
     ~$ git clone https://github.com/PoorHttp/PoorWSGI.git
 
     ~$ cd PoorWSGI
-    ~# pip install .
+    ~$ pip3 install .
 
     # if you have jinja24doc and you want to install this html documentation
-    ~# python setup.py install_html
+    ~$ python3 setup.py install_html
 
 Install from PyPI
 -----------------
 .. code:: sh
 
-    ~$ pip install PoorWSGI
+    ~$ pip3 install PoorWSGI
 
 Unstable version
 ----------------
@@ -47,7 +47,7 @@ this version, you must install it from git.
 
     ~$ cd PoorWSGI
     ~$ git checkout unstable
-    ~# pip install .
+    ~$ pip3 install .
 
 Or you can download zip file from GitHub.
 
@@ -56,7 +56,7 @@ Or you can download zip file from GitHub.
     ~$ wget https://github.com/PoorHttp/PoorWSGI/archive/unstable.zip
     ~$ unzip unstable.zip
     ~$ cd PoorWSGI-unstable
-    ~$ pip install .
+    ~$ pip3 install .
 
 Documentation for new version is at
 http://poorhttp.zeropage.cz/unstable/poorwsgi.html.
@@ -67,10 +67,6 @@ Poor WSGI is configured via environment variables with poor_* prefix.
 
 Options
 -------
-poor_BufferSize
-~~~~~~~~~~~~~~~
-Buffer size in bytes is size of FIFO like buffer, which is used for every
-request. Default value is 16384 bytes which is 16KiB.
 
 poor_Debug
 ~~~~~~~~~~

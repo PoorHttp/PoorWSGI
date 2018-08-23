@@ -3,20 +3,33 @@
 from os import path, access, R_OK, environ
 from sys import stderr
 from collections import OrderedDict
+from logging import getLogger
 
 import re
-import logging as log
 
-from poorwsgi.state import OK, DONE, DECLINED, HTTP_OK, \
+from poorwsgi.state import HTTP_OK, DECLINED, \
     METHOD_GET, METHOD_POST, METHOD_HEAD, methods, \
     HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN
-from poorwsgi.request import Request, BrokenClientConnection
-from poorwsgi.results import default_shandlers, not_implemented, \
-    internal_server_error, \
-    SERVER_RETURN, send_file, directory_index, debug_info
+from poorwsgi.request import Request
+from poorwsgi.results import default_states, not_implemented, \
+    internal_server_error, directory_index, debug_info
+from poorwsgi.response import Response, HTTPException, EmptyResponse, \
+    FileResponse, GeneratorResponse, make_response
+
+log = getLogger("poorwsgi")
 
 # check, if there is define filter in uri
 re_filter = re.compile(r'<(\w+)(:[^>]+)?>')
+
+
+def to_response(response):
+    """handler response to application response."""
+    if isinstance(response, Response):
+        return response
+
+    if not isinstance(response, tuple):
+        response = (response,)
+    return make_response(*response)
 
 
 class Application(object):
@@ -43,8 +56,8 @@ class Application(object):
         self.__name = name
 
         # list of pre and post process handlers
-        self.__pre = []
-        self.__post = []
+        self.__before = []
+        self.__after = []
 
         # dhandlers table for default handers on methods {METHOD_GET: handler}
         self.__dhandlers = {}
@@ -74,11 +87,12 @@ class Application(object):
             'auto_json': True,
             'keep_blank_values': 0,
             'strict_parsing': 0,
-            'json_content_types': [
+            'file_callback': None,
+            'json_mime_types': [
                 'application/json',
                 'application/javascript',
                 'application/merge-patch+json'],
-            'form_content_types': [
+            'form_mime_types': [
                 'application/x-www-form-urlencoded',
                 'multipart/form-data'
             ],
@@ -143,29 +157,29 @@ class Application(object):
 
             **none**    match any string without '/' character
 
-        For more details see {/debug-info} page of your application, where
+        For more details see `/debug-info` page of your application, where
         you see all filters with regular expression definition.
         """
         return self.__filters.copy()
 
     @property
-    def pre(self):
-        """Tuple of table with pre-process handlers.
+    def before(self):
+        """Tuple of table with before-request handlers.
 
-        See Application.pre_process.
+        See Application.before_request.
         """
-        return tuple(self.__pre)
+        return tuple(self.__before)
 
     @property
-    def post(self):
-        """Tuple of table with post-process handlers.
+    def after(self):
+        """Tuple of table with after-request handlers.
 
-        See Application.post_process.
+        See Application.after_request.
         """
-        return tuple(self.__post)
+        return tuple(self.__after)
 
     @property
-    def dhandlers(self):
+    def defaults(self):
         """Copy of table with default handlers.
 
         See Application.set_default
@@ -173,7 +187,7 @@ class Application(object):
         return self.__dhandlers.copy()
 
     @property
-    def handlers(self):
+    def routes(self):
         """Copy of table with static handlers.
 
         See Application.route.
@@ -181,15 +195,15 @@ class Application(object):
         return self.__handlers.copy()
 
     @property
-    def rhandlers(self):
+    def regular_routes(self):
         """Copy of table with regular expression handlers.
 
-        See Application.route and Application.rroute.
+        See Application.route and Application.regular_route.
         """
         return self.__rhandlers.copy()
 
     @property
-    def shandlers(self):
+    def states(self):
         """Copy of table with http state aka error handlers.
 
         See Application.http_state
@@ -214,7 +228,7 @@ class Application(object):
         """Automatic parsing arguments from request body.
 
         If it is True (default) and method is POST, PUT or PATCH, and
-        request content type is one of form_content_types, Request
+        request mime type is one of form_mime_types, Request
         object do automatic parsing request body to its form variable.
         """
         return self.__config['auto_form']
@@ -228,7 +242,7 @@ class Application(object):
         """Automatic parsing JSON from request body.
 
         If it is True (default), method is POST, PUT or PATCH and request
-        content type is one of json_content_types, Request object do
+        mime type is one of json_mime_types, Request object do
         automatic parsing request body to json variable.
         """
         return self.__config['auto_json']
@@ -326,27 +340,38 @@ class Application(object):
         self.__config['strict_parsing'] = int(value)
 
     @property
-    def json_content_types(self):
-        """Copy of json content type list.
+    def file_callback(self):
+        """File callback use as parameter when parsing request body.
 
-        Containt list of strings as json content types, which is use for
-        testing, when automatics Json object is create from request body.
+        Default is None. Values could be a class or factory which got's filename
+        from request body and have file compatibile interface.
         """
-        return self.__config['json_content_types']
+        return self.__config['file_callback']
+
+    @file_callback.setter
+    def file_callback(self, value):
+        self.__config['file_callback'] = value
 
     @property
-    def form_content_types(self):
-        """Copy of form content type list.
+    def json_mime_types(self):
+        """Copy of json mime type list.
 
-        Containt list of strings as form content types, which is use for
+        Containt list of strings as json mime types, which is use for
+        testing, when automatics Json object is create from request body.
+        """
+        return self.__config['json_mime_types']
+
+    @property
+    def form_mime_types(self):
+        """Copy of form mime type list.
+
+        Containt list of strings as form mime types, which is use for
         testing, when automatics Form object is create from request body.
         """
-        return self.__config['form_content_types']
+        return self.__config['form_mime_types']
 
     def set_filter(self, name, regex, convertor=str):
-        """Create new filter or overwrite builtins.
-
-        Arguments:
+        r"""Create new filter or overwrite builtins.
 
         name : str
             Name of filter which is used in route or set_route method.
@@ -363,24 +388,24 @@ class Application(object):
         name = ':'+name if name[0] != ':' else name
         self.__filters[name] = (regex, convertor)
 
-    def pre_process(self):
-        """Append pre process hendler.
+    def before_request(self):
+        """Append hendler to call before each request.
 
         This is decorator for function to call before each request.
 
         .. code:: python
 
-            @app.pre_process()
+            @app.before_request()
             def before_each_request(req):
                 print("Request coming")
         """
         def wrapper(fn):
-            self.__pre.append(fn)
+            self.add_before_request(fn)
             return fn
         return wrapper
 
-    def add_pre_process(self, fn):
-        """Append pre process handler.
+    def add_before_request(self, fn):
+        """Append handler to call before each request.
 
         Method adds function to list functions which is call before each
         request.
@@ -390,30 +415,37 @@ class Application(object):
             def def before_each_request(req):
                 print("Request coming")
 
-            app.add_pre_process(before_each_request)
+            app.add_before(before_each_request)
         """
-        self.__pre.append(fn)
+        if self.__before.count(fn):
+            raise ValueError("%s is in list yet" % str(fn))
+        self.__before.append(fn)
 
-    def post_process(self):
-        """Append post process handler.
+    def pop_before_request(self, fn):
+        """Remove handler added by add_before_request or before_request."""
+        if not self.__before.count(fn):
+            raise ValueError("%s is not in list" % str(fn))
+        self.__before.remove(fn)
+
+    def after_request(self):
+        """Append handler to call after each request.
 
         This decorator append function to be called after each request,
         if you want to use it redefined all outputs.
 
         .. code:: python
 
-            @app.pre_process()
+            @app.after_each_request()
             def after_each_request(req):
                 print("Request out")
         """
         def wrapper(fn):
-            self.__post.append(fn)
+            self.add_after_request(fn)
             return fn
         return wrapper
-    # enddef
 
-    def add_post_process(self, fn):
-        """Append post process handler.
+    def add_after_request(self, fn):
+        """Append handler to call after each request.
 
         Method for direct append function to list functions which are called
         after each request.
@@ -423,10 +455,17 @@ class Application(object):
             def after_each_request(req):
                 print("Request out")
 
-            app.add_post_process(after_each_request)
+            app.add_after_request(after_each_request)
         """
-        self.__post.append(fn)
-    # enddef
+        if self.__after.count(fn):
+            raise ValueError("%s is in list yet" % str(fn))
+        self.__after.append(fn)
+
+    def pop_after_request(self, fn):
+        """Remove handler added by add_before_request or before_request."""
+        if not self.__before.count(fn):
+            raise ValueError("%s is not in list" % str(fn))
+        self.__after.remove(fn)
 
     def default(self, method=METHOD_HEAD | METHOD_GET):
         """Set default handler.
@@ -532,7 +571,7 @@ class Application(object):
             convertors = tuple((g[0], self.__convertor(g[1]))
                                for g in (m.groups()
                                for m in re_filter.finditer(uri)))
-            self.set_rroute(r_uri, fn, method, convertors)
+            self.set_regular_route(r_uri, fn, method, convertors, uri)
         else:
             if uri not in self.__handlers:
                 self.__handlers[uri] = {}
@@ -550,7 +589,7 @@ class Application(object):
         """
         if re_filter.search(uri):
             r_uri = re_filter.sub(self.__regex, uri) + '$'
-            return self.pop_rroute(r_uri, method)
+            return self.pop_regular_route(r_uri, method)
         else:
             handlers = self.__handlers.get(uri, {})
             rv = handlers.pop(method)
@@ -562,46 +601,47 @@ class Application(object):
         """Check if uri have any registered record."""
         if re_filter.search(uri):
             r_uri = re_filter.sub(self.__regex, uri) + '$'
-            return self.is_rroute(r_uri)
+            return self.is_regular_route(r_uri)
         return uri in self.__handlers
 
-    def rroute(self, ruri, method=METHOD_HEAD | METHOD_GET):
+    def regular_route(self, ruri, method=METHOD_HEAD | METHOD_GET):
         """Wrap function to be handler for uri defined by regular expression.
 
-        Both of function, rroute and set_rroute store routes to special
-        internal table, which is another to table of static routes.
+        Both of function, regular_route and set_regular_route store routes
+        to special internal table, which is another to table of static routes.
 
         .. code:: python
 
-            @app.rroute(r'/user/\w+')               # simple regular expression
+            @app.regular_route(r'/user/\w+')               # simple regular expression
             def any_user(req):
                 ...
 
-            @app.rroute(r'/user/(?P<user>\w+)')     # regular expression with
+            @app.regular_route(r'/user/(?P<user>\w+)')     # regular expression with
             def user_detail(req, user):             # groups
                 ...
 
-        Be sure with ordering of call this decorator or set_rroute function.
-        Regular expression routes are check with the same ordering, as you
-        create internal table of them. First match stops any other searching.
+        Be sure with ordering of call this decorator or set_regular_route
+        function. Regular expression routes are check with the same ordering,
+        as you create internal table of them. First match stops any other
+        searching.
         """
         def wrapper(fn):
-            self.set_rroute(ruri, fn, method)
+            self.set_regular_route(ruri, fn, method)
             return fn
         return wrapper
     # enddef
 
-    def set_rroute(self, r_uri, fn, method=METHOD_HEAD | METHOD_GET,
-                   convertors=()):
+    def set_regular_route(self, r_uri, fn, method=METHOD_HEAD | METHOD_GET,
+                          convertors=(), rule=None):
         """Set hanlder for uri defined by regular expression.
 
         Another way to add fn as handler for uri defined by regular expression.
-        See Application.rroute documentation for details.
+        See Application.regular_route documentation for details.
 
 
         .. code:: python
 
-            app.set_rroute('/use/\w+/post', user_create, METHOD_POST)
+            app.set_regular_route('/use/\w+/post', user_create, METHOD_POST)
 
         This method is internally use, when groups are found in static route,
         adding by route or set_route method.
@@ -611,10 +651,10 @@ class Application(object):
             self.__rhandlers[r_uri] = {}
         for m in methods.values():
             if method & m:
-                self.__rhandlers[r_uri][m] = (fn, convertors)
+                self.__rhandlers[r_uri][m] = (fn, convertors, rule)
     # enddef
 
-    def pop_rroute(self, r_uri, method):
+    def pop_regular_route(self, r_uri, method):
         """Pop handler and convertors for uri and method from handlers table.
 
         For mor details see Application.pop_route.
@@ -626,7 +666,7 @@ class Application(object):
             self.__rhandlers.pop(r_uri, None)
         return rv
 
-    def is_rroute(self, r_uri):
+    def is_regular_route(self, r_uri):
         """Check if regular expression uri have any registered record."""
         r_uri = re.compile(r_uri, re.U)
         return r_uri in self.__rhandlers
@@ -667,29 +707,27 @@ class Application(object):
                 and req.method_number in self.__shandlers[code]:
             try:
                 handler = self.__shandlers[code][req.method_number]
-                if 'uri_handler' not in req.__dict__:
-                    req.uri_rule = '_%d_error_handler_' % code
-                    req.uri_handler = handler
                 self.handler_from_pre(req)       # call pre handlers now
-                handler(req)
+                return handler(req)
             except BaseException:
-                internal_server_error(req)
-        elif code in default_shandlers:
-            handler = default_shandlers[code][METHOD_GET]
-            handler(req)
+                return internal_server_error(req)
+        elif code in default_states:
+            handler = default_states[code][METHOD_GET]
+            return handler(req)
         else:
-            not_implemented(req, code)
+            return not_implemented(req, code)
     # enddef
 
     def handler_from_default(self, req):
         """Internal method, which is called if no handler is found."""
         if req.method_number in self.__dhandlers:
-            req.uri_rule = '_default_handler_'
+            req.uri_rule = '/*'
             req.uri_handler = self.__dhandlers[req.method_number]
             self.handler_from_pre(req)       # call pre handlers now
-            retval = self.__dhandlers[req.method_number](req)
-            if retval != DECLINED:
-                raise SERVER_RETURN(retval)
+            return self.__dhandlers[req.method_number](req)
+
+        log.error("404 Not Found: %s", req.uri)
+        raise HTTPException(HTTP_NOT_FOUND)
     # enddef
 
     def handler_from_pre(self, req):
@@ -697,7 +735,7 @@ class Application(object):
 
         This method was call before end-point route handler.
         """
-        for fn in self.__pre:
+        for fn in self.__before:
             fn(req)
 
     def handler_from_table(self, req):
@@ -715,15 +753,9 @@ class Application(object):
                 req.uri_rule = req.uri      # nice variable for pre handlers
                 req.uri_handler = handler
                 self.handler_from_pre(req)  # call pre handlers now
-                retval = handler(req)       # call right handler now
-                # return text is allowed
-                if isinstance(retval, str):
-                    req.write(retval, 1)    # write data and flush
-                    retval = DONE
-                if retval != DECLINED:
-                    raise SERVER_RETURN(retval or DONE)  # could be state.DONE
+                return handler(req)       # call right handler now
             else:
-                raise SERVER_RETURN(HTTP_METHOD_NOT_ALLOWED)
+                raise HTTPException(HTTP_METHOD_NOT_ALLOWED)
             # endif
         # endif
 
@@ -731,8 +763,8 @@ class Application(object):
         for ruri in self.__rhandlers.keys():
             match = ruri.match(req.uri)
             if match and req.method_number in self.__rhandlers[ruri]:
-                handler, convertors = self.__rhandlers[ruri][req.method_number]
-                req.uri_rule = ruri.pattern  # nice variable for pre handlers
+                handler, convertors, rule = self.__rhandlers[ruri][req.method_number]
+                req.uri_rule = rule or ruri.pattern  # nice variable for pre handlers
                 req.uri_handler = handler
                 self.handler_from_pre(req)   # call pre handlers now
                 if len(convertors):
@@ -741,104 +773,95 @@ class Application(object):
                     req.groups = OrderedDict(
                         (g, c(v))for ((g, c), v) in zip(convertors,
                                                         match.groups()))
-                    retval = handler(req, *req.groups.values())
+                    return handler(req, *req.groups.values())
                 else:
                     req.groups = match.groupdict()
-                    retval = handler(req, *match.groups())
-                # return text is allowed
-                if isinstance(retval, str):
-                    req.write(retval, 1)    # write data and flush
-                    retval = DONE
-                if retval != DECLINED:
-                    raise SERVER_RETURN(retval or DONE)  # could be state.DONE
-            # endif - no METHOD_NOT_ALLOWED here
+                    return handler(req, *match.groups())
         # endfor
 
         # try file or index
-        if req.document_root():
-            rfile = "%s%s" % (req.document_root(),
+        if req.document_root and req.method_number & (METHOD_HEAD | METHOD_GET):
+            rfile = "%s%s" % (req.document_root,
                               path.normpath("%s" % req.uri))
 
             if not path.exists(rfile):
                 if req.debug and req.uri == '/debug-info':      # work if debug
-                    req.uri_rule = '_debug_info_'
+                    req.uri_rule = '/debug-infoendpoint'
                     req.uri_handler = debug_info
                     self.handler_from_pre(req)  # call pre handlers now
-                    raise SERVER_RETURN(debug_info(req, self))
-                self.handler_from_default(req)                  # try default
-                raise SERVER_RETURN(HTTP_NOT_FOUND)             # not found
+                    return debug_info(req, self)
+                return self.handler_from_default(req)         # try default
 
             # return file
             if path.isfile(rfile) and access(rfile, R_OK):
-                req.uri_rule = '_send_file_'
-                req.uri_handler = send_file
+                req.uri_rule = '/*'
                 self.handler_from_pre(req)      # call pre handlers now
                 log.info("Return file: %s", req.uri)
-                raise SERVER_RETURN(send_file(req, rfile))
+                return FileResponse(rfile)
 
             # return directory index
             if req.document_index and path.isdir(rfile) \
                     and access(rfile, R_OK):
                 log.info("Return directory: %s", req.uri)
-                req.uri_rule = '_directory_index_'
+                req.uri_rule = '/*'
                 req.uri_handler = directory_index
                 self.handler_from_pre(req)      # call pre handlers now
-                raise SERVER_RETURN(directory_index(req, rfile))
-
-            raise SERVER_RETURN(HTTP_FORBIDDEN)
+                return directory_index(req, rfile)
+            raise HTTPException(HTTP_FORBIDDEN)
         # endif
 
         if req.debug and req.uri == '/debug-info':
-            req.uri_rule = '_debug_info_'
+            req.uri_rule = '/debug-info'
             req.uri_handler = debug_info
             self.handler_from_pre(req)          # call pre handlers now
-            raise SERVER_RETURN(debug_info(req, self))
+            return debug_info(req, self)
 
-        self.handler_from_default(req)
-
-        log.error("404 Not Found: %s", req.uri)
-        raise SERVER_RETURN(HTTP_NOT_FOUND)
+        return self.handler_from_default(req)
     # enddef
 
     def __request__(self, env, start_response):
         """Create Request instance and return wsgi response.
 
         This method create Request object, call handlers from
-        Application.__pre (Application.handler_from_pre),
-        uri handler (handler_from_table), default handler
-        (Application.handler_from_default) or error handler
-        (Application.error_from_table), and handlers from
-        Application.__post.
+        Application.before, uri handler (handler_from_table), default handler
+        (Application.defaults) or error handler (Application.error_from_table),
+        and handlers from Application.after.
         """
-        req = Request(env, start_response, self.__config)
+        request = Request(env, self.__config)
 
         try:
-            self.handler_from_table(req)
-        except SERVER_RETURN as e:
-            code = e.args[0]
-            if code in (OK, HTTP_OK, DONE):
-                pass
-            # XXX: elif code in (HTTP_MOVED_PERMANENTLY,
-            #                    HTTP_MOVED_TEMPORARILY):
+            response = to_response(self.handler_from_table(request))
+        except HTTPException as http_err:
+            if isinstance(http_err.args[0], Response):
+                response = http_err.args[0]
             else:
-                req.status = code
-                self.error_from_table(req, code)
-        except (BrokenClientConnection, SystemExit) as e:
+                status_code = http_err.args[0]
+                if status_code == DECLINED:
+                    return ()   # decline the connection
+                if status_code == HTTP_OK:
+                    response = EmptyResponse()
+                else:
+                    response = to_response(
+                        self.error_from_table(request, http_err.status_code))
+        except (ConnectionError, SystemExit) as e:
             log.warning(str(e))
             log.warning('   ***   You shoud ignore next error   ***')
             return ()
         except BaseException:
-            self.error_from_table(req, 500)
-        # endtry
+            response = to_response(self.error_from_table(request, 500))
 
         try:    # call post_process handler
-            for fn in self.__post:
-                fn(req)
+            for fn in self.__after:
+                fn(request)
         except BaseException:
-            self.error_from_table(req, 500)
-        # endtry
+            response = to_response(self.error_from_table(request, 500))
 
-        return req.__end_of_request__()    # private call of request
+        if not isinstance(response, GeneratorResponse):
+            if "wsgi.file_wrapper" in env:
+                return env['wsgi.file_wrapper'](response(start_response))
+            else:
+                return response(start_response).read()
+        return response(start_response)    # return generator
     # enddef
 
     def __call__(self, env, start_response):
@@ -846,10 +869,6 @@ class Application(object):
 
         This method run __request__ method.
         """
-        if self.__name == '__poorwsgi__':
-            stderr.write("[W] Using deprecated instance of Application.\n")
-            stderr.write("    Please, create your own instance\n")
-            stderr.flush()
         return self.__request__(env, start_response)
 
     def __profile_request__(self, env, start_response):
@@ -872,8 +891,6 @@ class Application(object):
 
     def set_profile(self, runctx, dump):
         """Set profiler for __call__ function.
-
-        Arguments:
 
         runctx : function
             function from profiler module

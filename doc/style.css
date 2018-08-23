@@ -149,7 +149,7 @@ a:active {
 
 h1, h2 {
     color: #b02c29;
-} 
+}
 h2 > i {
     font-size: 70%;
 }
@@ -216,7 +216,7 @@ h4.property > small, h4.staticmethod > small {
     color: #888;
 }
 
-div.module, div.class, div.method, div.staticmethod, div.function, div.property {
+div.module, div.class, div.method, div.staticmethod, div.function, div.property, p {
     text-align: jus-tify;
     color: #333;
     margin: 0.7em 0 0 0;
@@ -238,7 +238,7 @@ div.method, div.staticmethod, div.property {
 pre {
     font-size: 10pt;
     margin: 0.5em 0 1.5em 0;
-    padding: 0.5em 0 0.5em 0;
+    padding: 0.5em 0.5em 0.5em 0.5em;
     background-color: #ddd;
     border: 1px dotted gray;
     border-radius: 6px 6px 6px;
@@ -261,12 +261,32 @@ pre > em {
 }
 code {
     font-size: 11pt;
-    color: #000;
+    color: #900;
 }
 code.param {
     white-space: pre;
     font-weight: bold;
     margin-left: 1em;
+}
+th, td {
+    vertical-align: top;
+    text-align: left;
+}
+table.field_list th, dt {
+    font-family: monospace;
+    font-weight: bold;
+    font-size: 11pt;
+    color: #333;
+}
+dt tt {
+    font-weight: normal;
+    font-style: italic;
+}
+table p {
+    margin: 0 0 0.5em 0;
+}
+dd p {
+    margin: 0.5em 0 0.5em 0;
 }
 .submodules {
     padding: 0.2em 0.5em 0.2em 0.5em;

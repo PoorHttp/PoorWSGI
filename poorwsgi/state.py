@@ -6,10 +6,7 @@ __author__ = "Ondrej Tuma (McBig) <mcbig@zeropage.cz>"
 __date__ = "25 Jun 2018"
 __version__ = "2.0.0.dev0"      # https://www.python.org/dev/peps/pep-0386/
 
-OK = 0
-DONE = 1
-DECLINED = 2
-HTTP_ERROR = 3
+DECLINED = 0
 
 HTTP_CONTINUE = 100
 HTTP_SWITCHING_PROTOCOLS = 101

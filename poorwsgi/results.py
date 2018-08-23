@@ -2,40 +2,37 @@
 
 from traceback import format_exception
 from time import strftime, gmtime
-from os import path, access, listdir, R_OK, getegid, geteuid, getuid, getgid
+from os import access, listdir, R_OK, getegid, geteuid, getuid, getgid
+from os.path import isfile, isdir, getsize, getctime
 from operator import itemgetter
 from sys import version, exc_info
 from inspect import cleandoc
-from io import BytesIO
-from json import dumps as json_dumps
+from logging import getLogger
 
 import mimetypes
-import logging as log
 
-from poorwsgi.state import DONE, METHOD_ALL, methods, sorted_methods, \
-    HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, \
+from poorwsgi.response import Response, EmptyResponse, HTTPException
+from poorwsgi.state import METHOD_ALL, methods, sorted_methods, \
     HTTP_NOT_MODIFIED, HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_NOT_FOUND, \
     HTTP_METHOD_NOT_ALLOWED, HTTP_INTERNAL_SERVER_ERROR, \
     HTTP_NOT_IMPLEMENTED, \
     __version__, __date__
 
-html_escape_table = {'&': "&amp;",
+HTML_ESCAPE_TABLE = {'&': "&amp;",
                      '"': "&quot;",
                      "'": "&apos;",
                      '>': "&gt;",
                      '<': "&lt;"}
 
+log = getLogger("poorwsgi")
+
 # http state handlers, which is called if programmer don't defined his own
-default_shandlers = {}
-
-
-def cmp(a, b):
-    return (a > b) - (a < b)
+default_states = {}
 
 
 def html_escape(s):
     """Escape to html entities."""
-    return ''.join(html_escape_table.get(c, c) for c in s)
+    return ''.join(HTML_ESCAPE_TABLE.get(c, c) for c in s)
 
 
 def hbytes(val):
@@ -70,44 +67,8 @@ def handlers_view(handlers, sort=True):
     return rv
 
 
-class SERVER_RETURN(Exception):
-    """Compatible with mod_python.apache exception."""
-    def __init__(self, code=HTTP_INTERNAL_SERVER_ERROR):
-        """code is one of HTTP_* status from state module"""
-        Exception.__init__(self, code)
-
-
-def redirect(req, uri, permanent=0, text=None):
-    """Redirect the browser to another location.
-
-    When permanent is true, MOVED_PERMANENTLY status is sent to the client,
-    otherwise it is MOVED_TEMPORARILY. A short text is sent to the browser
-    informing that the document has moved (for those rare browsers that do not
-    support redirection); this text can be overridden by supplying a text
-    string.
-
-    This function raises SERVER_RETURN exception with a value of state.DONE to
-    ensuring that any later phases or stacked handlers do not run.
-    """
-    url = req.construct_url(uri)
-
-    if permanent:
-        req.status = HTTP_MOVED_PERMANENTLY
-    else:
-        req.status = HTTP_MOVED_TEMPORARILY
-
-    req.headers_out.add('Location', url)
-    req.content_type = 'plain/text'
-    if text:
-        req.write(text)
-    raise SERVER_RETURN(DONE)
-# enddef
-
-
 def not_modified(req):
-    req.status = HTTP_NOT_MODIFIED
-    req.content_type = None
-    return DONE
+    return EmptyResponse(HTTP_NOT_MODIFIED)
 
 
 def internal_server_error(req):
@@ -125,15 +86,9 @@ def internal_server_error(req):
     log.error(traceback)
     traceback = traceback.split('\n')
 
-    req.status = HTTP_INTERNAL_SERVER_ERROR
-    if req.body_bytes_sent > 0:     # if body is sent
-        return DONE
+    res = Response(HTTP_INTERNAL_SERVER_ERROR)
 
-    req.__reset_buffer__()        # clean buffer for error text
-    req.content_type = "text/html"
-    req.headers_out = req.err_headers_out
-
-    req.write(
+    res.write(
         "<!DOCTYPE html>\n"
         "<html>\n"
         " <head>\n"
@@ -150,32 +105,32 @@ def internal_server_error(req):
         "  <h1>500 - Internal Server Error</h1>\n")
 
     if req.debug:
-        req.write(
+        res.write(
             "  <h2> Exception Traceback</h2>\n"
             "  <pre>\n")
 
         # Traceback
         for i in range(len(traceback)):
             traceback_line = html_escape(traceback[i])
-            req.write('<span class="line%s">%s</span>\n' %
+            res.write('<span class="line%s">%s</span>\n' %
                       (i % 2, traceback_line))
 
-        req.write(
+        res.write(
             "  </pre>\n"
             "  <hr>\n"
             "  <small><i>%s / Poor WSGI for Python ,webmaster: %s</i></small>"
             "\n" % (req.server_software, req.server_admin))
     else:
-        req.write(
+        res.write(
             "  <hr>\n"
             "  <small><i>webmaster: %s </i></small>\n" % req.server_admin)
     # endif
 
-    req.write(
+    res.write(
         " </body>\n"
         "</html>")
 
-    return DONE
+    return res
 # enddef
 
 
@@ -201,14 +156,7 @@ def bad_request(req):
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
         "</html>" % (req.method, req.uri, req.server_admin))
-
-    req.content_type = "text/html"
-    req.status = HTTP_BAD_REQUEST
-    req.headers_out = req.err_headers_out
-    req.headers_out.add('Content-Length', str(len(content)))
-    req.write(content)
-    return DONE
-# enddef
+    return content, HTTP_BAD_REQUEST
 
 
 def forbidden(req):
@@ -234,13 +182,7 @@ def forbidden(req):
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
         "</html>" % (req.uri, req.server_admin))
-
-    req.content_type = "text/html"
-    req.status = HTTP_FORBIDDEN
-    req.headers_out = req.err_headers_out
-    req.headers_out.add('Content-Length', str(len(content)))
-    req.write(content)
-    return DONE
+    return content, HTTP_FORBIDDEN
 # enddef
 
 
@@ -266,13 +208,7 @@ def not_found(req):
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
         "</html>" % (req.uri, req.server_admin))
-
-    req.content_type = "text/html"
-    req.status = HTTP_NOT_FOUND
-    req.headers_out = req.err_headers_out
-    req.headers_out.add('Content-Length', str(len(content)))
-    req.write(content)
-    return DONE
+    return content, HTTP_NOT_FOUND
 # enddef
 
 
@@ -299,13 +235,7 @@ def method_not_allowed(req):
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
         "</html>" % (req.method, req.uri, req.server_admin))
-
-    req.content_type = "text/html"
-    req.status = HTTP_METHOD_NOT_ALLOWED
-    req.headers_out = req.err_headers_out
-    req.headers_out.add('Content-Length', str(len(content)))
-    req.write(content)
-    return DONE
+    return content, HTTP_METHOD_NOT_ALLOWED
 # enddef
 
 
@@ -330,8 +260,8 @@ def not_implemented(req, code=None):
     if code:
         content += (
             "  <p>Your reqeuest <code>%s</code> returned not implemented\n"
-            "   status <code>%s</code>.</p>\n" % (req.uri, code))
-        log.error('Your reqeuest %s returned not implemented status %d',
+            "   status code <code>%s</code>.</p>\n" % (req.uri, code))
+        log.error('Your reqeuest %s returned not implemented status code %d',
                   req.uri, code)
     else:
         content += (
@@ -345,52 +275,23 @@ def not_implemented(req, code=None):
         " </body>\n"
         "</html>" % req.server_admin)
 
-    req.content_type = "text/html"
-    req.status = HTTP_NOT_IMPLEMENTED
-    req.headers_out = req.err_headers_out
-    req.headers_out.add('Content-Length', str(len(content)))
-    req.write(content)
-    return DONE
+    return content, HTTP_NOT_IMPLEMENTED
 # enddef
 
 
-def send_json(req, data, **kwargs):
-    """Send data as application/json."""
-    req.content_type = 'application/json'
-    req._buffer = BytesIO(json_dumps(data, **kwargs))
-    return DONE
-
-
-def send_file(req, path, content_type=None):  # TODO: set content-length !!
-    """Returns file with content_type as fast as possible on wsgi."""
-    if content_type is None:     # auto mime type select
-        (content_type, encoding) = mimetypes.guess_type(path)
-    if content_type is None:     # default mime type
-        content_type = "application/octet-stream"
-
-    req.content_type = content_type
-
-    if not access(path, R_OK):
-        raise IOError("Could not stat file for reading")
-
-    req._buffer = open(path, 'rb')
-    return DONE
-# enddef
-
-
-def directory_index(req, _path):
+def directory_index(req, path):
     """Returns directory index as html page."""
-    if not path.isdir(_path):
+    if not isdir(path):
         log.error(
             "Only directory_index can be send with directory_index handler. "
             "`%s' is not directory.",
-            _path)
-        raise SERVER_RETURN(HTTP_INTERNAL_SERVER_ERROR)
+            path)
+        raise HTTPException(HTTP_INTERNAL_SERVER_ERROR)
 
-    index = listdir(_path)
-    # parent directory
-    if cmp(_path[:-1], req.document_root()) > 0:
-        index.append("..")
+    index = listdir(path)
+    if req.document_root != path[:-1]:
+        index.append("..")  # parent directory
+
     index.sort()
 
     diruri = req.uri.rstrip('/')
@@ -423,31 +324,30 @@ def directory_index(req, _path):
         if item[-1] == "~":
             continue
 
-        fpath = "%s/%s" % (_path, item)
+        fpath = "%s/%s" % (path, item)
         if not access(fpath, R_OK):
             continue
 
-        fname = item + ('/' if path.isdir(fpath) else '')
+        fname = item + ('/' if isdir(fpath) else '')
         ftype = ""
 
-        if path.isdir(fpath):
-            ftype = "Directory"
-        else:
+        if isfile(fpath):
             (ftype, encoding) = mimetypes.guess_type(fpath)
             if not ftype:
                 ftype = 'application/octet-stream'
-        # endif
-
-        if path.isfile(fpath):
-            size = "%.1f%s" % hbytes(path.getsize(fpath))
+            size = "%.1f%s" % hbytes(getsize(fpath))
+        elif isdir(fpath):
+            ftype = "Directory"
+            size = "-"
         else:
-            size = "- "
+            size = ftype = '-'
+
         content += (
             "   <tr><td><a href=\"%s\">%s</a></td><td>%s</td>"
             "<td class=\"size\">%s</td><td>%s</td></tr>\n" %
             (diruri + '/' + fname,
              fname,
-             strftime("%d-%b-%Y %H:%M", gmtime(path.getctime(fpath))),
+             strftime("%d-%b-%Y %H:%M", gmtime(getctime(fpath))),
              size,
              ftype))
 
@@ -469,10 +369,7 @@ def directory_index(req, _path):
         "  </body>\n"
         "</html>")
 
-    req.content_type = "text/html"
-    req.headers_out.add('Content-Length', str(len(content)))
-    req.write(content)
-    return DONE
+    return content
 # enddef
 
 
@@ -483,22 +380,22 @@ def debug_info(req, app):
         ('   <tr><td colspan="2"><a href="%s">%s</a></td>'
          '<td>%s</td><td>%s</td></tr>' %
          (u, u, human_methods_(m), f.__module__+'.'+f.__name__)
-         for u, m, f in handlers_view(app.handlers)))
+         for u, m, f in handlers_view(app.routes)))
 
     # regular expression handlers
     rhandlers_html = "<tr><th>Regular expression:</th></tr>\n"
     rhandlers_html += "\n".join(
         ('   <tr><td><div class="path">%s</div></td>'
          '<td>%s</td><td>%s</td><td>%s</td></tr>' %
-         (html_escape(u.pattern),
+         (html_escape(r or u.pattern),
           ', '.join(tuple("%s:<b>%s</b>" % (G, C.__name__) for G, C in c)),
           human_methods_(m),
           f.__module__+'.'+f.__name__)
-         for u, m, (f, c) in handlers_view(app.rhandlers, False)))
+         for u, m, (f, c, r) in handlers_view(app.regular_routes, False)))
 
     dhandlers_html = "<tr><th>Default:</th></tr>\n"
     # this function could be called by user, so we need to test req.debug
-    if req.debug and 'debug-info' not in app.handlers:
+    if req.debug and 'debug-info' not in app.routes:
         dhandlers_html += ('   <tr><td colspan="2"><a href="%s">%s</a></td>'
                            '<td>%s</td><td>%s</td></tr>\n' %
                            ('/debug-info',
@@ -511,17 +408,17 @@ def debug_info(req, app):
          '<td>%s</td><td>%s</td></tr>' %
          (human_methods_(m),
           f.__module__+'.'+f.__name__)
-            for x, m, f in handlers_view({'x': app.dhandlers})))
+            for x, m, f in handlers_view({'x': app.defaults})))
 
     # transform state handlers and default state table to html, users handler
     # from shandlers are preferer
     _tmp_shandlers = {}
-    _tmp_shandlers.update(default_shandlers)
-    for k, v in app.shandlers.items():
+    _tmp_shandlers.update(default_states)
+    for k, v in app.states.items():
         if k in _tmp_shandlers:
-            _tmp_shandlers[k].update(app.shandlers[k])
+            _tmp_shandlers[k].update(app.states[k])
         else:
-            _tmp_shandlers[k] = app.shandlers[k]
+            _tmp_shandlers[k] = app.states[k]
 
     ehandlers_html = "\n".join(
         "   <tr><td>%s</td><td>%s</td><td>%s</td></tr>" %
@@ -529,7 +426,7 @@ def debug_info(req, app):
         for c, m, f in handlers_view(_tmp_shandlers))
 
     # pre and post table
-    pre, post = app.pre, app.post
+    pre, post = app.before, app.after
     if len(pre) >= len(post):
         post += (len(pre)-len(post)) * (None, )
     else:
@@ -549,7 +446,7 @@ def debug_info(req, app):
     # transform actual request headers to hml
     headers_html = "\n".join((
         "   <tr><td>%s:</td><td>%s</td></tr>" %
-        (key, val) for key, val in req.headers_in.items()))
+        (key, val) for key, val in req.headers.items()))
 
     # transform some poor wsgi variables to html
     poor_html = "\n".join((
@@ -567,8 +464,7 @@ def debug_info(req, app):
             ('Forward For', req.forwarded_for),
             ('Forward Host', req.forwarded_host),
             ('Forward Proto', req.forwarded_proto),
-            ('Buffer Size', req._buffer_size),
-            ('Document Root', req.document_root()),
+            ('Document Root', req.document_root),
             ('Document Index', req.document_index),
             ('Secret Key', '*'*5 + ' see in error output (wsgi log)'
              ' when Log Level is <b>debug</b> ' + '*'*5)
@@ -614,16 +510,16 @@ def debug_info(req, app):
          <body>
           <h1>Poor Wsgi Debug Info</h1>
           <nav>
-            <a href="#uri_handlers">Uri handlers</a>
+            <a href="#uri_routes">Uri routes</a>
             <a href="#state_handlers">State handlers</a>
-            <a href="#pre_post_handlers">Pre &amp; Post handlers</a>
+            <a href="#before_after_handlers">Before &amp; After handlers</a>
             <a href="#filters">Filters</a>
             <a href="#headers">Headers</a>
             <a href="#poor_variables">Poor Variables</a>
             <a href="#app_variables">Aplication Variables</a>
             <a href="#environ">Environ</a>
           </nav>
-          <h2 id="uri_handlers">Handlers Tanble</h2>
+          <h2 id="uri_routes">Route Table</h2>
           <table>
            %s
           </table>
@@ -639,8 +535,8 @@ def debug_info(req, app):
         %s
           </table>
 
-          <h2 id="pre_post_handlers">
-            Pre process and Post process Handlers Tanble</h2>
+          <h2 id="before_after_handlers">
+            Before request and After request Handlers Tanble</h2>
           <table>
            <tr><th>Pre</th><th>Post</th></tr>
         %s
@@ -689,16 +585,14 @@ def debug_info(req, app):
                        req.server_software,
                        req.server_admin)
 
-    req.content_type = "text/html"
-    req.write(content_html)
-    return DONE
+    return content_html
 # enddef
 
 
 def __fill_default_shandlers(code, handler):
-    default_shandlers[code] = {}
+    default_states[code] = {}
     for m in methods.values():
-        default_shandlers[code][m] = handler
+        default_states[code][m] = handler
 
 
 __fill_default_shandlers(HTTP_NOT_MODIFIED, not_modified)

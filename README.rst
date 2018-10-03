@@ -41,4 +41,4 @@ You can use python wsgiref.simple_server for test it:
     ~$ python simple.py
 
 For more information see
-`Project homepage <http://poorhttp.zeropage.cz/poorwsgi.html>`_
+`Project homepage <http://poorhttp.zeropage.cz/poorwsgi>`_

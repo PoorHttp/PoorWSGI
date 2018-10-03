@@ -33,17 +33,19 @@ def find_data_files(directory, targetFolder=""):
     return rv
 
 
-class build_html(Command):
+class build_doc(Command):
     description = "build html documentation, need jinja24doc >= 1.1.0"
     user_options = [
             ('build-base=', 'b',
              "base build directory (default: 'build.build-base')"),
-            ('html-temp=', 't', "temporary documentation directory")
+            ('html-temp=', 't', "temporary documentation directory"),
+            ('public', 'p', "build as part of public poorhttp web")
         ]
 
     def initialize_options(self):
         self.build_base = None
         self.html_temp = None
+        self.public = False
 
     def finalize_options(self):
         self.set_undefined_options('build',
@@ -55,12 +57,15 @@ class build_html(Command):
         """Generate page."""
         if out_name is None:
             out_name = in_name
-        if call(['jinja24doc', '-v', '_%s.html' % in_name, 'doc'],
+        if call(['jinja24doc', '-v', '--var', 'public=%s' % self.public,
+                 '_%s.html' % in_name, 'doc'],
                 stdout=file(self.html_temp + '/%s.html' % out_name, 'w')):
             raise IOError(1, 'jinja24doc failed')
 
     def run(self):
-        log.info("building html docmuentation")
+        log.info("building html documentation")
+        if self.public:
+            log.info("building as public part of poorhttp web")
         if self.dry_run:
             return
 
@@ -71,11 +76,13 @@ class build_html(Command):
         self.page('documentation')
         self.page('poorwsgi_api', 'api')
         self.page('licence')
-        copyfile('doc/style.css', self.html_temp + '/style.css')
+        copyfile('doc/style.css', self.html_temp+'/style.css')
+        copyfile('doc/web.css', self.html_temp+'/web.css')
+        copyfile('doc/small-logo.png', self.html_temp+'/small-logo.png')
 
 
-class clean_html(Command):
-    description = "clean up temporary files from 'build_html' command"
+class clean_doc(Command):
+    description = "clean up temporary files from 'build_doc' command"
     user_options = [
             ('build-base=', 'b',
              "base build directory (default: 'build-html.build-base')"),
@@ -88,7 +95,7 @@ class clean_html(Command):
         self.html_temp = None
 
     def finalize_options(self):
-        self.set_undefined_options('build_html',
+        self.set_undefined_options('build_doc',
                                    ('build_base', 'build_base'),
                                    ('html_temp', 'html_temp'))
 
@@ -99,7 +106,7 @@ class clean_html(Command):
             log.warn("'%s' does not exist -- can't clean it", self.html_temp)
 
 
-class install_html(install_data):
+class install_doc(install_data):
     description = "install html documentation"
     user_options = install_data.user_options + [
         ('build-base=', 'b',
@@ -116,7 +123,7 @@ class install_html(install_data):
         install_data.initialize_options(self)
 
     def finalize_options(self):
-        self.set_undefined_options('build_html',
+        self.set_undefined_options('build_doc',
                                    ('build_base', 'build_base'),
                                    ('html_temp', 'html_temp'))
         self.set_undefined_options('install',
@@ -125,7 +132,7 @@ class install_html(install_data):
 
     def run(self):
         if not self.skip_build:
-            self.run_command('build_html')
+            self.run_command('build_doc')
         self.data_files = find_data_files(self.html_temp,
                                           'share/doc/poorwsgi/html')
         install_data.run(self)
@@ -144,7 +151,7 @@ setup(
     author_email="mcbig@zeropage.cz",
     maintainer="Ondrej Tuma",
     maintainer_email="mcbig@zeropage.cz",
-    url="http://poorhttp.zeropage.cz/poorwsgi.html",
+    url="http://poorhttp.zeropage.cz/poorwsgi",
     packages=['poorwsgi'],
     data_files=[
         ('share/doc/poorwsgi',
@@ -169,7 +176,7 @@ setup(
         "Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware",
         "Topic :: Software Development :: Libraries :: Python Modules"
     ],
-    cmdclass={'build_html': build_html,
-              'clean_html': clean_html,
-              'install_html': install_html},
+    cmdclass={'build_doc': build_doc,
+              'clean_doc': clean_doc,
+              'install_doc': install_doc},
 )

@@ -11,7 +11,7 @@ Source tarbal
     ~$ pip3 install .
 
     # if you have jinja24doc and you want to install this html documentation
-    ~$ python3 setup.py install_html
+    ~$ python3 setup.py install_doc
 
 Source from git
 ---------------
@@ -26,7 +26,7 @@ Source from git
     ~$ pip3 install .
 
     # if you have jinja24doc and you want to install this html documentation
-    ~$ python3 setup.py install_html
+    ~$ python3 setup.py install_doc
 
 Install from PyPI
 -----------------
@@ -58,8 +58,7 @@ Or you can download zip file from GitHub.
     ~$ cd PoorWSGI-unstable
     ~$ pip3 install .
 
-Documentation for new version is at
-http://poorhttp.zeropage.cz/unstable/poorwsgi.html.
+.. Documentation for new version is at `<unstable>`_.
 
 Configuration
 =============

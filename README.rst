@@ -1,7 +1,3 @@
-.. image:: https://img.shields.io/pypi/dm/PoorWSGI.svg
-    :target: https://pypi.python.org/pypi/poorwsgi/
-    :alt: Download this month
-
 .. image:: https://img.shields.io/pypi/v/PoorWSGI.svg
     :target: https://pypi.python.org/pypi/poorwsgi/
     :alt: Latest version

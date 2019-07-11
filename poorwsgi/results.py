@@ -86,7 +86,7 @@ def internal_server_error(req):
     log.error(traceback)
     traceback = traceback.split('\n')
 
-    res = Response(HTTP_INTERNAL_SERVER_ERROR)
+    res = Response(status_code=HTTP_INTERNAL_SERVER_ERROR)
 
     res.write(
         "<!DOCTYPE html>\n"
@@ -208,7 +208,7 @@ def not_found(req):
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
         "</html>" % (req.uri, req.server_admin))
-    return content, HTTP_NOT_FOUND
+    return Response(content, status_code=HTTP_NOT_FOUND)
 # enddef
 
 

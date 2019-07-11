@@ -215,11 +215,11 @@ class EmptyResponse(GeneratorResponse):
 class RedirectResponse(Response):
     """Redirect the browser to another location.
 
-    When permanent is true, MOVED_PERMANENTLY status code is sent to the client,
-    otherwise it is MOVED_TEMPORARILY. A short text is sent to the browser
-    informing that the document has moved (for those rare browsers that do not
-    support redirection); this text can be overridden by supplying a text
-    string.
+    When permanent is true, MOVED_PERMANENTLY status code is sent to the
+    client, otherwise it is MOVED_TEMPORARILY. A short text is sent to the
+    browser informing that the document has moved (for those rare browsers that
+    do not support redirection); this text can be overridden by supplying
+    a text string.
     """
     def __init__(self, location, permanent=False, message=b'', headers=None):
         if permanent:
@@ -251,7 +251,8 @@ def make_response(data, content_type="text/html; character=utf-8",
 
 def redirect(location, permanent=False, message=b'', headers=None):
     """Raise HTTPException with RedirectResponse response."""
-    raise HTTPException(RedirectResponse(location, permanent, message, headers))
+    raise HTTPException(
+        RedirectResponse(location, permanent, message, headers))
 
 
 def abort(arg):

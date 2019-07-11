@@ -9,8 +9,6 @@ import logging as log
 
 from http.cookies import SimpleCookie
 
-from poorwsgi.request import Headers
-
 
 def hidden(text, passwd):
     """(en|de)crypt text with sha hash of passwd via xor.

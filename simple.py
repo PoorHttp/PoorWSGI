@@ -46,6 +46,7 @@ class StorageFactory:
     def create(self, filename):
         return Storage(self.directory, filename)
 
+
 app.auto_form = False
 
 
@@ -114,6 +115,7 @@ def get_variables(req):
         (key, html(val)) for key, val in req.environ.items()
         if key.startswith("wsgi.") or key.startswith("poor_")
         or key in usable))
+
 
 app.set_filter('email', r'[\w\.\-]+@[\w\.\-]+')
 
@@ -398,6 +400,7 @@ def test_upload(req):
             else:
                 files.append("<pre>%s</pre>" %
                              encodestring(req.form.getvalue(key)).decode())
+            os.remove("./upload/%s" % (req.form[key].filename))
 
     buff = get_header('HTTP file upload test') + \
         (get_crumbnav(req),
@@ -437,7 +440,7 @@ def not_found(req):
         "<p>Your reqeuest <code>%s</code> was not found.</p>" % req.uri,
     ) + get_footer()
 
-    response = Response(state.HTTP_NOT_FOUND)
+    response = Response(status_code=state.HTTP_NOT_FOUND)
     for line in buff:
         response.write(line + '\n')
     return response
@@ -464,6 +467,7 @@ def post(req):
 @app.route('/internal-server-error')
 def method_raises_errror(req):
     raise RuntimeError('Test of internal server error')
+
 
 if __name__ == '__main__':
     httpd = make_server('127.0.0.1', 8080, app)

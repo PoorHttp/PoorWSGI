@@ -155,7 +155,7 @@ setup(
     packages=['poorwsgi'],
     data_files=[
         ('share/doc/poorwsgi',
-         ['doc/ChangeLog', 'doc/licence.txt', 'doc/readme.txt']),
+         ['doc/ChangeLog', 'doc/licence.txt', 'README.rst']),
         ('share/poorwsgi/example',
          ['simple.py'])],
     license="BSD",

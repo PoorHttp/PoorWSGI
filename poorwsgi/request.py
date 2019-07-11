@@ -2,7 +2,7 @@
 Headers, Request and FieldStorage classes, which is used for managing requests.
 """
 
-from collections import Mapping
+from collections.abc import Mapping
 from wsgiref.headers import _formatparam
 from cgi import FieldStorage as CgiFieldStorage, parse_header
 from json import loads as json_loads

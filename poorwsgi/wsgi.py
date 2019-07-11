@@ -506,7 +506,7 @@ class Application(object):
         return self.__dhandlers.pop(method)
 
     def route(self, uri, method=METHOD_HEAD | METHOD_GET):
-        """Wrap function to be handler for uri and specified method.
+        r"""Wrap function to be handler for uri and specified method.
 
         You can define uri as static path or as groups which are hand
         to handler as next parameters.
@@ -605,7 +605,7 @@ class Application(object):
         return uri in self.__handlers
 
     def regular_route(self, ruri, method=METHOD_HEAD | METHOD_GET):
-        """Wrap function to be handler for uri defined by regular expression.
+        r"""Wrap function to be handler for uri defined by regular expression.
 
         Both of function, regular_route and set_regular_route store routes
         to special internal table, which is another to table of static routes.
@@ -633,7 +633,7 @@ class Application(object):
 
     def set_regular_route(self, r_uri, fn, method=METHOD_HEAD | METHOD_GET,
                           convertors=(), rule=None):
-        """Set hanlder for uri defined by regular expression.
+        r"""Set hanlder for uri defined by regular expression.
 
         Another way to add fn as handler for uri defined by regular expression.
         See Application.regular_route documentation for details.
@@ -842,7 +842,7 @@ class Application(object):
                     response = EmptyResponse()
                 else:
                     response = to_response(
-                        self.error_from_table(request, http_err.status_code))
+                        self.error_from_table(request, status_code))
         except (ConnectionError, SystemExit) as e:
             log.warning(str(e))
             log.warning('   ***   You shoud ignore next error   ***')

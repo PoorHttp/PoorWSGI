@@ -7,16 +7,16 @@
 
 from wsgiref.simple_server import make_server
 from base64 import decodebytes, encodestring
-from poorwsgi import Application, state, request, redirect
-from poorwsgi.session import PoorSession
-from poorwsgi.response import Response, RedirectResponse
+from json import dumps
+from collections import OrderedDict
+from io import FileIO as file
 
 import os
 import logging as log
 
-from collections import OrderedDict
-
-from io import FileIO as file
+from poorwsgi import Application, state, request, redirect
+from poorwsgi.session import PoorSession
+from poorwsgi.response import Response, RedirectResponse
 
 logger = log.getLogger()
 logger.setLevel("DEBUG")
@@ -151,6 +151,8 @@ def root(req):
         '<li><a href="/test/one/too/three">'
         '/test/&lt;variable0&gt;/&lt;variable1&gt;/&lt;variable2&gt;</a>'
         ' - Testing variable args</li>',
+        '<li><a href="/test/headers">/test/headers</a> - Testing Headers'
+        '</li>',
         '<li><a href="/login">/login</a> - Create login session</li>',
         '<li><a href="/logout">/logout</a> - Destroy login session</li>',
         '<li><a href="/test/form">/test/form</a>'
@@ -444,6 +446,25 @@ def not_found(req):
     for line in buff:
         response.write(line + '\n')
     return response
+
+
+@app.route('/test/headers')
+def test_headers(req):
+    return dumps(
+        {"Content-Type": (req.mime_type, req.charset),
+         "Content-Length": req.content_length,
+         "Host": req.hostname,
+         "Accept": req.accept,
+         "Accept-Charset": req.accept_charset,
+         "Accept-Encoding": req.accept_encoding,
+         "Accept-Language": req.accept_language,
+         "Accept-MimeType": {
+            "html": req.accept_html,
+            "xhtml": req.accept_xhtml,
+            "json": req.accept_json
+         },
+         "XMLHttpRequest": req.is_xhr}
+    ), "application/json"
 
 
 @app.route('/yield')

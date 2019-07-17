@@ -1,7 +1,6 @@
 """Application callable class, which is the main point for wsgi application."""
 
 from os import path, access, R_OK, environ
-from sys import stderr
 from collections import OrderedDict
 from logging import getLogger
 

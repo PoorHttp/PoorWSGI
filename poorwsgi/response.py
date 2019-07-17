@@ -106,7 +106,7 @@ class Response:
             self.__headers = Headers(value)
 
     def add_header(self, name, value, **kwargs):
-        """Call Headers.add_header) on headers object."""
+        """Call Headers.add_header on headers object."""
         self.__headers.add_header(name, value, **kwargs)
 
     def write(self, data):

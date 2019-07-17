@@ -43,6 +43,29 @@ class TestSimple():
     def test_500(self):
         check_url(URL+"/internal-server-error", status_code=500)
 
+    def test_headers_empty(self):
+        res = check_url(URL+"/test/headers")
+        assert "X-Powered-By" in res.headers
+        assert res.headers["Content-Type"] == "application/json"
+        data = res.json()
+        assert data["XMLHttpRequest"] is False
+        assert data["Accept-MimeType"]["html"] is False
+        assert data["Accept-MimeType"]["xhtml"] is False
+        assert data["Accept-MimeType"]["json"] is False
+
+    def test_headers_ajax(self):
+        res = check_url(
+            URL+"/test/headers",
+            headers={'X-Requested-With': 'XMLHttpRequest',
+                     'Accept': "text/html,text/xhtml,application/json"})
+        assert "X-Powered-By" in res.headers
+        assert res.headers["Content-Type"] == "application/json"
+        data = res.json()
+        assert data["XMLHttpRequest"] is True
+        assert data["Accept-MimeType"]["html"] is True
+        assert data["Accept-MimeType"]["xhtml"] is True
+        assert data["Accept-MimeType"]["json"] is True
+
 
 class TestSession():
     def test_login(self):

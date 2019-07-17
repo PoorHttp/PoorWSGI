@@ -219,7 +219,8 @@ class Request(object):
         # The path portion of the URI.
         self.__uri_rule = None
 
-        # Reference to final uri_handler, user can use some uri_handler attributes
+        # Reference to final uri_handler, user can use some uri_handler
+        # attributes
         self.__uri_handler = None
 
         # A table object containing headers sent by the client.
@@ -366,8 +367,8 @@ class Request(object):
         attribute to handler, and read them in pre handler.
 
         Property was set when any route is found for request uri. Sending file
-        internaly when document_root is set, or by Error handlers leave uri_handler
-        None.
+        internaly when document_root is set, or by Error handlers leave
+        uri_handler None.
         """
         return self.__uri_handler
 
@@ -415,18 +416,22 @@ class Request(object):
 
     @property
     def accept_html(self):
-        """Return true if text/html mime type is in accept neogetions values."""
-        return "text/html" in dict(self.accept).items()
+        """Return true if text/html mime type is in accept neogetions values.
+        """
+        return "text/html" in dict(self.accept)
 
     @property
     def accept_xhtml(self):
-        """Return true if text/xhtml mime type is in accept neogetions values."""
-        return "text/xhtml" in dict(self.accept).items()
+        """Return true if text/xhtml mime type is in accept neogetions values.
+        """
+        return "text/xhtml" in dict(self.accept)
 
     @property
     def accept_json(self):
-        """Return true if application/json mime type is in accept neogetions values."""
-        return "application/json" in dict(self.accept).items()
+        """Return true if application/json mime type is in accept neogetions
+           values.
+        """
+        return "application/json" in dict(self.accept)
 
     @property
     def is_xhr(self):

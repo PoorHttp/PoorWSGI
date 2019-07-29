@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from wsgiref.headers import _formatparam
 from cgi import FieldStorage as CgiFieldStorage, parse_header
 from json import loads as json_loads
+from io import BytesIO
 
 import os
 import re
@@ -254,8 +255,17 @@ class Request(object):
         else:
             self.__poor_environ = self.__environ
 
-        self._file = self.__environ.get("wsgi.input")
+        self.__file = self.__environ.get("wsgi.input")
         self._errors = self.__environ.get("wsgi.errors")
+        self.__data = None
+
+        if app_config['auto_data'] and \
+                0 <= self.__content_length <= app_config['data_size']:
+            self.__file = BytesIO(self.__file.read(self.__content_length))
+            self.__file.seek(0)
+
+        # path args are set via wsgi.handler_from_table
+        self.__path_args = None
 
         # args
         if app_config['auto_args']:
@@ -453,6 +463,16 @@ class Request(object):
         return self.__poor_environ.copy()
 
     @property
+    def path_args(self):
+        """Dictionary arguments from path of regual expression rule."""
+        return (self.__path_args or {}).copy()
+
+    @path_args.setter
+    def path_args(self, value):
+        if self.__path_args is None:
+            self.__path_args = value
+
+    @property
     def args(self):
         """Extended dictionary (Args instance) of request arguments.
 
@@ -630,6 +650,26 @@ class Request(object):
             self.__app_config['document_root'])
 
     @property
+    def data(self):
+        """Returns input data from wsgi.input file.
+
+        This works only, when auto_data configuration and Content-Length of
+        request are lower then input_cache configuration value. Other requests
+        like big file data uploads increase memory and time system requests.
+        """
+        if isinstance(self.__file, BytesIO):
+            try:
+                self.__file.seek(0)
+                return self.__file.read()
+            finally:
+                self.__file.seek(0)
+
+    @property
+    def input(self):
+        """Return input file, for internal use in FieldStorage"""
+        return self.__file
+
+    @property
     def config(self):
         """For config object (default None)."""
         return self.__config
@@ -649,7 +689,7 @@ class Request(object):
 
     # -------------------------- Methods --------------------------- #
     def __read(self, length=-1):
-        return self._file.read(length)
+        return self.__file.read(length)
 
     def read(self, length=-1):
         """Read data from client (typical for XHR2 data POST).
@@ -659,11 +699,11 @@ class Request(object):
         """
         if self.__content_length <= 0:
             log.error("No Content-Length found, read was failed!")
-            return ''
+            return b''
         if length > -1 and length < self.__content_length:
             self.read = self.__read
             return self.read(length)
-        return self._file.read(self.__content_length)
+        return self.__file.read(self.__content_length)
     # enddef
 
     def get_options(self):
@@ -860,7 +900,7 @@ class FieldStorage(CgiFieldStorage):
                 environ['wsgi.file_callback'] = file_callback
 
             headers = req.headers
-            req = req.environ.get('wsgi.input')
+            req = req.input
         if environ is None:
             environ = {}
 

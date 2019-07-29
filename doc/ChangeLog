@@ -2,28 +2,39 @@
     * Python3 support only
     * Removed deprecated methods
     * Using python logging with 'poorwsgi' logger
-    * Renamed Request clength property to content_length
     * poor_SecretKey is not set by default
     * Documentation rewrited to rst
     * Request is now input object only
+        * `clength` property renamed to `content_length`
         * properties and attributes clean
         * document_root is property now
         * uri_rule contain original definition of regular rule
+        * accept_* properties from headers
+        * mime_type is stored in mime_type properties
+        * * new `data` property, return full data from input buffer
+        * (re)new `path_args` property
+        * new configuration options `auto_data` and `data_size`
+
     * Response classes for output
         * not use buffer size
         * callable for use in application
+        * new `data` property - could not work with generators
+    Application
+        * `pre_process` is `before_request` and `post_process` is
+          `after_request`
+        * file_callback application property
+        * `before_request` handlers are called after path_args are set
+        * `after_request` handler got response next to request
+        * `after_request` handler *must* return response
+        * internal renaming
+        * documentation update
     * HTTPException instead of SERVER_RETURN
     * New abort function
-    * New make_response function use internaly for handlers return values
+    * New make_response function use internally for handlers return values
     * Some results are move to Response subclasses
     * PoorSession can write headers to Response, and no Request is need for that
-    * Only DECLINED special return status_code are posible
-    * pre_process is pre_request and post_process is post_request
+    * Only DECLINED special return status_code are possible
     * internal parse_negotiation function
-    * accept_* properties from headers in Request
-    * mime_type is stored in mime_type properties
-    * pre_ and post_ handlers are before_ and after_
-    * file_callback application property
     * states and routes application property
     * Documentation update
 

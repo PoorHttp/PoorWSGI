@@ -105,6 +105,12 @@ class Response:
         else:
             self.__headers = Headers(value)
 
+    @property
+    def data(self):
+        """Return data content."""
+        self.__buffer.seek(0)
+        return self.__buffer.read()
+
     def add_header(self, name, value, **kwargs):
         """Call Headers.add_header on headers object."""
         self.__headers.add_header(name, value, **kwargs)

@@ -538,7 +538,7 @@ def debug_info(req, app):
           <h2 id="before_after_handlers">
             Before request and After request Handlers Tanble</h2>
           <table>
-           <tr><th>Pre</th><th>Post</th></tr>
+           <tr><th>Before</th><th>After</th></tr>
         %s
           </table>
 

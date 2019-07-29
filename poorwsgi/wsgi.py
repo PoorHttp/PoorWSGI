@@ -84,6 +84,8 @@ class Application(object):
             'auto_args': True,
             'auto_form': True,
             'auto_json': True,
+            'auto_data': True,
+            'data_size': 32768,
             'keep_blank_values': 0,
             'strict_parsing': 0,
             'file_callback': None,
@@ -249,6 +251,31 @@ class Application(object):
     @auto_json.setter
     def auto_json(self, value):
         self.__config['auto_json'] = bool(value)
+
+    @property
+    def auto_data(self):
+        """Enabling Request.data property for smaller requests.
+
+        Default value is True.
+        """
+        return self.__config['auto_data']
+
+    @auto_data.setter
+    def auto_data(self, value):
+        self.__config['auto_data'] = bool(value)
+
+    @property
+    def data_size(self):
+        """Size limit for Request.data property.
+
+        This value is  which is compare to request Content-Type. Default value
+        is 32768 as 30Kb.
+        """
+        return self.__config['data_size']
+
+    @data_size.setter
+    def data_size(self, value):
+        self.__config['data_size'] = int(value)
 
     @property
     def auto_cookies(self):
@@ -435,8 +462,9 @@ class Application(object):
         .. code:: python
 
             @app.after_each_request()
-            def after_each_request(req):
+            def after_each_request(request, response):
                 print("Request out")
+                return response
         """
         def wrapper(fn):
             self.add_after_request(fn)
@@ -451,8 +479,9 @@ class Application(object):
 
         .. code:: python
 
-            def after_each_request(req):
+            def after_each_request(request, response):
                 print("Request out")
+                return response
 
             app.add_after_request(after_each_request)
         """
@@ -611,12 +640,14 @@ class Application(object):
 
         .. code:: python
 
-            @app.regular_route(r'/user/\w+')               # simple regular expression
+            # simple regular expression
+            @app.regular_route(r'/user/\w+')
             def any_user(req):
                 ...
 
-            @app.regular_route(r'/user/(?P<user>\w+)')     # regular expression with
-            def user_detail(req, user):             # groups
+            # regular expression with
+            @app.regular_route(r'/user/(?P<user>\w+)')
+            def user_detail(req, user):             # named path args
                 ...
 
         Be sure with ordering of call this decorator or set_regular_route
@@ -671,7 +702,14 @@ class Application(object):
         return r_uri in self.__rhandlers
 
     def http_state(self, code, method=METHOD_HEAD | METHOD_GET | METHOD_POST):
-        """Wrap function to handle http status codes like http errors."""
+        """Wrap function to handle http status codes like http errors.
+
+        .. code:: python
+
+            @app.http_state(state.HTTP_NOT_FOUND)
+            def page_not_found(req):
+                return "Your request %s not found." % req.uri, "text/plain"
+        """
         def wrapper(fn):
             self.set_http_state(code, fn, method)
         return wrapper
@@ -706,7 +744,7 @@ class Application(object):
                 and req.method_number in self.__shandlers[code]:
             try:
                 handler = self.__shandlers[code][req.method_number]
-                self.handler_from_pre(req)       # call pre handlers now
+                self.handler_from_before(req)       # call before handlers now
                 return handler(req)
             except BaseException:
                 return internal_server_error(req)
@@ -722,15 +760,15 @@ class Application(object):
         if req.method_number in self.__dhandlers:
             req.uri_rule = '/*'
             req.uri_handler = self.__dhandlers[req.method_number]
-            self.handler_from_pre(req)       # call pre handlers now
+            self.handler_from_before(req)       # call before handlers now
             return self.__dhandlers[req.method_number](req)
 
         log.error("404 Not Found: %s", req.uri)
         raise HTTPException(HTTP_NOT_FOUND)
     # enddef
 
-    def handler_from_pre(self, req):
-        """Internal method, which run all pre (pre_proccess) handlers.
+    def handler_from_before(self, req):
+        """Internal method, which run all before (pre_proccess) handlers.
 
         This method was call before end-point route handler.
         """
@@ -749,9 +787,9 @@ class Application(object):
         if req.uri in self.__handlers:
             if req.method_number in self.__handlers[req.uri]:
                 handler = self.__handlers[req.uri][req.method_number]
-                req.uri_rule = req.uri      # nice variable for pre handlers
+                req.uri_rule = req.uri      # nice variable for before handlers
                 req.uri_handler = handler
-                self.handler_from_pre(req)  # call pre handlers now
+                self.handler_from_before(req)  # call before handlers now
                 return handler(req)       # call right handler now
             else:
                 raise HTTPException(HTTP_METHOD_NOT_ALLOWED)
@@ -762,24 +800,27 @@ class Application(object):
         for ruri in self.__rhandlers.keys():
             match = ruri.match(req.uri)
             if match and req.method_number in self.__rhandlers[ruri]:
-                handler, convertors, rule = self.__rhandlers[ruri][req.method_number]
-                req.uri_rule = rule or ruri.pattern  # nice variable for pre handlers
+                handler, convertors, rule = \
+                    self.__rhandlers[ruri][req.method_number]
+                req.uri_rule = rule or ruri.pattern
                 req.uri_handler = handler
-                self.handler_from_pre(req)   # call pre handlers now
                 if len(convertors):
                     # create OrderedDict from match insead of dict for
                     # convertors applying
-                    req.groups = OrderedDict(
+                    req.path_args = OrderedDict(
                         (g, c(v))for ((g, c), v) in zip(convertors,
                                                         match.groups()))
-                    return handler(req, *req.groups.values())
+                    self.handler_from_before(req)   # call before handlers now
+                    return handler(req, *req.path_args.values())
                 else:
-                    req.groups = match.groupdict()
+                    req.path_args = match.groupdict()
+                    self.handler_from_before(req)   # call before handlers now
                     return handler(req, *match.groups())
         # endfor
 
         # try file or index
-        if req.document_root and req.method_number & (METHOD_HEAD | METHOD_GET):
+        if req.document_root and \
+                req.method_number & (METHOD_HEAD | METHOD_GET):
             rfile = "%s%s" % (req.document_root,
                               path.normpath("%s" % req.uri))
 
@@ -787,14 +828,14 @@ class Application(object):
                 if req.debug and req.uri == '/debug-info':      # work if debug
                     req.uri_rule = '/debug-infoendpoint'
                     req.uri_handler = debug_info
-                    self.handler_from_pre(req)  # call pre handlers now
+                    self.handler_from_before(req)  # call before handlers now
                     return debug_info(req, self)
                 return self.handler_from_default(req)         # try default
 
             # return file
             if path.isfile(rfile) and access(rfile, R_OK):
                 req.uri_rule = '/*'
-                self.handler_from_pre(req)      # call pre handlers now
+                self.handler_from_before(req)      # call before handlers now
                 log.info("Return file: %s", req.uri)
                 return FileResponse(rfile)
 
@@ -804,7 +845,7 @@ class Application(object):
                 log.info("Return directory: %s", req.uri)
                 req.uri_rule = '/*'
                 req.uri_handler = directory_index
-                self.handler_from_pre(req)      # call pre handlers now
+                self.handler_from_before(req)      # call before handlers now
                 return directory_index(req, rfile)
             raise HTTPException(HTTP_FORBIDDEN)
         # endif
@@ -812,7 +853,7 @@ class Application(object):
         if req.debug and req.uri == '/debug-info':
             req.uri_rule = '/debug-info'
             req.uri_handler = debug_info
-            self.handler_from_pre(req)          # call pre handlers now
+            self.handler_from_before(req)          # call before handlers now
             return debug_info(req, self)
 
         return self.handler_from_default(req)
@@ -851,7 +892,7 @@ class Application(object):
 
         try:    # call post_process handler
             for fn in self.__after:
-                fn(request)
+                response = to_response(fn(request, response))
         except BaseException:
             response = to_response(self.error_from_table(request, 500))
 

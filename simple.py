@@ -51,6 +51,12 @@ app.auto_form = False
 
 
 @app.before_request()
+def log_request(req):
+    log.info("Before request")
+    log.info("Data: %s" % req.data)
+
+
+@app.before_request()
 def auto_form(req):
     """ This is own implementation of req.form paring before any POST request
         with own file_callback.
@@ -474,15 +480,12 @@ def yielded(req):
     #    yield b"line %d\n" % i
 
 
-@app.before_request()
-@app.after_request()
-def log_request(req):
-    log.info("Log this point")
 
 
 @app.after_request()
-def post(req):
-    pass
+def log_response(req, res):
+    log.info("After request")
+    return res
 
 
 @app.route('/internal-server-error')

@@ -1,0 +1,170 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "PoorWSGI Test",
+    "version": "1.0.0",
+    "description": "PoorWSGI Integrity test"
+  },
+  "paths": {
+    "/plain_text": {
+      "get": {
+        "summary": "Plain Text test page",
+        "responses": {
+          "200" : {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "default": "text/plain"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/accept"
+        }
+      ]
+    },
+    "/json/{arg}": {
+      "get": {
+        "summary": "Json with path argument test",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "arg": {
+                      "type": "string",
+                      "example": "arg_from_path"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "parameters": [
+      {
+        "name": "arg",
+        "in": "path",
+        "required": true,
+        "description": "Number argument",
+        "schema": {
+            "type": "number",
+            "example": 13.4,
+            "minimum": 1
+        }
+      },
+      {
+        "$ref": "#/components/parameters/accept"
+      }
+      ]
+    }
+  },
+  "components": {
+    "schemas": {
+    },
+    "parameters": {
+      "accept": {
+        "name": "Accept",
+        "in": "header",
+        "schema": {
+          "type": "string",
+          "pattern": "(application/json)|(text/html)|(text/plain)"
+        }
+      }
+    },
+    "responses": {
+      "400": {
+        "description": "Bad Request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "text/html": {
+            "schema": {
+              "type": "string"
+            }
+          },
+          "text/plain": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": {
+            "schema": {
+              "type": "string",
+              "default": "application/json"
+            }
+          }
+        }
+      },
+     "500": {
+        "description": "Internal Server Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "text/html": {
+            "schema": {
+              "type": "string"
+            }
+          },
+          "text/plain": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": {
+            "schema": {
+              "type": "string",
+              "default": "application/json"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -37,6 +37,8 @@
     * internal parse_negotiation function
     * states and routes application property
     * Documentation update
+    * New OpenAPIRequest and OpenAPIResponse classes based on classes from
+      `openapi_core` module.
 
 ==== 1.7.0 ====
     * New Application config list form_content_types

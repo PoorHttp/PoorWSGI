@@ -37,7 +37,8 @@ and your application. The simplest way to run and test it looks like that:
 
 You can use python wsgiref.simple_server for test it:
 
-::
+.. code-block::
+
     ~$ python simple.py
 
 For more information see

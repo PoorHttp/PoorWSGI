@@ -953,3 +953,75 @@ simple just open profile file:
 
     $~ python runsnake.py log/init.profile
     $~ python runsnake.py log/req_.profile
+
+
+OpenAPI
+-------
+OpenAPI aka Swagger 3.0 is specification for RESTful api documentation and
+request and response validation. PoorWSGI have
+`openapi_core <https://github.com/p1c2u/openapi-core>`_ wrapper in
+``openapi_wrapper.py`` module. You must only declare your before and after request
+handler.
+
+This wrapper is place where, **openapi_core** python package is use, so that is
+not in PoorWSGI requirements. You need to install separately:
+
+.. code:: sh
+
+    $~ pip install openapi_core
+
+Example code of usage:
+
+.. code:: python
+
+    from openapi_core import create_spec
+    from openapi_core.shortcuts import RequestValidator, ResponseValidator
+    from openapi_core.schema.operations.exceptions import InvalidOperation
+    from openapi_core.schema.servers.exceptions import InvalidServer
+    from openapi_core.schema.paths.exceptions import InvalidPath
+
+    from poorwsgi import Application
+    from poorwsgi.response import Response, abort
+    from poorwsgi.openapi_wrapper import OpenAPIRequest, OpenAPIResponse
+
+    app = Application("OpenAPI3 Test App")
+
+    request_validator = None
+    response_validator = None
+
+    with open(path.join(path.dirname(__file__), "openapi.json"), "r") as openapi:
+        spec = create_spec(json.load(openapi))
+        request_validator = RequestValidator(spec)
+        response_validator = ResponseValidator(spec)
+
+
+    @app.before_request()
+    def before_each_request(req):
+        result = request_validator.validate(OpenAPIRequest(req))
+        if result.errors:
+            errors = []
+            for error in result.errors:
+                if isinstance(error, (InvalidOperation, InvalidServer,
+                                      InvalidPath)):
+                    log.debug(error)
+                    return  # not found
+                errors.append(repr(error)+":"+str(error))
+            abort(Response(json.dumps({"error": ';'.join(errors)}),
+                           status_code=400,
+                           content_type="application/json"))
+
+
+    @app.after_request()
+    def after_each_request(req, res):
+        """Kontroluje odpověď dle OpenAPI specifikace."""
+        result = response_validator.validate(
+            OpenAPIRequest(req),
+            OpenAPIResponse(res))
+        for error in result.errors:
+            if isinstance(error, InvalidOperation):
+                continue
+            log.error("API output error: %s", str(error))
+        return res
+
+Of course, you need ``openapi.json`` file with OpenAPI specification, where you
+specified your API.

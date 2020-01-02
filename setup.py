@@ -7,7 +7,6 @@ from distutils import log
 from os import path, makedirs, walk, environ
 from shutil import copyfile
 from subprocess import call
-from sys import version_info
 
 from setuptools import setup
 
@@ -155,9 +154,8 @@ setup(
     packages=['poorwsgi'],
     data_files=[
         ('share/doc/poorwsgi',
-         ['doc/ChangeLog', 'doc/licence.txt', 'README.rst']),
-        ('share/poorwsgi/example',
-         ['simple.py'])],
+         ['doc/ChangeLog', 'doc/licence.txt', 'README.rst'])] +
+        find_data_files("examples", "share/poorwsgi/examples"),
     license="BSD",
     long_description=doc(),
     classifiers=[

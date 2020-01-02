@@ -27,7 +27,7 @@ from poorwsgi import Application, state
 from poorwsgi.response import Response, abort
 from poorwsgi.openapi_wrapper import OpenAPIRequest, OpenAPIResponse
 
-app = Application("OpenAPI3 Test App")
+app = application = Application("OpenAPI3 Test App")
 app.debug = True
 app.secret_key = urandom(32)     # random key each run
 

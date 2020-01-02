@@ -1,8 +1,41 @@
 from os import environ
+from os.path import dirname, join, pardir
+from sys import executable
+from subprocess import Popen
+from time import sleep
+from socket import socket, error as SocketError
 
 from . support import check_url
 
-URL = environ.get("TEST_OPENAPI_URL", "http://localhost:8080").strip('/')
+URL = environ.get("TEST_OPENAPI_URL", "").strip('/')
+PROCESS = None
+
+
+def setUpModule():
+    global PROCESS
+    global URL
+
+    if not URL:
+        URL = "http://localhost:8080"
+        print("Starting wsgi application...")
+        PROCESS = Popen([executable,
+                         join(dirname(__file__), pardir,
+                              "examples/openapi3.py")])
+        assert PROCESS is not None
+        for i in range(20):
+            sck = socket()
+            try:
+                sck.connect(("localhost", 8080))
+                return
+            except SocketError:
+                sleep(0.1)
+            finally:
+                sck.close()
+        raise RuntimeError("Server not started in 2 seconds")
+
+
+def tearDownModule():
+    PROCESS.kill()
 
 
 class TestOpenAPI():

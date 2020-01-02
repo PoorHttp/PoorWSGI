@@ -10,9 +10,14 @@ from base64 import decodebytes, encodestring
 from json import dumps
 from collections import OrderedDict
 from io import FileIO as file
+from sys import path as python_path
 
 import os
 import logging as log
+
+EXAMPLES_PATH = os.path.dirname(__file__)           # noqa
+python_path.insert(0, os.path.abspath(              # noqa
+    os.path.join(EXAMPLES_PATH, os.path.pardir)))
 
 from poorwsgi import Application, state, request, redirect
 from poorwsgi.session import PoorSession
@@ -20,7 +25,7 @@ from poorwsgi.response import Response, RedirectResponse
 
 logger = log.getLogger()
 logger.setLevel("DEBUG")
-app = Application()
+app = application = Application()
 app.debug = True
 app.document_root = '.'
 app.document_index = True

@@ -88,8 +88,8 @@ It is published application test files. You can download it, study it,
 test or use it as you can. See:
 
 **simple.py**
-    https://github.com/PoorHttp/PoorWSGI/blob/unstable/simple.py
+    https://github.com/PoorHttp/PoorWSGI/blob/unstable/examples/simple.py
 
 **openapi3.py**
-    https://github.com/PoorHttp/PoorWSGI/blob/unstable/tests_integrity/openapi3.py
-    https://github.com/PoorHttp/PoorWSGI/blob/unstable/tests_integrity/openapi.json
+    https://github.com/PoorHttp/PoorWSGI/blob/unstable/examples/openapi3.py
+    https://github.com/PoorHttp/PoorWSGI/blob/unstable/examples/openapi.json

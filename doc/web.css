@@ -1,0 +1,43 @@
+.header > img {
+    padding-left: 1em;
+    margin-top: 10px;
+}
+
+h1 {
+    margin-bottom: 0;
+}
+
+/* box is used on homepage and 404 error page */
+.box {
+    margin: 3em 0 2em 0;
+    background: #fff url('logo.png') 50% 50% no-repeat;
+}
+.box > .item {
+    max-width: 28em;
+    min-height: 8.5em;
+    padding: 0 0.5em 0 0.5em;
+    background: rgba(200, 200, 200, 0.4);
+    border-radius: 3px 3px 3px;
+}
+.box > .item > h2 {
+    text-align: center;
+}
+.box > .item > p {
+    text-indent: 2em;
+}
+.box > .up {
+    margin: 0 0 3em 0;
+}
+.box > .dn {
+    margin: 3em 0 0 0;
+}
+.box > .clear {
+    clear: both;
+}
+
+.left {
+    float: left;
+}
+.right {
+    float: right;
+}

@@ -960,7 +960,7 @@ OpenAPI
 OpenAPI aka Swagger 3.0 is specification for RESTful api documentation and
 request and response validation. PoorWSGI have
 `openapi_core <https://github.com/p1c2u/openapi-core>`_ wrapper in
-``openapi_wrapper.py`` module. You must only declare your before and after request
+``openapi_wrapper`` module. You must only declare your before and after request
 handler.
 
 This wrapper is place where, **openapi_core** python package is use, so that is

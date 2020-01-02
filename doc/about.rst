@@ -82,9 +82,14 @@ web. See:
 
     https://github.com/PoorHttp/PoorWSGI/blob/unstable/doc/ChangeLog
 
-Simple.py
-=========
-It is published simple.py application test file. You can download it, study it
+Examples
+========
+It is published application test files. You can download it, study it,
 test or use it as you can. See:
 
+**simple.py**
     https://github.com/PoorHttp/PoorWSGI/blob/unstable/simple.py
+
+**openapi3.py**
+    https://github.com/PoorHttp/PoorWSGI/blob/unstable/tests_integrity/openapi3.py
+    https://github.com/PoorHttp/PoorWSGI/blob/unstable/tests_integrity/openapi.json

@@ -99,6 +99,9 @@ class TestSimple():
         assert data["Accept-MimeType"]["xhtml"] is True
         assert data["Accept-MimeType"]["json"] is True
 
+    def test_yield(self):
+        check_url(URL+"/yield")
+
 
 class TestSession():
     def test_login(self):

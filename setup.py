@@ -2,6 +2,7 @@
 from distutils.core import Command
 from distutils.command.install_data import install_data
 from distutils.dir_util import remove_tree
+from distutils.errors import DistutilsError
 from distutils import log
 
 from os import path, makedirs, walk, environ
@@ -9,6 +10,7 @@ from shutil import copyfile
 from subprocess import call
 
 from setuptools import setup
+from setuptools.command.test import test
 
 from poorwsgi.state import __version__
 
@@ -137,7 +139,35 @@ class install_doc(install_data):
         install_data.run(self)
 
 
+class PyTest(test):
+    user_options = [('pytest-args=',
+                     'a',  # ty sileny mezery tam jsou kuli hezkemu formatovani
+                     'Arguments to pass to py.test.'),
+                    ('test-suite=',
+                     't',
+                     'Test suite/module::Class::test')]
+
+    def initialize_options(self):
+        test.initialize_options(self)
+
+    def finalize_options(self):
+        test.finalize_options(self)
+        if isinstance(self.pytest_args, (str)):
+            self.pytest_args = self.pytest_args.split(' ')
+
+        self.pytest_args.append(self.test_suite or 'tests')
+        if self.verbose:
+            self.pytest_args.insert(0, '-v')
+
+    def run_tests(self):
+        # import here, cause outside the eggs aren't loaded
+        import pytest
+        if pytest.main(self.pytest_args) != 0:
+            raise DistutilsError("Test failed")
+
+
 def doc():
+    """Return README.rst content."""
     with open('README.rst', 'r') as readme:
         return readme.read().strip()
 
@@ -154,10 +184,12 @@ setup(
     packages=['poorwsgi'],
     data_files=[
         ('share/doc/poorwsgi',
-         ['doc/ChangeLog', 'doc/licence.txt', 'README.rst'])] +
+         ['doc/ChangeLog', 'doc/licence.txt', 'README.rst',
+          'CONTRIBUTION.rst'])] +
         find_data_files("examples", "share/poorwsgi/examples"),
     license="BSD",
     long_description=doc(),
+    long_description_content_type="text/x-rst",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Environment :: Web Environment",
@@ -176,5 +208,7 @@ setup(
     ],
     cmdclass={'build_doc': build_doc,
               'clean_doc': clean_doc,
-              'install_doc': install_doc},
+              'install_doc': install_doc,
+              'test': PyTest},
+    tests_require=['pytest']
 )

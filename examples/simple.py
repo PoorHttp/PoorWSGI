@@ -124,8 +124,8 @@ def get_variables(req):
               "REMOTE_ADDR", "REMOTE_HOST", "PATH_INFO")
     return sorted(tuple(
         (key, html(val)) for key, val in req.environ.items()
-        if key.startswith("wsgi.") or key.startswith("poor_")
-        or key in usable))
+        if key.startswith("wsgi.") or key.startswith("poor_") or
+        key in usable))
 
 
 app.set_filter('email', r'[\w\.\-]+@[\w\.\-]+')
@@ -213,8 +213,7 @@ AADwDwAA+B8AAA==
 
 @app.route('/style.css')
 def style(req):
-    buff = \
-    """
+    buff = """
         body { width: 90%; max-width: 900px; margin: auto;
         padding-top: 30px; }
         h1 { text-align: center; color: #707070; }
@@ -480,11 +479,8 @@ def test_headers(req):
 
 @app.route('/yield')
 def yielded(req):
-    return (b"ahoj", b"svete")
-    # for i in range(10):
-    #    yield b"line %d\n" % i
-
-
+    for i in range(10):
+        yield b"line %d\n" % i
 
 
 @app.after_request()

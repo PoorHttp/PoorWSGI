@@ -374,8 +374,8 @@ class Application(object):
     def file_callback(self):
         """File callback use as parameter when parsing request body.
 
-        Default is None. Values could be a class or factory which got's filename
-        from request body and have file compatibile interface.
+        Default is None. Values could be a class or factory which got's
+        filename from request body and have file compatibile interface.
         """
         return self.__config['file_callback']
 
@@ -924,8 +924,8 @@ class Application(object):
             rv.append(self.__original_request__(env, start_response))
 
         rv = []
-        uri_dump = (self._dump + env.get('PATH_INFO').replace('/', '_')
-                    + '.profile')
+        uri_dump = (self._dump + env.get('PATH_INFO').replace('/', '_') +
+                    '.profile')
         log.info('Generate %s', uri_dump)
         self._runctx('wrapper(rv)', globals(), locals(), filename=uri_dump)
         return rv[0]

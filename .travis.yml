@@ -11,11 +11,26 @@ before_deploy:
  - python3 setup.py bdist_wheel
 
 deploy:
-  provider: releases
-  file:
-    - dist/PoorWSGI-$TRAVIS_TAG.tar.gz
-    - dist/PoorWSGI-$TRAVIS_TAG-py3-none-any.whl
-  skip_cleanup: true
-  overwrite: true
-  on:
-    tags: true
+  - provider: pypi
+    user: __token__
+    password:
+      secure: JL4umK8xRzuxBJyxm6pE9bClGd7PB7Vuy4q7rfEQCt9bQg9SCd29eFlA2EowG/xkWjlVe940hygKY/ZzHOq0ieg3vU4u2D99opyHPncdLcqF6ECpyBkeeUbFMmxkfH8n8vhWUDzxaOcYErFB1B0rypyuJRVuUrm8fJJVBMjboiI3h/pn8xDDbV3i1iVPsk4qzU2eleSQgc5ONe+YVsZK4rnctycobLscz2vlo7rPHfZLtgMJq27squs1iMrFyTa4S35nuBCGl2Na9u4Wjl8Sniv/naa96ZORDxnWSJLBmANgjinaTd4UslU2K8SyGI0Y0YPxlbm8OefAsY6OXt2GgtQGKGrCM75dMHwUlK1ULDi7kiQZMIlDbtFLWwP4ykQRsuaQaWibSZW3Gckajo925OKxXVTGOU4jfcYhy4ZT0dTiIEA2zooYSc40DE2t9j5oaJ/edBTDZbYGbY/5CbKYEM8+SXt6CFTe8PuNv+S5TUxBoPYAs88NiEvRs/+xoAeRKAIX5N4qGXnc4kTre/Jix1RxZS9LV/oBF1tbefo+Nyv4iVi91B3NRQ9AyvcDvq4fMH9vp6UMPsyi703vwdAHhwx9LrkAAR0dtJA+h3TB9dfcxKrt5hfzuWUmOVOyG8LdeJeEIxRjEh64oBxqeO7NFj81UTvHzUr63ufWZNX/ETQ=
+    distribution: "sdist bdist_wheel"
+    skip_cleanup: true
+    overwrite: true
+    on:
+      repo: PoorHttp/PoorWSGI
+      branch: master
+      tags: true
+  - provider: releases
+    api_key:
+      secure: EDl+UN9nlyJ4NGwU7TRnX9TElAhvGDsZYsaLv2i1XK8OIbiPBBueHtxgRslQ6qefNvH4WYroOh5RhyrVNQA0bBL7HhUOPzYemubkfK/hFsdeLKnFPbcQ6Z3kvA8x1FndW78LCtUFoFhW40gE0iXzxvJG/vrjV/STB2AbmcTGlEAbFB7rFx1+gCBSJ19Ss8tI7gPPU0SS8Roa7wU4t0ZmuQHcwYSZkHUP+lZBaFdCO5Y5fozBZbvSbBX2nDjXmbcZU0c4pr4pu/sLz7H/VOemum5+GJ3Et6g6+PiUpQeZqVbu5laV3MC0944o7ah5pZFokM5S7xLFjNJLctmxOMK7+VddGl5bw4wtFuPBfff03BLs3Zyb7vuIdHby5MccWiQYeDA1fly1eRJy8Xxyx25Ty+yoWYt3qNk73MbZzmYzMfybKphX1bsjqGC9g2ytbgICMxmwgoRFEWITBJAMag4s7hZ2fpVXkYXKQBKEiONkTEINAYImPVa5+q9XyDNPBBLmcmd5c5yxm897EvEGK08jM6T6Q220/pW60KKDKX764/7v3F74kwpRIxjHFZzOcKqhO37X9k8hR7AbcmzbpaZFp2K4MRLqx+O0jib61JSWY1m9IAgvCRsrfdsEb8Wcmz6Gcbhd2EeNkS5ZsiE77nFnQNZI1UIt2mW17CCZa/gKFcQ=
+    file:
+      - dist/PoorWSGI-$TRAVIS_TAG.tar.gz
+      - dist/PoorWSGI-$TRAVIS_TAG-py3-none-any.whl
+    skip_cleanup: true
+    overwrite: true
+    on:
+      repo: PoorHttp/PoorWSGI
+      branch: master
+      tags: true

@@ -1,3 +1,12 @@
+"""
+Poor WSGI Response classes.
+
+:Exceptions:    HTTPException
+:Classes:       Response, FileResponse, GeneratorResponse,
+                StrGeneratorResponse, EmptyResponse, RedirectResponse
+:Functions:     make_response, redirect, abort
+"""
+
 from http.client import responses
 from io import BytesIO
 from os import access, R_OK, fstat

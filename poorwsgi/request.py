@@ -1,5 +1,7 @@
-"""
-Headers, Request and FieldStorage classes, which is used for managing requests.
+"""Classes, which is used for managing requests.
+
+:Classes:   Headers, Request, EmptyForm, Args, Json, FieldStorage
+:Functions: parse_negotiation
 """
 
 from collections.abc import Mapping
@@ -192,8 +194,8 @@ class Headers(Mapping):
                 return value.encode('utf-8').decode('iso-8859-1')
 
         except UnicodeError:
-                raise AssertionError("Header name/value must be iso-8859-1 "
-                                     "encoded (got {0})".format(value))
+            raise AssertionError("Header name/value must be iso-8859-1 "
+                                 "encoded (got {0})".format(value))
         raise AssertionError("Header name/value must be of type str "
                              "(got {0})".format(value))
 # endclass Headers
@@ -308,17 +310,17 @@ class Request(object):
     # -------------------------- Properties --------------------------- #
     @property
     def mime_type(self):
-        """Request Content-Type header string."""
+        """Request ``Content-Type`` header string."""
         return self.__mime_type
 
     @property
     def charset(self):
-        """Request Content-Type charset header string, utf-8 if not set."""
+        """Request ``Content-Type`` charset header string, utf-8 if not set."""
         return self.__charset
 
     @property
     def content_length(self):
-        """Request Content-Length header value, -1 if not set."""
+        """Request ``Content-Length`` header value, -1 if not set."""
         return self.__content_length
 
     @property
@@ -357,9 +359,9 @@ class Request(object):
 
         This property could be set once, and that do Application object. There
         are some internal uri_rules which is set typical if some internal
-        handler was called. There are: /* for default, directory and file
-        handler and /debug-info for debug handler. In other case, there be url
-        or regex.
+        handler was called. There are: ``/*`` for default, directory and file
+        handler and ``/debug-info`` for debug handler. In other case, there be
+        url or regex.
         """
         return self.__uri_rule
 
@@ -426,26 +428,29 @@ class Request(object):
 
     @property
     def accept_html(self):
-        """Return true if text/html mime type is in accept neogetions values.
+        """Return true if ``text/html`` mime type is in accept neogetions
+           values.
         """
         return "text/html" in dict(self.accept)
 
     @property
     def accept_xhtml(self):
-        """Return true if text/xhtml mime type is in accept neogetions values.
+        """Return true if ``text/xhtml`` mime type is in accept neogetions
+           values.
         """
         return "text/xhtml" in dict(self.accept)
 
     @property
     def accept_json(self):
-        """Return true if application/json mime type is in accept neogetions
+        """Return true if ``application/json`` mime type is in accept neogetions
            values.
         """
         return "application/json" in dict(self.accept)
 
     @property
     def is_xhr(self):
-        """.If X-Requested-With header is set and have XMLHttpRequest value."""
+        """If ``X-Requested-With`` header is set with ``XMLHttpRequest`` value.
+        """
         return self.__headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     @property
@@ -529,7 +534,7 @@ class Request(object):
 
     @property
     def debug(self):
-        """Value of poor_Debug variable."""
+        """Value of ``poor_Debug`` variable."""
         return self.__debug
 
     @property
@@ -572,7 +577,7 @@ class Request(object):
 
     @property
     def server_admin(self):
-        """Server admin if set, or webmaster@hostname."""
+        """Server admin if set, or ``webmaster@hostname``."""
         return self.__environ.get('SERVER_ADMIN',
                                   'webmaster@%s' % self.hostname)
 
@@ -588,40 +593,40 @@ class Request(object):
 
     @property
     def port(self):
-        """Alias for server_port property."""
+        """Alias for ``server_port`` property."""
         return int(self.__environ.get('SERVER_PORT'))
 
     @property
     def server_protocol(self):
         """Server protocol, as given by the client.
 
-        In HTTP/0.9. cgi SERVER_PROTOCOL value.
+        In ``HTTP/0.9``. cgi ``SERVER_PROTOCOL`` value.
         """
         return self.__environ.get('SERVER_PROTOCOL')
 
     @property
     def protocol(self):
-        """Alias for server_protocol property"""
+        """Alias for ``server_protocol`` property"""
         return self.__environ.get('SERVER_PROTOCOL')
 
     @property
     def forwarded_for(self):
-        """X-Forward-For http header if exists."""
+        """``X-Forward-For`` http header if exists."""
         return self.__environ.get('HTTP_X_FORWARDED_FOR')
 
     @property
     def forwarded_host(self):
-        """X-Forward-Host http header if exists."""
+        """``X-Forward-Host`` http header if exists."""
         return self.__environ.get('HTTP_X_FORWARDED_HOST')
 
     @property
     def forwarded_proto(self):
-        """X-Forward-Proto http header if exists."""
+        """``X-Forward-Proto`` http header if exists."""
         return self.__environ.get('HTTP_X_FORWARDED_PROTO')
 
     @property
     def secret_key(self):
-        """Value of poor_SecretKey variable.
+        """Value of ``poor_SecretKey`` variable.
 
         Secret key is used by PoorSession class. It is generate from
         some server variables, and the best way is set programmatically

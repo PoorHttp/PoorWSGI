@@ -81,9 +81,9 @@ generate document index from dictionary like real http servers. Default is
 poor_DocumentRoot
 ~~~~~~~~~~~~~~~~~
 pooor_DocumentRoot is dictionary, which is accessible files from. Files are
-sent via Request.sendfile method, which is not optimized yet. Method reads
-data for poor_BufferSize size blocks. And of course, before files is set,
-right ``Content-Type`` from mime-type and ``Content-Length`` headers are set.
+sent via FileResponse. Object returns opened file. And of course, before files
+is set, right ``Content-Type`` from mime-type and ``Content-Length`` headers
+are set.
 
 poor_SecretKey
 ~~~~~~~~~~~~~~

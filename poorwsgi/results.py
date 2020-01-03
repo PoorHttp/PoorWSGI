@@ -1,4 +1,9 @@
-"""Default Poor WSGI handlers."""
+"""Default Poor WSGI handlers.
+
+:Functions: not_modified, internal_server_error, bad_request, forbidden,
+            not_found, method_not_allowed, not_implemented, directory_index,
+            debug_info
+"""
 
 from traceback import format_exception
 from time import strftime, gmtime
@@ -602,3 +607,7 @@ __fill_default_shandlers(HTTP_NOT_FOUND, not_found)
 __fill_default_shandlers(HTTP_METHOD_NOT_ALLOWED, method_not_allowed)
 __fill_default_shandlers(HTTP_INTERNAL_SERVER_ERROR, internal_server_error)
 __fill_default_shandlers(HTTP_NOT_IMPLEMENTED, not_implemented)
+
+__all__ = ['not_modified', 'internal_server_error', 'bad_request', 'forbidden',
+           'not_found', 'method_not_allowed', 'not_implemented',
+           'directory_index', 'debug_info']

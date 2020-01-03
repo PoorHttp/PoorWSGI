@@ -147,8 +147,8 @@ to body with auto-counting ``Content-Length``, or some headers additional work.
 
 There are some additional subclasses with special working.
 
-**FileResponse**
-
+FileResponse
+````````````
 File response open the file and send it throw ``wsgi.filewrapper``, which could
 be *sendfile()* call. See PEP 3333. Content type and length read from system.
 
@@ -158,19 +158,19 @@ be *sendfile()* call. See PEP 3333. Content type and length read from system.
     def favicon(req):
         return FileResponse("/favicon.ico")
 
-**GeneratorResponse**
-
+GeneratorResponse
+`````````````````
 Response which is use for generator values. Generator **must** return bytes,
 instead of strings! For string returned generator, use **StrGeneratorResponse**,
 which use generator for utf-8 encoding to bytes.
 
-**EmptyResponse**
-
+EmptyResponse
+`````````````
 Sometimes you don't want to response anything instead of status cod. Empty
 response only status code and reason. No headers, no content.
 
-**RedirectResponse**
-
+RedirectResponse
+````````````````
 Response with interface for more comfortable redirect response.
 
 .. code:: python
@@ -712,7 +712,7 @@ variable to ``1``. If so, use it in your own parsing.
                                     keep_blank_values=app.keep_blank_values,
                                     strict_parsing=app.strict_parsing)
         except Exception as e:
-            log.error("Bad request uri: %s", e)
+            loging.error("Bad request uri: %s", e)
 
         if req.method_number == state.METHOD_POST:
             try:
@@ -721,7 +721,7 @@ variable to ``1``. If so, use it in your own parsing.
                     keep_blank_values=app.keep_blank_values,
                     strict_parsing=app.strict_parsing)
             except Exception as e:
-                log.error("Bad request body: %s", e)
+                logging.error("Bad request body: %s", e)
 
 Application.auto_cookies
 ````````````````````````
@@ -974,6 +974,11 @@ Example code of usage:
 
 .. code:: python
 
+    from os import path
+
+    import json
+    import logging
+
     from openapi_core import create_spec
     from openapi_core.shortcuts import RequestValidator, ResponseValidator
     from openapi_core.schema.operations.exceptions import InvalidOperation
@@ -989,6 +994,7 @@ Example code of usage:
     request_validator = None
     response_validator = None
 
+
     with open(path.join(path.dirname(__file__), "openapi.json"), "r") as openapi:
         spec = create_spec(json.load(openapi))
         request_validator = RequestValidator(spec)
@@ -1003,7 +1009,7 @@ Example code of usage:
             for error in result.errors:
                 if isinstance(error, (InvalidOperation, InvalidServer,
                                       InvalidPath)):
-                    log.debug(error)
+                    logging.debug(error)
                     return  # not found
                 errors.append(repr(error)+":"+str(error))
             abort(Response(json.dumps({"error": ';'.join(errors)}),
@@ -1020,7 +1026,7 @@ Example code of usage:
         for error in result.errors:
             if isinstance(error, InvalidOperation):
                 continue
-            log.error("API output error: %s", str(error))
+            logging.error("API output error: %s", str(error))
         return res
 
 Of course, you need ``openapi.json`` file with OpenAPI specification, where you

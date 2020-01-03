@@ -1,4 +1,9 @@
-"""Application callable class, which is the main point for wsgi application."""
+"""Application callable class, which is the main point for wsgi application.
+
+:Classes:   Application
+:Functions: to_response
+
+"""
 
 from os import path, access, R_OK, environ
 from collections import OrderedDict
@@ -981,5 +986,3 @@ class Application(object):
             if key[:4].lower() == 'app_':
                 options[key[4:].lower()] = val.strip()
         return options
-    # enddef
-# endclass

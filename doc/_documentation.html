@@ -4,9 +4,11 @@
 {% set api = load_module('poorwsgi') %}
 {% set api = api + load_module('wsgi') %}
 {% set api = api + load_module('request') %}
+{% set api = api + load_module('response') %}
 {% set api = api + load_module('results') %}
 {% set api = api + load_module('session') %}
 {% set api = api + load_module('state') %}
+{% set api = api + load_module('openapi_wrapper') %}
 
 {% do keywords(api, 'api.html') %}
 {% set sects = load_rst("documentation.rst") %}

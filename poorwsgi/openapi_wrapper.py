@@ -1,7 +1,9 @@
 """OpenAPI core wrappers module.
 
-This module, and only this module requires `openapi_core` python module from
+This module, and only this module requires ``openapi_core`` python module from
 https://github.com/p1c2u/openapi-core.
+
+:Classes:   OpenAPIRequest, OpenAPIResponse
 """
 import re
 
@@ -11,9 +13,9 @@ from openapi_core.wrappers.base import BaseOpenAPIRequest, BaseOpenAPIResponse
 class OpenAPIRequest(BaseOpenAPIRequest):
     """Wrapper of PoorWSGI request to OpenAPIRequest.
 
-    Be careful with testing of big incoming request. `body` property, which
-    returns `Request.data` depend on `auto_data` and `data_size` configuration
-    properties.
+    Be careful with testing of big incoming request body property, which
+    returns Request.data depend on ``auto_data`` and ``data_size``
+    configuration properties.
     """
     re_pattern = re.compile(r"<(\w*:)?(\w*)>")
 

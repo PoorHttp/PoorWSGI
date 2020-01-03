@@ -1,4 +1,8 @@
-"""PoorSession self-contained cookie class."""
+"""PoorSession self-contained cookie class.
+
+:Classes:   NoCompress, PoorSession
+:Functions: hidden
+"""
 from hashlib import sha512
 from time import time
 from pickle import dumps, loads

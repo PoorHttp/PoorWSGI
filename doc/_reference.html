@@ -9,13 +9,13 @@
         <a name="{{ name }}" href="#{{ name }}">link</a> |
         <a href="#">top</a></span></h2>
   {% elif type in ('submodule', 'dependence') %}
-    {% if ns.prev not in ('submodule', 'dependence') %}
+    {% if ns.prev not in ('submodule', 'dependence') -%}
     <div class="submodules">
       <small>Module dependences:</small>
-    {% else %},
-    {% endif %}
+    {% else -%},
+    {% endif -%}
       <span class="{{ type }}">{{ rst(name) }}</span>
-  {% elif type == 'class' %}
+  {%- elif type == 'class' %}
     <h3 class="{{ type }}"><i>class</i> {{ name }}
       <span class="links">
         <a name="{{ name }}" href="#{{ name }}">link</a> |

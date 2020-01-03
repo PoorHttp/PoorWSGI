@@ -1,0 +1,21 @@
+language: python
+
+install:
+ - pip3 install pytest pytest-pep8 pytest-doctestplus requests openapi-core
+
+script:
+ - pytest -v --pep8 --doctest-plus --doctest-rst
+
+before_deploy:
+ - python3 setup.py sdist
+ - python3 setup.py bdist_wheel
+
+deploy:
+  provider: releases
+  file:
+    - dist/PoorWSGI-$TRAVIS_TAG.tar.gz
+    - dist/PoorWSGI-$TRAVIS_TAG-py3-none-any.whl
+  skip_cleanup: true
+  overwrite: true
+  on:
+    tags: true

@@ -30,7 +30,6 @@ def find_data_files(directory, targetFolder=""):
             rv.append((root,
                        list(root+'/'+f
                             for f in files if f[0] != '.' and f[-1] != '~')))
-    log.info(str(rv))
     return rv
 
 
@@ -141,11 +140,9 @@ class install_doc(install_data):
 
 class PyTest(test):
     user_options = [('pytest-args=',
-                     'a',  # ty sileny mezery tam jsou kuli hezkemu formatovani
-                     'Arguments to pass to py.test.'),
+                     'a', 'Arguments to pass to py.test.'),
                     ('test-suite=',
-                     't',
-                     'Test suite/module::Class::test')]
+                     't', 'Test suite/module::Class::test')]
 
     def initialize_options(self):
         test.initialize_options(self)
@@ -210,5 +207,5 @@ setup(
               'clean_doc': clean_doc,
               'install_doc': install_doc,
               'test': PyTest},
-    tests_require=['pytest']
+    tests_require=['pytest', 'requests', 'openapi-core']
 )

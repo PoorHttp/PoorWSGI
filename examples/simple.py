@@ -21,7 +21,7 @@ python_path.insert(0, os.path.abspath(              # noqa
 
 from poorwsgi import Application, state, request, redirect
 from poorwsgi.session import PoorSession
-from poorwsgi.response import Response, RedirectResponse
+from poorwsgi.response import Response, RedirectResponse, FileResponse
 
 logger = log.getLogger()
 logger.setLevel("DEBUG")
@@ -481,6 +481,11 @@ def test_headers(req):
 def yielded(req):
     for i in range(10):
         yield b"line %d\n" % i
+
+
+@app.route('/simple.py')
+def simple_py(req):
+    return FileResponse(__file__)
 
 
 @app.after_request()

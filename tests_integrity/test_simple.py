@@ -106,8 +106,17 @@ class TestSimple():
         assert data["Accept-MimeType"]["xhtml"] is True
         assert data["Accept-MimeType"]["json"] is True
 
+
+class TestResponses():
     def test_yield(self, url):
+        """yield function is done by GeneratorResponse."""
         check_url(url+"/yield")
+
+    def test_file_response(self, url):
+        res = check_url(url+"/simple.py")
+        assert 'StorageFactory' in res.text
+        assert '@app.route' in res.text
+        assert '@app.before_request' in res.text
 
 
 class TestSession():

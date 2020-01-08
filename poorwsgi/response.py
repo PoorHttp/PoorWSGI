@@ -206,6 +206,26 @@ class FileResponse(Response):
         self.__buffer = open(path, 'rb')
         self.__content_length = fstat(self.__buffer.fileno()).st_size
 
+    def write(self):
+        raise RuntimeError("File Response can't write data")
+
+    # must be redefined, because self.__buffer is private attribute
+    @property
+    def data(self):
+        """Return data content."""
+        self.__buffer.seek(0)
+        return self.__buffer.read()
+
+    # must be redefined, because self.__buffer is private attribute
+    def __end_of_response__(self):
+        """Method **for internal use only!**.
+
+        This method was called from Application object at the end of request
+        for returning right value to wsgi server.
+        """
+        self.__buffer.seek(0)
+        return self.__buffer
+
 
 class GeneratorResponse(Response):
     """For response, which use generator as returned value."""
@@ -217,7 +237,7 @@ class GeneratorResponse(Response):
         self.__generator = generator
 
     def write(self, data):
-        raise RuntimeError("Generator Reason can't write data")
+        raise RuntimeError("Generator Response can't write data")
 
     def __end_of_response__(self):
         return self.__generator

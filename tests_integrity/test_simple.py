@@ -11,73 +11,80 @@ from pytest import fixture
 
 from . support import check_url
 
-URL = environ.get("TEST_SIMPLE_URL", "").strip('/')
-PROCESS = None
 
+@fixture(scope="module")
+def url(request):
+    url = environ.get("TEST_SIMPLE_URL", "").strip('/')
+    if url:
+        return url
 
-def setUpModule():
-    global PROCESS
-    global URL
-
-    if not URL:
-        URL = "http://localhost:8080"
-        print("Starting wsgi application...")
-        PROCESS = Popen([executable,
+    process = None
+    print("Starting wsgi application...")
+    if request.config.getoption("--with-uwsgi"):
+        process = Popen(["uwsgi", "--plugin", "python3",
+                         "--http-socket", "localhost:8080", "--wsgi-file",
                          join(dirname(__file__), pardir,
                               "examples/simple.py")])
-        assert PROCESS is not None
-        for i in range(20):
-            sck = socket()
-            try:
-                sck.connect(("localhost", 8080))
-                return
-            except SocketError:
-                sleep(0.1)
-            finally:
-                sck.close()
+    else:
+        process = Popen([executable,
+                         join(dirname(__file__), pardir,
+                              "examples/simple.py")])
+    assert process is not None
+    connect = False
+    for i in range(20):
+        sck = socket()
+        try:
+            sck.connect(("localhost", 8080))
+            connect = True
+            break
+        except SocketError:
+            sleep(0.1)
+        finally:
+            sck.close()
+    if not connect:
+        process.kill()
         raise RuntimeError("Server not started in 2 seconds")
 
-
-def tearDownModule():
-    PROCESS.kill()
+    yield "http://localhost:8080"  # server is running
+    process.kill()
 
 
 @fixture
-def session():
+def session(url):
     session = Session()
-    check_url(URL+"/login", status_code=302, session=session,
+    check_url(url+"/login", status_code=302, session=session,
               allow_redirects=False)
     assert "SESSID" in session.cookies
     return session
 
 
 class TestSimple():
-    def test_root(self):
-        check_url(URL)
+    def test_root(self, url):
+        check_url(url)
 
-    def test_static(self):
-        check_url(URL+"/test/static")
+    def test_static(self, url):
+        check_url(url+"/test/static")
 
-    def test_variable_int(self):
-        check_url(URL+"/test/123")
+    def test_variable_int(self, url):
+        check_url(url+"/test/123")
 
-    def test_variable_float(self):
-        check_url(URL+"/test/123.679")
+    def test_variable_float(self, url):
+        check_url(url+"/test/123.679")
 
-    def test_variable_user(self):
-        check_url(URL+"/test/teste@tester.net")
+    def test_variable_user(self, url):
+        check_url(url+"/test/teste@tester.net")
 
-    def test_debug_info(self):
-        check_url(URL+"/debug-info")
+    def test_debug_info(self, url):
+        check_url(url+"/debug-info")
 
-    def test_404(self):
-        check_url(URL+"/no-page", status_code=404)
+    def test_404(self, url):
+        check_url(url+"/no-page", status_code=404)
 
-    def test_500(self):
-        check_url(URL+"/internal-server-error", status_code=500)
+    def test_500(self, url):
+        check_url(url+"/internal-server-error", status_code=500)
 
-    def test_headers_empty(self):
-        res = check_url(URL+"/test/headers")
+    def test_headers_empty(self, url):
+        res = check_url(url+"/test/headers")
         assert "X-Powered-By" in res.headers
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
@@ -86,9 +93,9 @@ class TestSimple():
         assert data["Accept-MimeType"]["xhtml"] is False
         assert data["Accept-MimeType"]["json"] is False
 
-    def test_headers_ajax(self):
+    def test_headers_ajax(self, url):
         res = check_url(
-            URL+"/test/headers",
+            url+"/test/headers",
             headers={'X-Requested-With': 'XMLHttpRequest',
                      'Accept': "text/html,text/xhtml,application/json"})
         assert "X-Powered-By" in res.headers
@@ -99,32 +106,32 @@ class TestSimple():
         assert data["Accept-MimeType"]["xhtml"] is True
         assert data["Accept-MimeType"]["json"] is True
 
-    def test_yield(self):
-        check_url(URL+"/yield")
+    def test_yield(self, url):
+        check_url(url+"/yield")
 
 
 class TestSession():
-    def test_login(self):
-        check_url(URL+"/login", status_code=302, allow_redirects=False)
+    def test_login(self, url):
+        check_url(url+"/login", status_code=302, allow_redirects=False)
 
-    def test_logout(self, session):
-        check_url(URL+"/logout", session=session)
+    def test_logout(self, url, session):
+        check_url(url+"/logout", session=session)
         assert "SESSID" not in session.cookies
 
-    def test_form_get_not_logged(self):
-        check_url(URL+"/test/form", status_code=302, allow_redirects=False)
+    def test_form_get_not_logged(self, url):
+        check_url(url+"/test/form", status_code=302, allow_redirects=False)
 
-    def test_form_get_logged(self, session):
-        check_url(URL+"/test/form", session=session, allow_redirects=False)
+    def test_form_get_logged(self, url, session):
+        check_url(url+"/test/form", session=session, allow_redirects=False)
 
-    def test_form_post(self, session):
-        check_url(URL+"/test/form", method="POST", session=session,
+    def test_form_post(self, url, session):
+        check_url(url+"/test/form", method="POST", session=session,
                   allow_redirects=False)
 
-    def test_form_upload(self, session):
+    def test_form_upload(self, url, session):
         files = {'file_0': ('testfile.py', open(__file__, 'rb'),
                             'text/x-python', {'Expires': '0'})}
-        res = check_url(URL+"/test/upload", method="POST", session=session,
+        res = check_url(url+"/test/upload", method="POST", session=session,
                         allow_redirects=False, files=files)
         assert 'testfile.py' in res.text
         assert __doc__ in res.text

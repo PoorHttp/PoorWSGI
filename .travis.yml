@@ -1,10 +1,11 @@
 language: python
 
 install:
- - pip3 install pytest pytest-pep8 pytest-doctestplus requests openapi-core
+ - pip3 install pytest pytest-pep8 pytest-doctestplus requests openapi-core uwsgi
 
 script:
  - pytest -v --pep8 --doctest-plus --doctest-rst
+ - pytest -v tests_integrity --with-uwsgi
 
 before_deploy:
  - python3 setup.py sdist

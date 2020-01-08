@@ -21,6 +21,18 @@ from poorwsgi.request import Headers
 log = getLogger('poorwsgi')
 
 
+class IBytesIO(BytesIO):
+    """Class for returning bytes when is iterate."""
+
+    def read_kilo(self):
+        """Read 1024 bytes from buffer."""
+        return self.read(1024)
+
+    def __iter__(self):
+        """Iterate object by 1024 bytes."""
+        return iter(self.read_kilo, b'')
+
+
 class HTTPException(Exception):
     """HTTP Exception to fast stop work."""
     def __init__(self, arg):
@@ -35,7 +47,7 @@ class HTTPException(Exception):
 class Response:
     """HTTP Response object.
 
-    This is base Reesponse object which is process with PoorWSGI application.
+    This is base Response object which is process with PoorWSGI application.
     """
     def __init__(self, data=b'', content_type="text/html; charset=utf-8",
                  headers=None, status_code=HTTP_OK):
@@ -61,11 +73,11 @@ class Response:
 
         # The content length header was set automatically from buffer length.
         if isinstance(data, bytes):
-            self.__buffer = BytesIO(data)
+            self.__buffer = IBytesIO(data)
             self.__content_length = len(data)
         else:
             data = data.encode("utf-8")
-            self.__buffer = BytesIO(data)
+            self.__buffer = IBytesIO(data)
             self.__content_length = len(data)
 
     @property

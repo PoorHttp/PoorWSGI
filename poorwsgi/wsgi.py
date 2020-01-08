@@ -18,7 +18,7 @@ from poorwsgi.request import Request
 from poorwsgi.results import default_states, not_implemented, \
     internal_server_error, directory_index, debug_info
 from poorwsgi.response import Response, HTTPException, EmptyResponse, \
-    FileResponse, GeneratorResponse, make_response
+    FileResponse, make_response
 
 log = getLogger("poorwsgi")
 
@@ -901,12 +901,10 @@ class Application(object):
         except BaseException:
             response = to_response(self.error_from_table(request, 500))
 
-        if not isinstance(response, GeneratorResponse):
-            if "wsgi.file_wrapper" in env:
-                return env['wsgi.file_wrapper'](response(start_response))
-            else:
-                return response(start_response).read()
-        return response(start_response)    # return generator
+        if isinstance(response, FileResponse) and \
+                "wsgi.file_wrapper" in env:     # need working fileno method
+            return env['wsgi.file_wrapper'](response(start_response))
+        return response(start_response)         # return bytes generator
     # enddef
 
     def __call__(self, env, start_response):

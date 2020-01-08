@@ -1,3 +1,6 @@
+==== 2.0.1 ====
+    * use wsgi.file_wrapper only for FileResponse
+
 ==== 2.0.0 ====
     * Python3 support only
     * Removed deprecated methods

@@ -303,8 +303,8 @@ class Request(object):
             'poor_Debug', app_config['debug']).lower() == 'on'
 
         # variables for user use
-        self.__config = None
         self.__user = None
+        self.__api = None
     # enddef
 
     # -------------------------- Properties --------------------------- #
@@ -675,15 +675,6 @@ class Request(object):
         return self.__file
 
     @property
-    def config(self):
-        """For config object (default None)."""
-        return self.__config
-
-    @config.setter
-    def config(self, value):
-        self.__config = value
-
-    @property
     def user(self):
         """For user object, who is login for example (default None)."""
         return self.__user
@@ -691,6 +682,15 @@ class Request(object):
     @user.setter
     def user(self, value):
         self.__user = value
+
+    @property
+    def api(self):
+        """For api request object, could be used for OpenAPIRequest."""
+        return self.__api
+
+    @api.setter
+    def api(self, value):
+        self.__api = value
 
     # -------------------------- Methods --------------------------- #
     def __read(self, length=-1):

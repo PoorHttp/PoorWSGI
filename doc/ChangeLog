@@ -1,5 +1,6 @@
-==== 2.0.2 ====
+==== 2.1.0 ====
     * FileResponse fix
+    * Request.api property instead of Request.config, which is more unusable.
 
 ==== 2.0.1 ====
     * use wsgi.file_wrapper only for FileResponse

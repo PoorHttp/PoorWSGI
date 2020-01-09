@@ -42,7 +42,8 @@ with open(path.join(path.dirname(__file__), "openapi.json"), "r") as openapi:
 
 @app.before_request()
 def before_each_request(req):
-    result = request_validator.validate(OpenAPIRequest(req))
+    req.api = OpenAPIRequest(req)
+    result = request_validator.validate(req.api)
     if result.errors:
         errors = []
         for error in result.errors:
@@ -58,9 +59,9 @@ def before_each_request(req):
 
 @app.after_request()
 def after_each_request(req, res):
-    """Kontroluje odpověď dle OpenAPI specifikace."""
+    """Check if ansewer is valid by OpenAPI."""
     result = response_validator.validate(
-        OpenAPIRequest(req),
+        req.api,
         OpenAPIResponse(res))
     for error in result.errors:
         if isinstance(error, InvalidOperation):

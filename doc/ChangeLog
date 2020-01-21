@@ -1,4 +1,4 @@
-==== 2.1.1dev ====
+==== 2.1.1 ====
     * OpenAPIRequest host_url property fix
     * Native HTTP Errors fix
     * before_request called before all requests

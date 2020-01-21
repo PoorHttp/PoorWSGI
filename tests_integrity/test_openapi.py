@@ -88,3 +88,9 @@ class TestOpenAPI():
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
         assert data.get("error") is not None
+
+    def test_native_not_found(self, url):
+        check_url(url+"/notexists_url", status_code=404)
+
+    def test_native_method_not_allowed(self, url):
+        check_url(url+"/plain_text", method="DELETE", status_code=405)

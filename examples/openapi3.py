@@ -61,7 +61,7 @@ def before_each_request(req):
 def after_each_request(req, res):
     """Check if ansewer is valid by OpenAPI."""
     result = response_validator.validate(
-        req.api,
+        req.api or OpenAPIRequest(req),     # when error in before_request
         OpenAPIResponse(res))
     for error in result.errors:
         if isinstance(error, InvalidOperation):

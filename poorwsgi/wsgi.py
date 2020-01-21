@@ -762,12 +762,13 @@ class Application(object):
 
     def handler_from_default(self, req):
         """Internal method, which is called if no handler is found."""
+        req.uri_rule = '/*'
         if req.method_number in self.__dhandlers:
-            req.uri_rule = '/*'
             req.uri_handler = self.__dhandlers[req.method_number]
             self.handler_from_before(req)       # call before handlers now
             return self.__dhandlers[req.method_number](req)
 
+        self.handler_from_before(req)       # call before handlers now
         log.error("404 Not Found: %s", req.uri)
         raise HTTPException(HTTP_NOT_FOUND)
     # enddef
@@ -797,6 +798,7 @@ class Application(object):
                 self.handler_from_before(req)  # call before handlers now
                 return handler(req)       # call right handler now
             else:
+                self.handler_from_before(req)  # call before handlers now
                 raise HTTPException(HTTP_METHOD_NOT_ALLOWED)
             # endif
         # endif
@@ -831,7 +833,7 @@ class Application(object):
 
             if not path.exists(rfile):
                 if req.debug and req.uri == '/debug-info':      # work if debug
-                    req.uri_rule = '/debug-infoendpoint'
+                    req.uri_rule = '/debug-info'
                     req.uri_handler = debug_info
                     self.handler_from_before(req)  # call before handlers now
                     return debug_info(req, self)
@@ -852,6 +854,7 @@ class Application(object):
                 req.uri_handler = directory_index
                 self.handler_from_before(req)      # call before handlers now
                 return directory_index(req, rfile)
+            self.handler_from_before(req)      # call before handlers now
             raise HTTPException(HTTP_FORBIDDEN)
         # endif
 

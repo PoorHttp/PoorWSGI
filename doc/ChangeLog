@@ -1,6 +1,8 @@
 ==== 2.1.1dev ====
     * OpenAPIRequest host_url property fix
     * Native HTTP Errors fix
+    * before_request called before all requests
+    * openapi after_request example fix
 
 ==== 2.1.0 ====
     * FileResponse fix

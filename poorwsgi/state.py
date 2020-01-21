@@ -3,8 +3,8 @@
 from operator import itemgetter
 
 __author__ = "Ondrej Tuma (McBig) <mcbig@zeropage.cz>"
-__date__ = "9 Jan 2020"
-__version__ = "2.1.0"       # https://www.python.org/dev/peps/pep-0386/
+__date__ = "21 Jan 2020"
+__version__ = "2.1.1dev"       # https://www.python.org/dev/peps/pep-0386/
 
 DECLINED = 0
 

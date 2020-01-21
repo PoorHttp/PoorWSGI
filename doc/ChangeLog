@@ -1,3 +1,6 @@
+==== 2.1.1dev ====
+    * OpenAPIRequest host_url property fix
+
 ==== 2.1.0 ====
     * FileResponse fix
     * Request.api property instead of Request.config, which is more unusable.

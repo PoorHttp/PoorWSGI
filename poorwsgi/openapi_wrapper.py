@@ -24,7 +24,7 @@ class OpenAPIRequest(BaseOpenAPIRequest):
 
     @property
     def host_url(self):
-        return self.request.hostname
+        return self.request.scheme + "://" + self.request.hostname
 
     @property
     def path(self):

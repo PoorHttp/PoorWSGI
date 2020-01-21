@@ -51,8 +51,12 @@ class Response:
     """
     def __init__(self, data=b'', content_type="text/html; charset=utf-8",
                  headers=None, status_code=HTTP_OK):
-        assert isinstance(status_code, int)
-        assert isinstance(data, (str, bytes))
+        assert isinstance(data, (str, bytes)), \
+            "data is not string or bytes but %s" % type(data)
+        assert isinstance(content_type, str), \
+            "content_type is not string but `%s`" % content_type
+        assert isinstance(status_code, int), \
+            "status_code is not number but `%s`" % status_code
 
         # String. The content type. Another way to set content_type is via
         # headers_out object property. Default is text/html; charset=utf-8
@@ -293,6 +297,7 @@ def make_response(data, content_type="text/html; character=utf-8",
     except TypeError:
         raise RuntimeError("Data must be str, bytes or bytes returns iterable "
                            "object")
+
     return GeneratorResponse(data, content_type, headers, status_code)
 
 

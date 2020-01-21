@@ -161,7 +161,7 @@ def bad_request(req):
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
         "</html>" % (req.method, req.uri, req.server_admin))
-    return content, HTTP_BAD_REQUEST
+    return Response(content, status_code=HTTP_BAD_REQUEST)
 
 
 def forbidden(req):
@@ -187,7 +187,7 @@ def forbidden(req):
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
         "</html>" % (req.uri, req.server_admin))
-    return content, HTTP_FORBIDDEN
+    return Response(content, status_code=HTTP_FORBIDDEN)
 # enddef
 
 
@@ -240,7 +240,7 @@ def method_not_allowed(req):
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
         "</html>" % (req.method, req.uri, req.server_admin))
-    return content, HTTP_METHOD_NOT_ALLOWED
+    return Response(content, status_code=HTTP_METHOD_NOT_ALLOWED)
 # enddef
 
 
@@ -280,7 +280,7 @@ def not_implemented(req, code=None):
         " </body>\n"
         "</html>" % req.server_admin)
 
-    return content, HTTP_NOT_IMPLEMENTED
+    return Response(content, status_code=HTTP_NOT_IMPLEMENTED)
 # enddef
 
 

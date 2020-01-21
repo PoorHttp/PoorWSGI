@@ -21,7 +21,8 @@ python_path.insert(0, os.path.abspath(              # noqa
 
 from poorwsgi import Application, state, request, redirect
 from poorwsgi.session import PoorSession
-from poorwsgi.response import Response, RedirectResponse, FileResponse
+from poorwsgi.response import Response, RedirectResponse, FileResponse, \
+    HTTPException
 
 logger = log.getLogger()
 logger.setLevel("DEBUG")
@@ -497,6 +498,21 @@ def log_response(req, res):
 @app.route('/internal-server-error')
 def method_raises_errror(req):
     raise RuntimeError('Test of internal server error')
+
+
+@app.route('/bad-request')
+def bad_request(req):
+    raise HTTPException(state.HTTP_BAD_REQUEST)
+
+
+@app.route('/forbidden')
+def forbidden(req):
+    raise HTTPException(state.HTTP_FORBIDDEN)
+
+
+@app.route('/not-implemented')
+def not_implemented(req):
+    raise HTTPException(state.HTTP_NOT_IMPLEMENTED)
 
 
 if __name__ == '__main__':

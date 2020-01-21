@@ -77,12 +77,6 @@ class TestSimple():
     def test_debug_info(self, url):
         check_url(url+"/debug-info")
 
-    def test_404(self, url):
-        check_url(url+"/no-page", status_code=404)
-
-    def test_500(self, url):
-        check_url(url+"/internal-server-error", status_code=500)
-
     def test_headers_empty(self, url):
         res = check_url(url+"/test/headers")
         assert "X-Powered-By" in res.headers
@@ -145,3 +139,24 @@ class TestSession():
         assert 'testfile.py' in res.text
         assert __doc__ in res.text
         assert 'anything' in res.text
+
+
+class TestErrors():
+    """Integrity tests for native http state handlers."""
+    def test_internal_server_error(self, url):
+        check_url(url+"/internal-server-error", status_code=500)
+
+    def test_bad_request(self, url):
+        check_url(url+"/bad-request", status_code=400)
+
+    def test_forbidden(self, url):
+        check_url(url+"/forbidden", status_code=403)
+
+    def test_not_found(self, url):
+        check_url(url+"/no-page", status_code=404)
+
+    def test_method_not_allowed(self, url):
+        check_url(url+"/internal-server-error", method="PUT", status_code=405)
+
+    def test_not_implemented(self, url):
+        check_url(url+"/not-implemented", status_code=501)

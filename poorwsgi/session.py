@@ -46,6 +46,10 @@ def hidden(text, passwd):
 # enddef
 
 
+class SessionError(RuntimeError):
+    """Base Exception for Session"""
+
+
 class NoCompress:
     """Fake compress class/module whith two static method for PoorSession.
 
@@ -120,7 +124,7 @@ class PoorSession:
                 any compressing method.
         """
         if req.secret_key is None:
-            raise RuntimeError("poor_SecretKey is not set!")
+            raise SessionError("poor_SecretKey is not set!")
 
         self.__secret_key = req.secret_key
         self.__SID = SID
@@ -144,7 +148,7 @@ class PoorSession:
                                          (b64decode(raw.encode())),
                                          self.__secret_key))
                 if not isinstance(self.data, dict):
-                    raise RuntimeError()
+                    raise SessionError("Cookie data is not dictionary!")
             except Exception as err:
                 log.info(err.__repr__())
                 log.warning('Bad session data.')

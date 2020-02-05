@@ -22,7 +22,7 @@ python_path.insert(0, os.path.abspath(              # noqa
 from poorwsgi import Application, state, request, redirect
 from poorwsgi.session import PoorSession
 from poorwsgi.response import Response, RedirectResponse, FileResponse, \
-    HTTPException
+    JSONResponse, HTTPException
 
 logger = log.getLogger()
 logger.setLevel("DEBUG")
@@ -476,6 +476,12 @@ def test_headers(req):
          },
          "XMLHttpRequest": req.is_xhr}
     ), "application/json"
+
+
+@app.route('/test/json')
+def test_json(req):
+    return JSONResponse(status_code=418, message="I'm teapot :-)",
+                        numbers=list(range(5)))
 
 
 @app.route('/yield')

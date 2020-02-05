@@ -1,6 +1,8 @@
 ==== 2.2.0 ====
     * openapi after_request example fix
     * http_state and default decorator fix to chain usage
+    * JSONResponse
+    * 418 I'am a teapot state
 
 ==== 2.1.1 ====
     * OpenAPIRequest host_url property fix

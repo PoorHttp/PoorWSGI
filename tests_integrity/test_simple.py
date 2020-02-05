@@ -117,6 +117,9 @@ class TestResponses():
         assert res.json() == {"message": "I\'m teapot :-)",
                               "numbers": [0, 1, 2, 3, 4]}
 
+    def test_empty_response(self, url):
+        check_url(f"{url}/test/empty")
+
 
 class TestSession():
     def test_login(self, url):

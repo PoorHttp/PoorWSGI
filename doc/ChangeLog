@@ -4,6 +4,7 @@
     * JSONResponse
     * 418 I'am a teapot state
     * SessionError exception based on RuntimeError
+    * EmptyResponse fix
 
 ==== 2.1.1 ====
     * OpenAPIRequest host_url property fix

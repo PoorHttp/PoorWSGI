@@ -274,7 +274,7 @@ class EmptyResponse(GeneratorResponse):
 
     def __start_response__(self, start_response):
         start_response(
-            "%d %s" % (self.__status_code, self.__reason), tuple())
+            "%d %s" % (self.status_code, self.reason), [])
 
 
 class RedirectResponse(Response):

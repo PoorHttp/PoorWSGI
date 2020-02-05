@@ -1,8 +1,11 @@
+==== 2.2.0 ====
+    * openapi after_request example fix
+    * http_state and default decorator fix to chain usage
+
 ==== 2.1.1 ====
     * OpenAPIRequest host_url property fix
     * Native HTTP Errors fix
     * before_request called before all requests
-    * openapi after_request example fix
 
 ==== 2.1.0 ====
     * FileResponse fix

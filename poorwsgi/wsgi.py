@@ -517,6 +517,7 @@ class Application(object):
         """
         def wrapper(fn):
             self.set_default(fn, method)
+            return fn
         return wrapper
     # enddef
 
@@ -717,6 +718,7 @@ class Application(object):
         """
         def wrapper(fn):
             self.set_http_state(code, fn, method)
+            return fn
         return wrapper
     # enddef
 

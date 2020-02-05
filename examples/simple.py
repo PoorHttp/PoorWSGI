@@ -22,7 +22,7 @@ python_path.insert(0, os.path.abspath(              # noqa
 from poorwsgi import Application, state, request, redirect
 from poorwsgi.session import PoorSession
 from poorwsgi.response import Response, RedirectResponse, FileResponse, \
-    JSONResponse, HTTPException
+    JSONResponse, EmptyResponse, HTTPException
 
 logger = log.getLogger()
 logger.setLevel("DEBUG")
@@ -482,6 +482,11 @@ def test_headers(req):
 def test_json(req):
     return JSONResponse(status_code=418, message="I'm teapot :-)",
                         numbers=list(range(5)))
+
+
+@app.route('/test/empty')
+def test_empty(req):
+    return EmptyResponse(state.HTTP_OK)
 
 
 @app.route('/yield')

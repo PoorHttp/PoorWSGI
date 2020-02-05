@@ -147,6 +147,27 @@ to body with auto-counting ``Content-Length``, or some headers additional work.
 
 There are some additional subclasses with special working.
 
+JSONReponse
+```````````
+There is JSONReponse class to fast way for returning JSON.
+
+.. code:: python
+
+    @app.route('/json')
+    def teapot(req):
+        return JSONReponse(status_code=418, message="I'm teapot :-)",
+                           numbers=list(range(5)))
+
+This response returned these data with status code 418:
+
+.. code:: json
+
+    {
+        "message": "I\'m teapot :-)",
+        "numbers": [0, 1, 2, 3, 4]
+    }
+
+
 FileResponse
 ````````````
 File response open the file and send it throw ``wsgi.filewrapper``, which could

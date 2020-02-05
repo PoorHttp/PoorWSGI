@@ -2,7 +2,7 @@
 Poor WSGI Response classes.
 
 :Exceptions:    HTTPException
-:Classes:       Response, FileResponse, GeneratorResponse,
+:Classes:       Response, JSONResponse, FileResponse, GeneratorResponse,
                 StrGeneratorResponse, EmptyResponse, RedirectResponse
 :Functions:     make_response, redirect, abort
 """
@@ -11,14 +11,17 @@ from http.client import responses
 from io import BytesIO
 from os import access, R_OK, fstat
 from logging import getLogger
+from json import dumps
 
 import mimetypes
 
 from poorwsgi.state import HTTP_OK, \
-    HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY
+    HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_I_AM_A_TEAPOT
 from poorwsgi.request import Headers
 
 log = getLogger('poorwsgi')
+# not in http.client.responses
+responses[HTTP_I_AM_A_TEAPOT] = "I'm a teapot"
 
 
 class IBytesIO(BytesIO):
@@ -191,7 +194,18 @@ class Response:
     def __call__(self, start_response):
         self.__start_response__(start_response)
         return self.__end_of_response__()
-# endclass
+
+
+class JSONResponse(Response):
+    """Simple application/json response.
+
+    ** kwargs from constructor are serialized to json structure.
+    """
+    def __init__(self, charset="utf-8", headers=None, status_code=HTTP_OK,
+                 **kwargs):
+        super().__init__(
+            dumps(kwargs), "application/json; charset="+charset, headers,
+            status_code)
 
 
 class FileResponse(Response):

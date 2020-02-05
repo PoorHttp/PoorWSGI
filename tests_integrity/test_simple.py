@@ -112,6 +112,11 @@ class TestResponses():
         assert '@app.route' in res.text
         assert '@app.before_request' in res.text
 
+    def test_json_response(self, url):
+        res = check_url(url+"/test/json", status_code=418)
+        assert res.json() == {"message": "I\'m teapot :-)",
+                              "numbers": [0, 1, 2, 3, 4]}
+
 
 class TestSession():
     def test_login(self, url):

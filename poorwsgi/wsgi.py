@@ -771,7 +771,7 @@ class Application(object):
             return self.__dhandlers[req.method_number](req)
 
         self.handler_from_before(req)       # call before handlers now
-        log.error("404 Not Found: %s", req.uri)
+        log.error("404 Not Found: %s %s", req.method, req.uri)
         raise HTTPException(HTTP_NOT_FOUND)
     # enddef
 

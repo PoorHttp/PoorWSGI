@@ -6,7 +6,7 @@
 """
 
 from os import path, access, R_OK, environ
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from logging import getLogger
 
 import re
@@ -877,9 +877,10 @@ class Application(object):
         (Application.defaults) or error handler (Application.error_from_table),
         and handlers from Application.after.
         """
-        request = Request(env, self.__config)
+        request = None
 
         try:
+            request = Request(env, self.__config)
             response = to_response(self.handler_from_table(request))
         except HTTPException as http_err:
             if isinstance(http_err.args[0], Response):
@@ -897,7 +898,16 @@ class Application(object):
             log.warning(str(e))
             log.warning('   ***   You shoud ignore next error   ***')
             return ()
-        except BaseException:
+        except BaseException as e:
+            if request is None:
+                log.critical(str(e))
+                Failed = namedtuple(
+                    "Failed", ('debug', 'server_software', 'server_admin'))
+                request = Failed(
+                    self.debug,
+                    env.get('SERVER_SOFTWARE', 'Unknown'),
+                    env.get('SERVER_ADMIN', 'Unknown'))
+
             response = to_response(self.error_from_table(request, 500))
 
         try:    # call post_process handler

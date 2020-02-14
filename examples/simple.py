@@ -478,10 +478,11 @@ def test_headers(req):
     ), "application/json"
 
 
-@app.route('/test/json')
+@app.route('/test/json', method=state.METHOD_GET_POST)
 def test_json(req):
     return JSONResponse(status_code=418, message="I'm teapot :-)",
-                        numbers=list(range(5)))
+                        numbers=list(range(5)),
+                        request=req.json)
 
 
 @app.route('/test/empty')

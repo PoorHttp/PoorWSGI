@@ -1,3 +1,6 @@
+==== 2.2.1 ====
+    * Errors in parsing requests returns with 500 Internal Server Error
+
 ==== 2.2.0 ====
     * openapi after_request example fix
     * http_state and default decorator fix to chain usage

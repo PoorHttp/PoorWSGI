@@ -569,6 +569,14 @@ JQuery AJAX request could look like this:
              }
     });
 
+There are a few variants which req.json could be:
+
+* JsonDict when dictionary is parsed.
+* JsonList when list is parsed.
+* Other based types from json.loads function like str, int, float, bool
+  or None.
+* None when parsing of JSON fails. That is logged with WARNING log level.
+
 File uploading
 ~~~~~~~~~~~~~~
 By default, pythons FieldStorage, so poorwsgi.FieldStorage too, store files

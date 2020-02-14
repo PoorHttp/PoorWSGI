@@ -279,7 +279,7 @@ class Request(object):
         # test auto json parsing
         if app_config['auto_json'] and self.is_body_request \
                 and self.__mime_type in app_config['json_mime_types']:
-            self.__json = Json(self, self.__charset)
+            self.__json = parse_json_request(self, self.__charset)
             self.__form = EmptyForm()
         # test auto form parsing
         elif app_config['auto_form'] and self.is_body_request \
@@ -520,6 +520,9 @@ class Request(object):
         ``application/json`` and request method must be POST, PUT or PATCH and
         Application.auto_json must be set to true (default). Otherwise json
         is EmptyForm.
+
+        When request data is present, that will by parsed with
+        parse_json_request function.
         """
         return self.__json
 
@@ -807,13 +810,13 @@ class Args(dict):
             yield fce(val)
 
 
-class Json(dict):
+class JsonDict(dict):
     """Compatibility class for read values from JSON POST, PUT or PATCH request.
 
     It has getfirst and getlist methods, which can call function on values.
     """
-    def __init__(self, req, charset):
-        dict.__init__(self, json_loads(req.read().decode(charset)).items())
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.getvalue = self.get
 
     def getfirst(self, key, default=None, fce=str):
@@ -833,7 +836,7 @@ class Json(dict):
         return fce(val)
 
     def getlist(self, key, fce=str):
-        """Returns generoator of variable values for key.
+        """Returns generator of variable values for key.
 
         fce : convertor (str)
             Function which processed value.
@@ -847,6 +850,71 @@ class Json(dict):
                 yield fce(it)
         else:
             yield fce(val)
+
+
+class JsonList(list):
+    """Compatibility class for read values from JSON POST, PUT or PATCH request.
+
+    It has getfirst and getlist methods, which can call function on values.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def getvalue(self, key=None, default=None):
+        """Returns first item or defualt if no exists.
+
+        key : None
+            Compatibility parametr is ignored.
+        default : any
+            Default value if key not exists.
+
+        """
+        return self[0] if self else default
+
+    def getfirst(self, key=None, default=None, fce=str):
+        """Returns first variable value or default, if no one exist.
+
+        key : None
+            Compatibility parametr is ignored.
+        default : any
+            Default value if key not exists.
+        fce : convertor
+            Function which processed value.
+        """
+        return fce(self.getvalue(default=default))
+
+    def getlist(self, key=None, fce=str):
+        """Returns generator of values.
+
+        key : None
+            Compatibility parametr is ignored.
+        fce : convertor (str)
+            Function which processed value.
+        """
+        for it in self:
+            yield fce(it)
+
+
+def parse_json_request(req, charset="utf-8"):
+    """Try to parse request data.
+
+    Returned type could be:
+
+    * JsonDict when dictionary is parsed.
+    * JsonList when list is parsed.
+    * Other based types from json.loads function like str, int, float, bool
+      or None.
+    * None when parsing of JSON fails. That is logged with WARNING log level.
+    """
+    try:
+        data = json_loads(req.read().decode(charset))
+        if isinstance(data, dict):
+            return JsonDict(data.items())
+        if isinstance(data, list):
+            return JsonList(data)
+        return data
+    except BaseException as e:
+        log.warning("Invalid request json: %e", str(e))
 
 
 class FieldStorage(CgiFieldStorage):

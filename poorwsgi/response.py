@@ -15,6 +15,11 @@ from json import dumps
 
 import mimetypes
 
+try:
+    from simplejson import JSONEncoder as GJSONEncoder
+except ImportError:
+    GJSONEncoder = False
+
 from poorwsgi.state import HTTP_OK, \
     HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_I_AM_A_TEAPOT
 from poorwsgi.request import Headers
@@ -263,8 +268,44 @@ class GeneratorResponse(Response):
 
 class StrGeneratorResponse(GeneratorResponse):
     """Generator response where generator returns str."""
+    def __init__(self, generator, content_type="text/html; charset=utf-8",
+                 headers=None, status_code=HTTP_OK):
+        super().__init__(generator, content_type=content_type, headers=headers,
+                         status_code=status_code)
+        self.__generator = generator
+
     def __end_of_response__(self):
         return (it.encode("utf-8") for it in self.__generator)
+
+
+if GJSONEncoder:
+    class JSONGeneratorResponse(StrGeneratorResponse):
+        """JSON Response for data from generator.
+
+        Data will be processed in generator way, so they need to be buffered.
+        This class need simplejson module.
+
+        ** kwargs from constructor are serialized to json structure.
+        """
+        def __init__(self, charset="utf-8", headers=None, status_code=HTTP_OK,
+                     **kwargs):
+            generator = GJSONEncoder(
+                iterable_as_array=True).iterencode(kwargs)
+            super().__init__(generator, "application/json; charset="+charset,
+                             headers, status_code)
+
+
+else:
+    class JSONGeneratorResponse(GeneratorResponse):
+        """JSON Response for data from generator.
+
+        Data will be processed in generator way, so they need to be buffered.
+        This class need simplejson module.
+        """
+
+        def __init__(self):
+            raise NotImplementedError(
+                "JSONGeneratorResponse need simplejson module")
 
 
 class EmptyResponse(GeneratorResponse):

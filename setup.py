@@ -207,5 +207,5 @@ setup(
               'clean_doc': clean_doc,
               'install_doc': install_doc,
               'test': PyTest},
-    tests_require=['pytest', 'requests', 'openapi-core']
+    tests_require=['pytest', 'requests', 'openapi-core', 'simplejson']
 )

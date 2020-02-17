@@ -147,9 +147,9 @@ to body with auto-counting ``Content-Length``, or some headers additional work.
 
 There are some additional subclasses with special working.
 
-JSONReponse
-```````````
-There is JSONReponse class to fast way for returning JSON.
+JSONResponse
+````````````
+There is JSONResponse class to fast way for returning JSON.
 
 .. code:: python
 
@@ -167,6 +167,28 @@ This response returned these data with status code 418:
         "numbers": [0, 1, 2, 3, 4]
     }
 
+JSONGeneratorResponse
+`````````````````````
+There is JSONGeneratorResponse class too, which could return JSON, but
+it could accept generators as arrays. And of course, this response
+is returned by stream like GeneratorResponse, so data is not buffered
+in memmory if wsgi server don't do that.
+
+.. code:: python
+
+    @app.route('/json-generator')
+    def teapot(req):
+        return JSONGeneratorReponse(status_code=418, message="I'm teapot :-)",
+                                    numbers=range(5))
+
+This response returned these data with status code 418:
+
+.. code:: json
+
+    {
+        "message": "I\'m teapot :-)",
+        "numbers": [0, 1, 2, 3, 4]
+    }
 
 FileResponse
 ````````````

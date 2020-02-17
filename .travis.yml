@@ -3,7 +3,7 @@ language: python
 
 install:
  - pip3 install pytest pytest-pep8 pytest-doctestplus requests openapi-core
-   uwsgi
+   uwsgi simplejson
 
 script:
  - pytest -v --pep8 --doctest-plus --doctest-rst

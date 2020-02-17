@@ -1,6 +1,9 @@
+from json import load, loads
+
 import pytest
 
-from poorwsgi.response import Response
+from poorwsgi.response import Response, JSONResponse, \
+    GeneratorResponse, StrGeneratorResponse, JSONGeneratorResponse
 from poorwsgi.request import Headers
 from poorwsgi.state import HTTP_NOT_FOUND
 
@@ -53,3 +56,28 @@ class TestReponse:
     def test_kwargs(self, response_kwargs):
         res = response_kwargs(start_response)
         assert isinstance(res.read(), bytes)
+
+
+class TestJSONResponse:
+    def test_kwargs(self):
+        res = JSONResponse(items=list(range(5)))
+        data = load(res(start_response))
+        assert data == {"items": [0, 1, 2, 3, 4]}
+
+
+class TestGeneratorResponse:
+    def test_generator(self):
+        res = GeneratorResponse((str(x).encode("utf-8") for x in range(5)))
+        gen = res(start_response)
+        assert b"".join(gen) == b"01234"
+
+    def test_str_generator(self):
+        res = StrGeneratorResponse((str(x) for x in range(5)))
+        gen = res(start_response)
+        assert b"".join(gen) == b"01234"
+
+    def test_json_generator(self):
+        res = JSONGeneratorResponse(items=range(5))
+        gen = res(start_response)
+        data = loads(b"".join(gen))
+        assert data == {"items": [0, 1, 2, 3, 4]}

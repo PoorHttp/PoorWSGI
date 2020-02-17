@@ -22,7 +22,7 @@ python_path.insert(0, os.path.abspath(              # noqa
 from poorwsgi import Application, state, request, redirect
 from poorwsgi.session import PoorSession
 from poorwsgi.response import Response, RedirectResponse, FileResponse, \
-    JSONResponse, EmptyResponse, HTTPException
+    JSONResponse, JSONGeneratorResponse, EmptyResponse, HTTPException
 
 logger = log.getLogger()
 logger.setLevel("DEBUG")
@@ -483,6 +483,13 @@ def test_json(req):
     return JSONResponse(status_code=418, message="I'm teapot :-)",
                         numbers=list(range(5)),
                         request=req.json)
+
+
+@app.route('/test/json-generator', method=state.METHOD_GET)
+def test_json_generator(req):
+    return JSONGeneratorResponse(status_code=418, message="I'm teapot :-)",
+                                 numbers=range(5),
+                                 request=req.json)
 
 
 @app.route('/test/empty')

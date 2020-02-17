@@ -118,6 +118,12 @@ class TestResponses():
                               "numbers": [0, 1, 2, 3, 4],
                               "request": {}}
 
+    def test_json_generator_response(self, url):
+        res = check_url(url+"/test/json-generator", status_code=418)
+        assert res.json() == {"message": "I\'m teapot :-)",
+                              "numbers": [0, 1, 2, 3, 4],
+                              "request": {}}
+
     def test_json_request(self, url):
         data = [{"x": 124.2, "y": 100.1}]
         res = check_url(url+"/test/json", status_code=418,

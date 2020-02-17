@@ -25,7 +25,7 @@ Next command check all .rst files, source code with pep8 and doctest checkers.
     # check pep8 and doctest (pytest-pep8 and pytest-doctestplus plugins)
     ~$ pytest -v --pep8 --doctest-plus --doctest-rst
 
-  
+
 Directories
 -----------
 * ``poorwsgi`` - poorwsgi library

@@ -204,6 +204,7 @@ h3.class {
     border-radius: 3px 3px 3px;
     color: #b02c29;
     font-size: 130%;
+    font-family: monospace;
 }
 h3.variable {
     font-family: monospace;

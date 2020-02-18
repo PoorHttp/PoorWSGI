@@ -1,5 +1,5 @@
 ==== 2.3.0 ====
-    * Errors in parsing requests returns with 500 Internal Server Error
+    * Errors in parsing requests return with 500 Internal Server Error
     * JsonDict and JsonList objects for dict or list json request variant.
 
 ==== 2.2.0 ====

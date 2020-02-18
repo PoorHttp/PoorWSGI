@@ -80,7 +80,7 @@ For release history or difference of releases, you can use git diff, diff log,
 git2cl tool or you can see ChangeLog from source code or on git repository
 web. See:
 
-    https://github.com/PoorHttp/PoorWSGI/blob/unstable/doc/ChangeLog
+    https://github.com/PoorHttp/PoorWSGI/blob/master/doc/ChangeLog
 
 Examples
 ========
@@ -88,8 +88,8 @@ It is published application test files. You can download it, study it,
 test or use it as you can. See:
 
 **simple.py**
-    https://github.com/PoorHttp/PoorWSGI/blob/unstable/examples/simple.py
+    https://github.com/PoorHttp/PoorWSGI/blob/master/examples/simple.py
 
 **openapi3.py**
-    https://github.com/PoorHttp/PoorWSGI/blob/unstable/examples/openapi3.py
-    https://github.com/PoorHttp/PoorWSGI/blob/unstable/examples/openapi.json
+    https://github.com/PoorHttp/PoorWSGI/blob/master/examples/openapi3.py
+    https://github.com/PoorHttp/PoorWSGI/blob/master/examples/openapi.json

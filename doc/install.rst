@@ -5,9 +5,9 @@ Source tarbal
 
 .. code:: sh
 
-    ~$ wget https://pypi.python.org/packages/source/P/PoorWSGI/PoorWSGI-2.0.0.tar.gz
-    ~$ tar xzf PoorWSGI-2.0.0.tar.gz
-    ~$ cd PoorWSGI-2.0.0
+    ~$ wget https://pypi.python.org/packages/source/P/PoorWSGI/PoorWSGI-2.3.0.tar.gz
+    ~$ tar xzf PoorWSGI-2.3.0.tar.gz
+    ~$ cd PoorWSGI-2.3.0
     ~$ pip3 install .
 
     # if you have jinja24doc and you want to install this html documentation
@@ -36,8 +36,8 @@ Install from PyPI
 
 Unstable version
 ----------------
-Developing of next version is pushed to ``unstable`` branch. If you want to use
-this version, you must install it from git.
+Developing of next version is pushed to ``master`` branch, which is default.
+If you want to use this version, you must install it from git.
 
 .. code:: sh
 
@@ -46,19 +46,16 @@ this version, you must install it from git.
     ~$ git clone https://github.com/PoorHttp/PoorWSGI.git
 
     ~$ cd PoorWSGI
-    ~$ git checkout unstable
     ~$ pip3 install .
 
 Or you can download zip file from GitHub.
 
 .. code:: sh
 
-    ~$ wget https://github.com/PoorHttp/PoorWSGI/archive/unstable.zip
-    ~$ unzip unstable.zip
-    ~$ cd PoorWSGI-unstable
+    ~$ wget https://github.com/PoorHttp/PoorWSGI/archive/master.zip
+    ~$ unzip master.zip
+    ~$ cd PoorWSGI-master
     ~$ pip3 install .
-
-.. Documentation for new version is at `<unstable>`_.
 
 Configuration
 =============

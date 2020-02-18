@@ -1,16 +1,17 @@
 """OpenAPI core wrappers module.
 
 This module, and only this module requires ``openapi_core`` python module from
-https://github.com/p1c2u/openapi-core.
+https://github.com/p1c2u/openapi-core with version 0.13.0 or higher.
 
 :Classes:   OpenAPIRequest, OpenAPIResponse
 """
 import re
 
-from openapi_core.wrappers.base import BaseOpenAPIRequest, BaseOpenAPIResponse
+from openapi_core.validation.request.datatypes import \
+    RequestParameters
 
 
-class OpenAPIRequest(BaseOpenAPIRequest):
+class OpenAPIRequest():
     """Wrapper of PoorWSGI request to OpenAPIRequest.
 
     Be careful with testing of big incoming request body property, which
@@ -27,28 +28,24 @@ class OpenAPIRequest(BaseOpenAPIRequest):
         return self.request.scheme + "://" + self.request.hostname
 
     @property
-    def path(self):
-        return self.request.uri
-
-    @property
     def method(self):
         return self.request.method.lower()
 
     @property
-    def path_pattern(self):
+    def full_url_pattern(self):
         if self.request.uri_rule is None:
-            return self.request.uri
-        return OpenAPIRequest.re_pattern.sub(
+            return self.host_url+self.request.uri
+        return self.host_url+OpenAPIRequest.re_pattern.sub(
             r"{\2}", self.request.uri_rule)
 
     @property
     def parameters(self):
-        return {
-            'path': self.request.path_args,
-            'query': self.request.args,
-            'header': self.request.headers,
-            'cookie': self.request.cookies,
-        }
+        return RequestParameters(
+            path=self.request.path_args,
+            query=self.request.args,
+            header=self.request.headers,
+            cookie=self.request.cookies,
+        )
 
     @property
     def body(self):
@@ -59,7 +56,7 @@ class OpenAPIRequest(BaseOpenAPIRequest):
         return self.request.mime_type
 
 
-class OpenAPIResponse(BaseOpenAPIResponse):
+class OpenAPIResponse():
 
     def __init__(self, response):
         self.response = response

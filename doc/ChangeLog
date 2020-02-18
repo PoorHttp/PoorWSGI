@@ -2,6 +2,7 @@
     * Errors in parsing requests return with 500 Internal Server Error
     * JsonDict and JsonList objects for dict or list json request variant.
     * JSONGeneratorResponse to returned json from generators as generator.
+    * Fixies for new openapi_core 0.13.0 version.
 
 ==== 2.2.0 ====
     * openapi after_request example fix

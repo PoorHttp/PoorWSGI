@@ -7,14 +7,19 @@ from socket import socket, error as SocketError
 
 from pytest import fixture
 
-from . support import check_url
+from . support import check_url, check_api
+from . openapi import response_validator_json
+
+VALIDATOR = response_validator_json(
+    join(dirname(__file__), pardir, "examples/openapi.json"))
 
 
 @fixture(scope="module")
 def url(request):
     url = environ.get("TEST_OPENAPI_URL", "").strip('/')
     if url:
-        return url
+        yield url
+        return
 
     process = None
     print("Starting wsgi application...")
@@ -50,41 +55,60 @@ def url(request):
 
 class TestOpenAPI():
     def test_plain_text(self, url):
-        res = check_url(url+"/plain_text")
+        res = check_api(url+"/plain_text",
+                        headers={'Accept': 'text/plain'},
+                        response_validator=VALIDATOR)
         assert res.headers["Content-Type"] == "text/plain"
 
     def test_json_arg_integer(self, url):
-        res = check_url(url+"/json/42")
+        res = check_api(url+"/json/42",
+                        headers={'Accept': 'application/json'},
+                        response_validator=VALIDATOR,
+                        path_pattern=url+"/json/{arg}")
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
         assert data.get("arg") == '42'
 
     def test_json_arg_float(self, url):
-        res = check_url(url+"/json/3.14")
+        res = check_api(url+"/json/3.14",
+                        headers={'Accept': 'application/json'},
+                        response_validator=VALIDATOR,
+                        path_pattern=url+"/json/{arg}")
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
         assert data.get("arg") == '3.14'
 
     def test_json_arg_string(self, url):
-        res = check_url(url+"/json/ok", status_code=400)
+        res = check_api(url+"/json/ok",
+                        status_code=400,
+                        headers={'Accept': 'application/json'},
+                        response_validator=VALIDATOR,
+                        path_pattern=url+"/json/{arg}")
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
         assert data.get("error") is not None
 
     def test_arg_integer(self, url):
-        res = check_url(url+"/arg/42")
+        res = check_api(url+"/arg/42",
+                        headers={'Accept': 'application/json'},
+                        response_validator=VALIDATOR)
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
         assert data.get("integer_arg") == 42
 
     def test_arg_float(self, url):
-        res = check_url(url+"/arg/3.14")
+        res = check_api(url+"/arg/3.14",
+                        headers={'Accept': 'application/json'},
+                        response_validator=VALIDATOR)
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
         assert data.get("float_arg") == 3.14
 
     def test_arg_string(self, url):
-        res = check_url(url+"/arg/ok", status_code=404)
+        res = check_api(url+"/arg/ok",
+                        status_code=404,
+                        headers={'Accept': 'application/json'},
+                        response_validator=VALIDATOR)
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
         assert data.get("error") is not None

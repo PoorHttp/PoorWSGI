@@ -1031,7 +1031,8 @@ Example code of usage:
     import logging
 
     from openapi_core import create_spec
-    from openapi_core.shortcuts import RequestValidator, ResponseValidator
+    from openapi_core.validation.request.validators import RequestValidator
+    from openapi_core.validation.response.validators import ResponseValidator
     from openapi_core.schema.operations.exceptions import InvalidOperation
     from openapi_core.schema.servers.exceptions import InvalidServer
     from openapi_core.schema.paths.exceptions import InvalidPath
@@ -1070,7 +1071,7 @@ Example code of usage:
 
     @app.after_request()
     def after_each_request(req, res):
-        """Kontroluje odpověď dle OpenAPI specifikace."""
+        """Check answer by OpenAPI specification."""
         result = response_validator.validate(
             OpenAPIRequest(req),
             OpenAPIResponse(res))

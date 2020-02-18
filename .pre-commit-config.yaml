@@ -10,8 +10,8 @@ repos:
   #  rev: v2.4.4
   #  hooks:
   #    - id: pylint
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.5.0
+  - repo: https://github.com/pycqa/flake8
+    rev: 3.7.9
     hooks:
       - id: flake8
   - repo: https://github.com/Lucas-C/pre-commit-hooks-markup

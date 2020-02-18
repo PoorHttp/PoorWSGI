@@ -71,8 +71,10 @@ class PoorSession:
     """Self-contained cookie with session data.
 
     You cat store or read data from object via PoorSession.data variable which
-    must be dictionary. Data is stored to cookie by pickle dump. Be careful
-    with stored object. You can add object with litle python trick:
+    must be dictionary. Data is stored to cookie by pickle dump, and next
+    hidden with app.secret_key. So it must be set on Application object or with
+    poor_SecretKey environment variable. Be careful with stored object. You can
+    add object with little python trick:
 
     .. code:: python
 

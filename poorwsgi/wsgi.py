@@ -910,10 +910,14 @@ class Application(object):
 
             response = to_response(self.error_from_table(request, 500))
 
+        __fn = None
         try:    # call post_process handler
             for fn in self.__after:
+                __fn = fn
                 response = to_response(fn(request, response))
         except BaseException:
+            log.error("Handler %s from %s returns invalid data or crashed",
+                      __fn, __fn.__module__)
             response = to_response(self.error_from_table(request, 500))
 
         if isinstance(response, FileResponse) and \

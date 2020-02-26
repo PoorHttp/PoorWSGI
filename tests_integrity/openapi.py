@@ -17,11 +17,10 @@ class OpenAPIRequest():
     """requests.Request wrapper for openapi_core."""
 
     def __init__(self, request, path_pattern=None):
-        url = urlparse(request.url)
-        full_url = f"{url.scheme}://{url.netloc}/{url.path}"
-        self.full_url_pattern = path_pattern or full_url
+        self.full_url_pattern = path_pattern or request.url
 
         self.method = request.method.lower()
+        url = urlparse(request.url)
         query = parse_qs(url.query) if url.query else {}
         # when args have one value, that is the value
         args = tuple((key, val[0] if len(val) < 2 else val)

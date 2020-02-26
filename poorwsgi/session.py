@@ -151,11 +151,12 @@ class PoorSession:
                 self.data = loads(hidden(self.__cps.decompress
                                          (b64decode(raw.encode())),
                                          self.__secret_key))
-                if not isinstance(self.data, dict):
-                    raise SessionError("Cookie data is not dictionary!")
             except Exception as err:
                 log.info(err.__repr__())
-                log.warning('Bad session data.')
+                raise SessionError("Bad session data.")
+
+            if not isinstance(self.data, dict):
+                raise SessionError("Cookie data is not dictionary!")
 
             if 'expires' in self.data and self.data['expires'] < int(time()):
                 log.info('Session was expired, generating new.')

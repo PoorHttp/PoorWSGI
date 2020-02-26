@@ -1,14 +1,18 @@
 from os import urandom
 from http.cookies import SimpleCookie
 
-from pytest import fixture
+from pytest import fixture, raises
 
-from poorwsgi.session import PoorSession
+from poorwsgi.session import PoorSession, SessionError
 
 
 class Request:
     secret_key = urandom(32)
     cookies = SimpleCookie()
+
+
+class Empty:
+    secret_key = None
 
 
 @fixture
@@ -37,3 +41,16 @@ class TestSession:
         session = PoorSession(req, secure=True)
         headers = session.header()
         assert "; Secure" in headers[0][1]
+
+
+class TestErrors:
+    def test_no_secret_key(self):
+        with raises(SessionError):
+            PoorSession(Empty)
+
+    def test_bad_session(self, req):
+        req.cookies = SimpleCookie()
+        req.cookies["SESSID"] = "\0"
+
+        with raises(SessionError):
+            PoorSession(req)

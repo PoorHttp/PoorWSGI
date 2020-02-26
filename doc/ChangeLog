@@ -6,6 +6,7 @@
     * Better error log when error in after_request process
     * PoorSession have HttpOnly flag always, when it is self-contained session
       cookie.
+    * Secure flag and parameter for PoorSession
 
 ==== 2.2.0 ====
     * openapi after_request example fix

@@ -110,7 +110,8 @@ class PoorSession:
         obj.import(sess.data['dict'])
     """
 
-    def __init__(self, req, expires=0, path='/', SID='SESSID', compress=bz2):
+    def __init__(self, req, expires=0, path='/', SID='SESSID', secure=False,
+                 compress=bz2):
         """Constructor.
 
         Arguments:
@@ -132,6 +133,7 @@ class PoorSession:
         self.__SID = SID
         self.__expires = expires
         self.__path = path
+        self.__secure = secure
         self.__cps = compress if compress is not None else NoCompress
 
         # data is session dictionary to store user data in cookie
@@ -180,6 +182,8 @@ class PoorSession:
         self.cookie[self.__SID] = raw
         self.cookie[self.__SID]['path'] = self.__path
         self.cookie[self.__SID]['HttpOnly'] = True
+        if self.__secure:
+            self.cookie[self.__SID]['Secure'] = True
 
         if self.__expires:
             self.data['expires'] = int(time()) + self.__expires
@@ -194,6 +198,8 @@ class PoorSession:
         self.data['expires'] = -1
         self.cookie[self.__SID]['expires'] = -1
         self.cookie[self.__SID]['HttpOnly'] = True
+        if self.__secure:
+            self.cookie[self.__SID]['Secure'] = True
 
     def header(self, headers=None):
         """Generate cookie headers and append it to headers if it set.

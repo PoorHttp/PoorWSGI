@@ -52,9 +52,11 @@ def url(request):
 @fixture
 def session(url):
     session = Session()
-    check_url(url+"/login", status_code=302, session=session,
-              allow_redirects=False)
+    res = check_url(url+"/login", status_code=302, session=session,
+                    allow_redirects=False)
     assert "SESSID" in session.cookies
+    cookie = res.headers["Set-Cookie"]
+    assert "; HttpOnly; " in cookie
     return session
 
 
@@ -141,8 +143,11 @@ class TestSession():
         check_url(url+"/login", status_code=302, allow_redirects=False)
 
     def test_logout(self, url, session):
-        check_url(url+"/logout", session=session)
-        assert "SESSID" not in session.cookies
+        res = check_url(url+"/logout", session=session,
+                        allow_redirects=False, status_code=302)
+        assert "SESSID" not in session.cookies      # cookie is expired
+        cookie = res.headers["Set-Cookie"]          # header must exists
+        assert "; HttpOnly; " in cookie
 
     def test_form_get_not_logged(self, url):
         check_url(url+"/test/form", status_code=302, allow_redirects=False)

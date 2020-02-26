@@ -179,6 +179,7 @@ class PoorSession:
         raw = raw if isinstance(raw, str) else raw.decode()
         self.cookie[self.__SID] = raw
         self.cookie[self.__SID]['path'] = self.__path
+        self.cookie[self.__SID]['HttpOnly'] = True
 
         if self.__expires:
             self.data['expires'] = int(time()) + self.__expires
@@ -192,6 +193,7 @@ class PoorSession:
         self.data = {}
         self.data['expires'] = -1
         self.cookie[self.__SID]['expires'] = -1
+        self.cookie[self.__SID]['HttpOnly'] = True
 
     def header(self, headers=None):
         """Generate cookie headers and append it to headers if it set.

@@ -4,6 +4,8 @@
     * JSONGeneratorResponse to returned json from generators as generator.
     * Fixies for new openapi_core 0.13.0 version.
     * Better error log when error in after_request process
+    * PoorSession have HttpOnly flag always, when it is self-contained session
+      cookie.
 
 ==== 2.2.0 ====
     * openapi after_request example fix

@@ -6,6 +6,7 @@ from time import sleep
 from socket import socket, error as SocketError
 
 from pytest import fixture
+from requests import Session
 
 from . support import check_url, check_api
 from . openapi import response_validator_json
@@ -51,6 +52,13 @@ def url(request):
 
     yield "http://localhost:8080"  # server is running
     process.kill()
+
+
+@fixture
+def session(url):
+    session = Session()
+    check_url(url+"/login", session=session, status_code=204)
+    return session
 
 
 class TestOpenAPI():
@@ -118,3 +126,17 @@ class TestOpenAPI():
 
     def test_native_method_not_allowed(self, url):
         check_url(url+"/plain_text", method="DELETE", status_code=405)
+
+    def test_secrets_cookie(self, url, session):
+        check_api(url+"/check/login", method="GET", session=session,
+                  response_validator=VALIDATOR)
+
+    def test_secrets_api_key(self, url):
+        check_api(url+"/check/api-key", method="GET",
+                  headers={"API-Key": "xxx"},
+                  response_validator=VALIDATOR)
+
+    def test_secrets_no_api_key(self, url):
+        check_api(url+"/check/api-key", method="GET",
+                  status_code=401,
+                  response_validator=VALIDATOR)

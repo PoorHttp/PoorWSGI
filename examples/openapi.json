@@ -5,6 +5,11 @@
     "version": "1.0.0",
     "description": "PoorWSGI Integrity test"
   },
+  "servers": [
+    {
+      "url": "http://localhost:8080"
+    }
+  ],
   "paths": {
     "/plain_text": {
       "get": {
@@ -83,6 +88,55 @@
         "$ref": "#/components/parameters/accept"
       }
       ]
+    },
+    "/login": {
+      "get": {
+        "summary": "Create login cookie",
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/check/login": {
+      "get": {
+        "summary": "check loggin cookie",
+        "security": [
+          {"CookieAuth": [] }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/check/api-key": {
+      "get": {
+        "summary": "check api-key header",
+        "security": [
+          {"APIKey": []}
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -96,6 +150,18 @@
           "type": "string",
           "pattern": "(application/json)|(text/html)|(text/plain)"
         }
+      }
+    },
+    "securitySchemes": {
+      "APIKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "API-Key"
+      },
+      "CookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "SESSID"
       }
     },
     "responses": {

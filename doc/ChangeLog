@@ -9,6 +9,7 @@
     * Secure flag and parameter for PoorSession
     * SessionError when not possible to decode session
     * JSONResponse and JSONGeneratorResponse without charset
+    * CORS and Security example for OpenAPI
 
 ==== 2.2.0 ====
     * openapi after_request example fix

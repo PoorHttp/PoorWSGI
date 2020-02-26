@@ -16,17 +16,20 @@ import json
 from openapi_core import create_spec
 from openapi_core.validation.request.validators import RequestValidator
 from openapi_core.validation.response.validators import ResponseValidator
+from openapi_core.validation.exceptions import InvalidSecurity
 from openapi_core.schema.operations.exceptions import InvalidOperation
 from openapi_core.schema.servers.exceptions import InvalidServer
 from openapi_core.schema.paths.exceptions import InvalidPath
+
 
 TEST_PATH = path.dirname(__file__)              # noqa
 python_path.insert(0, path.abspath(             # noqa
     path.join(TEST_PATH, path.pardir)))
 
 from poorwsgi import Application, state
-from poorwsgi.response import Response, abort
+from poorwsgi.response import Response, abort, HTTPException, JSONResponse
 from poorwsgi.openapi_wrapper import OpenAPIRequest, OpenAPIResponse
+from poorwsgi.session import PoorSession
 
 app = application = Application("OpenAPI3 Test App")
 app.debug = True
@@ -35,10 +38,39 @@ app.secret_key = urandom(32)     # random key each run
 request_validator = None
 response_validator = None
 
+options_headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "*",
+    "Access-Control-Max-Age": "1728000",        # 20 days
+    "Content-Length": "0"
+}
+
+
 with open(path.join(path.dirname(__file__), "openapi.json"), "r") as openapi:
     spec = create_spec(json.load(openapi))
     request_validator = RequestValidator(spec)
     response_validator = ResponseValidator(spec)
+
+
+@app.before_request()
+def corse_request(req):
+    if req.uri.startswith("/p/"):
+        return      # enndpoints for printers does not need CORS
+    if req.method_number == state.METHOD_OPTIONS:
+        res = Response(content_type="text/plain; charset=UTF-8",
+                       headers=options_headers,
+                       status_code=state.HTTP_NO_CONTENT)
+        raise HTTPException(res)
+
+
+@app.after_request()
+def corse_response(req, res):
+    res.add_header("Access-Control-Allow-Origin",
+                   req.headers.get("Origin", "*"))
+    res.add_header("Access-Control-Allow-Credentials", "true")
+    return res
 
 
 @app.before_request()
@@ -52,10 +84,13 @@ def before_each_request(req):
                                   InvalidPath)):
                 log.debug(error)
                 return  # not found
+            if isinstance(error, InvalidSecurity):
+                abort(JSONResponse(error=str(errors), status_code=401,
+                                   charset=None))
+
             errors.append(repr(error)+":"+str(error))
-        abort(Response(json.dumps({"error": ';'.join(errors)}),
-                       status_code=400,
-                       content_type="application/json"))
+        abort(JSONResponse(error=';'.join(errors), status_code=400,
+                           charset=None))
 
 
 @app.after_request()
@@ -94,6 +129,31 @@ def ajax_float(req, arg):
 @app.route('/internal-server-error')
 def method_raises_errror(req):
     raise RuntimeError('Test of internal server error')
+
+
+@app.route('/login')
+def login(req):
+    cookie = PoorSession(req)
+    cookie.data['login'] = True
+    response = Response(status_code=204)
+    cookie.header(response)
+    return response
+
+
+@app.route('/check/login')
+def check_login(req):
+    cookie = PoorSession(req)
+    if 'login' not in cookie.data:
+        raise HTTPException(401)
+    return "login ok"
+
+
+@app.route('/check/api-key')
+def check_api_key(req):
+    api_token = req.headers.get("API-Key", None)
+    if api_token != "xxx":
+        raise HTTPException(401)
+    return "api-key ok"
 
 
 @app.http_state(state.HTTP_NOT_FOUND)

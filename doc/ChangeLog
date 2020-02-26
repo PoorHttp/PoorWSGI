@@ -8,6 +8,7 @@
       cookie.
     * Secure flag and parameter for PoorSession
     * SessionError when not possible to decode session
+    * JSONResponse and JSONGeneratorResponse without charset
 
 ==== 2.2.0 ====
     * openapi after_request example fix

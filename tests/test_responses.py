@@ -27,6 +27,10 @@ kwargs = (
 )
 
 
+class Found(Exception):
+    pass
+
+
 @pytest.fixture(params=args)
 def response_args(request):
     return Response(*request.param)
@@ -64,6 +68,28 @@ class TestJSONResponse:
         data = load(res(start_response))
         assert data == {"items": [0, 1, 2, 3, 4]}
 
+    def test_charset(self):
+        res = JSONResponse(msg="Message")
+
+        def start_response(data, headers):
+            for key, val in headers:
+                if key == "Content-Type":
+                    assert val == "application/json; charset=utf-8"
+                    raise Found()
+        with pytest.raises(Found):
+            res(start_response)
+
+    def test_no_charset(self):
+        res = JSONResponse(msg="Message", charset=None)
+
+        def start_response(data, headers):
+            for key, val in headers:
+                if key == "Content-Type":
+                    assert val == "application/json"
+                    raise Found()
+        with pytest.raises(Found):
+            res(start_response)
+
 
 class TestGeneratorResponse:
     def test_generator(self):
@@ -76,8 +102,32 @@ class TestGeneratorResponse:
         gen = res(start_response)
         assert b"".join(gen) == b"01234"
 
-    def test_json_generator(self):
+
+class TestJSONGenerarorResponse:
+    def test_generator(self):
         res = JSONGeneratorResponse(items=range(5))
         gen = res(start_response)
         data = loads(b"".join(gen))
         assert data == {"items": [0, 1, 2, 3, 4]}
+
+    def test_charset(self):
+        res = JSONGeneratorResponse(items=range(5))
+
+        def start_response(data, headers):
+            for key, val in headers:
+                if key == "Content-Type":
+                    assert val == "application/json; charset=utf-8"
+                    raise Found()
+        with pytest.raises(Found):
+            res(start_response)
+
+    def test_no_charset(self):
+        res = JSONGeneratorResponse(items=range(5), charset=None)
+
+        def start_response(data, headers):
+            for key, val in headers:
+                if key == "Content-Type":
+                    assert val == "application/json"
+                    raise Found()
+        with pytest.raises(Found):
+            res(start_response)

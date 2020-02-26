@@ -208,9 +208,11 @@ class JSONResponse(Response):
     """
     def __init__(self, charset="utf-8", headers=None, status_code=HTTP_OK,
                  **kwargs):
-        super().__init__(
-            dumps(kwargs), "application/json; charset="+charset, headers,
-            status_code)
+        mime_type = "application/json"
+        if charset:
+            mime_type += "; charset="+charset
+
+        super().__init__(dumps(kwargs), mime_type, headers, status_code)
 
 
 class FileResponse(Response):
@@ -289,10 +291,12 @@ if GJSONEncoder:
         """
         def __init__(self, charset="utf-8", headers=None, status_code=HTTP_OK,
                      **kwargs):
+            mime_type = "application/json"
+            if charset:
+                mime_type += "; charset="+charset
             generator = GJSONEncoder(
                 iterable_as_array=True).iterencode(kwargs)
-            super().__init__(generator, "application/json; charset="+charset,
-                             headers, status_code)
+            super().__init__(generator, mime_type, headers, status_code)
 
 
 else:

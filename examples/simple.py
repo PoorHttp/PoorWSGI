@@ -494,7 +494,9 @@ def test_json_generator(req):
 
 @app.route('/test/empty')
 def test_empty(req):
-    return EmptyResponse(state.HTTP_OK)
+    res = EmptyResponse(state.HTTP_OK)
+    res.add_header("Super-Header", "SuperValue")
+    return res
 
 
 @app.route('/yield')

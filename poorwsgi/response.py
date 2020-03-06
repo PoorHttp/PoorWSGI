@@ -12,6 +12,7 @@ from io import BytesIO
 from os import access, R_OK, fstat
 from logging import getLogger
 from json import dumps
+from inspect import stack
 
 import mimetypes
 
@@ -316,6 +317,25 @@ class EmptyResponse(GeneratorResponse):
     """For situation, where only state could be return."""
     def __init__(self, status_code=HTTP_OK):
         super(EmptyResponse, self).__init__((), status_code=status_code)
+
+    @property
+    def headers(self):
+        """EmptyResponse don't have headers"""
+        return Headers()
+
+    @headers.setter
+    def headers(self, value):
+        stack_record = stack()[1]
+        log.warning("EmptyResponse don't use headers.\n"
+                    "  File {1}, line {2}, in {3} \n"
+                    "{0}".format(stack_record[4][0], *stack_record[1:4]))
+
+    def add_header(self, *args, **kwargs):
+        """EmptyResponse don't have headers"""
+        stack_record = stack()[1]
+        log.warning("EmptyResponse don't use headers.\n"
+                    "  File {1}, line {2}, in {3} \n"
+                    "{0}".format(stack_record[4][0], *stack_record[1:4]))
 
     def __start_response__(self, start_response):
         start_response(

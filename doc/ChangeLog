@@ -11,6 +11,7 @@
     * JSONResponse and JSONGeneratorResponse without charset
     * CORS and Security example for OpenAPI
     * EmptyResponse don't use headers warning
+    * charset fix in make_response
 
 ==== 2.2.0 ====
     * openapi after_request example fix

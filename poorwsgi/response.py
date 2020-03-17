@@ -363,7 +363,7 @@ class RedirectResponse(Response):
         self.add_header("Location", location)
 
 
-def make_response(data, content_type="text/html; character=utf-8",
+def make_response(data, content_type="text/html; charset=utf-8",
                   headers=None, status_code=HTTP_OK):
     """Create response from simple values.
 

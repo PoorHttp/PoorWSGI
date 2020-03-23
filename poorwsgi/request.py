@@ -216,8 +216,9 @@ class Request(object):
         """
         self.__app_config = app_config
         self.__environ = environ
-        if 'REQUEST_URI' not in environ:
-            self.__environ['REQUEST_URI'] = environ.get('PATH_INFO')
+        if environ.get('PATH_INFO') is None:
+            raise ConnectionError(
+                    "PATH_INFO not set, probably bad HTTP protocol used.")
 
         # The path portion of the URI.
         self.__uri_rule = None
@@ -259,7 +260,6 @@ class Request(object):
 
         self.__file = self.__environ.get("wsgi.input")
         self._errors = self.__environ.get("wsgi.errors")
-        self.__data = None
 
         if app_config['auto_data'] and \
                 0 <= self.__content_length <= app_config['data_size']:
@@ -334,7 +334,7 @@ class Request(object):
     @property
     def hostname(self):
         """Host, as set by full URI or Host: header."""
-        return self.__environ.get('HTTP_HOST')
+        return self.__environ.get('HTTP_HOST', self.server_hostname)
 
     @property
     def method(self):
@@ -705,7 +705,7 @@ class Request(object):
         If length is not set, or if is lower then zero, Content-Length was
         be use.
         """
-        if self.__content_length <= 0:
+        if self.__content_length <= 0 and self.server_protocol != "HTTP/0.9":
             log.error("No Content-Length found, read was failed!")
             return b''
         if length > -1 and length < self.__content_length:
@@ -914,7 +914,7 @@ def parse_json_request(req, charset="utf-8"):
             return JsonList(data)
         return data
     except BaseException as e:
-        log.warning("Invalid request json: %e", str(e))
+        log.warning("Invalid request json: %s", str(e))
 
 
 class FieldStorage(CgiFieldStorage):

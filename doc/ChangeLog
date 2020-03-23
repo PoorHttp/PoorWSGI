@@ -12,6 +12,7 @@
     * CORS and Security example for OpenAPI
     * EmptyResponse don't use headers warning
     * charset fix in make_response
+    * some HTTP/0.9 suport fixes
 
 ==== 2.2.0 ====
     * openapi after_request example fix

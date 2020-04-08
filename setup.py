@@ -146,6 +146,7 @@ class PyTest(test):
 
     def initialize_options(self):
         test.initialize_options(self)
+        self.pytest_args = []
 
     def finalize_options(self):
         test.finalize_options(self)
@@ -207,5 +208,7 @@ setup(
               'clean_doc': clean_doc,
               'install_doc': install_doc,
               'test': PyTest},
-    tests_require=['pytest', 'requests', 'openapi-core', 'simplejson']
+    tests_require=['pytest', 'requests', 'openapi-core', 'simplejson'],
+    extras_require={
+            'JSONGeneratorResponse': ['simplejson']}
 )

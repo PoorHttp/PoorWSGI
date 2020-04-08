@@ -13,6 +13,7 @@
     * EmptyResponse don't use headers warning
     * charset fix in make_response
     * some HTTP/0.9 suport fixes
+    * JSONGeneratorResponse is defined as extras
 
 ==== 2.2.0 ====
     * openapi after_request example fix

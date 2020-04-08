@@ -18,9 +18,9 @@ from openapi_core.validation.request.validators import RequestValidator
 from openapi_core.validation.response.validators import ResponseValidator
 from openapi_core.validation.exceptions import InvalidSecurity
 from openapi_core.schema.operations.exceptions import InvalidOperation
-from openapi_core.schema.servers.exceptions import InvalidServer
 from openapi_core.schema.paths.exceptions import InvalidPath
-
+from openapi_core.templating.paths.exceptions import \
+    PathNotFound, OperationNotFound
 
 TEST_PATH = path.dirname(__file__)              # noqa
 python_path.insert(0, path.abspath(             # noqa
@@ -80,9 +80,9 @@ def before_each_request(req):
     if result.errors:
         errors = []
         for error in result.errors:
-            if isinstance(error, (InvalidOperation, InvalidServer,
-                                  InvalidPath)):
-                log.debug(error)
+            log.debug(error)
+            if isinstance(error, (InvalidOperation, OperationNotFound,
+                                  InvalidPath, PathNotFound)):
                 return  # not found
             if isinstance(error, InvalidSecurity):
                 abort(JSONResponse(error=str(errors), status_code=401,

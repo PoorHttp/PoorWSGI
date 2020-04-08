@@ -4,7 +4,11 @@ from warnings import warn
 from requests import Request, Session
 from requests.exceptions import RequestException
 from openapi_core.schema.operations.exceptions import InvalidOperation
+from openapi_core.schema.paths.exceptions import InvalidPath
 from openapi_core.schema.servers.exceptions import InvalidServer
+from openapi_core.schema.responses.exceptions import InvalidResponse
+from openapi_core.templating.paths.exceptions import \
+    PathNotFound, OperationNotFound
 
 from . openapi import OpenAPIRequest, OpenAPIResponse
 
@@ -53,10 +57,15 @@ def check_api(url, method="GET", status_code=200, path_pattern=None,
         if result.errors:
             to_raise = False
             for error in result.errors:
-                if isinstance(error, InvalidOperation):
+                if isinstance(error, (InvalidOperation, OperationNotFound,
+                                      InvalidPath, PathNotFound)):
                     if response.status_code == 404:
                         continue
                     warn(UserWarning("Not API definition for %s!" % url))
+                    continue
+                if isinstance(error, InvalidResponse):
+                    warn(UserWarning("Not response %d definition for %s!"
+                                     % (response.status_code, url)))
                     continue
                 if isinstance(error, InvalidServer):
                     continue    # just ignore

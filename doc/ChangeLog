@@ -15,6 +15,7 @@
     * some HTTP/0.9 suport fixes
     * JSONGeneratorResponse is defined as extras
     * OpenAPI tests fix - better openapi example
+    * Request.hostname contains only hostname without port
 
 ==== 2.2.0 ====
     * openapi after_request example fix

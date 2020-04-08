@@ -25,7 +25,10 @@ class OpenAPIRequest():
 
     @property
     def host_url(self):
-        return self.request.scheme + "://" + self.request.hostname
+        url = self.request.scheme + "://" + self.request.hostname
+        if self.request.port != 80:
+            url += ":%d" % self.request.port
+        return url
 
     @property
     def method(self):

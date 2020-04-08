@@ -333,8 +333,9 @@ class Request(object):
 
     @property
     def hostname(self):
-        """Host, as set by full URI or Host: header."""
-        return self.__environ.get('HTTP_HOST', self.server_hostname)
+        """Host, as set by full URI or Host: header without port."""
+        return self.__environ.get('HTTP_HOST',
+                                  self.server_hostname).split(':')[0]
 
     @property
     def method(self):

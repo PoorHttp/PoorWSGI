@@ -3,7 +3,7 @@ from os import environ
 from os.path import dirname, join, pardir
 from sys import executable
 from subprocess import Popen
-from time import sleep
+from time import sleep, time
 from socket import socket, error as SocketError
 
 from requests import Session
@@ -58,6 +58,16 @@ def session(url):
     cookie = res.headers["Set-Cookie"]
     assert "; HttpOnly; " in cookie
     return session
+
+
+class TestRequest():
+    def test_timestamp(self, url):
+        now = time()
+        res = check_url(url+"/timestamp")
+        timestamp = res.json()["timestamp"]
+        assert isinstance(timestamp, float)
+        # uwsgi have more then 0.01, internal Python's server about 0.001
+        assert abs(now - timestamp) < 0.1
 
 
 class TestSimple():

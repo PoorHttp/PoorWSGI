@@ -516,6 +516,11 @@ def log_response(req, res):
     return res
 
 
+@app.route('/timestamp')
+def get_timestamp(req):
+    return JSONResponse(timestamp=req.timestamp)
+
+
 @app.route('/internal-server-error')
 def method_raises_errror(req):
     raise RuntimeError('Test of internal server error')

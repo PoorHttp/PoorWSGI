@@ -9,6 +9,7 @@ from wsgiref.headers import _formatparam
 from cgi import FieldStorage as CgiFieldStorage, parse_header
 from json import loads as json_loads
 from io import BytesIO
+from time import time
 
 import os
 import re
@@ -214,6 +215,7 @@ class Request(object):
         It's input parameters are the same, which Application object gets from
         WSGI server plus file callback for auto request body parsing.
         """
+        self.__timestamp = time()
         self.__app_config = app_config
         self.__environ = environ
         if environ.get('PATH_INFO') is None:
@@ -540,6 +542,11 @@ class Request(object):
     def debug(self):
         """Value of ``poor_Debug`` variable."""
         return self.__debug
+
+    @property
+    def timestamp(self):
+        """Return timestamp of request."""
+        return self.__timestamp
 
     @property
     def remote_host(self):

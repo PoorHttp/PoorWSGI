@@ -116,6 +116,12 @@ def ajax_arg(req, arg):
     return json.dumps({"arg": arg}), "application/json"
 
 
+@app.route('/json', method=state.METHOD_POST | state.METHOD_PUT)
+def test_json(req):
+    return JSONResponse(status_code=418, message="I'm teapot :-)",
+                        request=req.json)
+
+
 @app.route("/arg/<int_arg:int>")
 def ajax_integer(req, arg):
     return json.dumps({"integer_arg": arg}), "application/json"

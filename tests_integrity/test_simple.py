@@ -144,6 +144,18 @@ class TestResponses():
                               "numbers": [0, 1, 2, 3, 4],
                               "request": data}
 
+    def test_json_unicode(self, url):
+        data = "čeština"
+        res = check_url(url+"/test/json", status_code=418,
+                        method="POST", json=data)
+        assert res.json()["request"] == data
+
+    def test_json_unicode_struct(self, url):
+        data = {"lang": "čeština"}
+        res = check_url(url+"/test/json", status_code=418,
+                        method="POST", json=data)
+        assert res.json()["request"] == data
+
     def test_empty_response(self, url):
         check_url(f"{url}/test/empty")
 

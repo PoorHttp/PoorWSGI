@@ -50,3 +50,19 @@ class TestParseJson:
 
     def test_error(self):
         assert parse_json_request(BytesIO(b"abraka")) is None
+
+    def test_unicode(self):
+        rv = parse_json_request(BytesIO(b'"\\u010de\\u0161tina"'))
+        assert rv == "čeština"
+
+    def test_utf8(self):
+        rv = parse_json_request(BytesIO(b'"\xc4\x8de\xc5\xa1tina"'))
+        assert rv == "čeština"
+
+    def test_unicode_struct(self):
+        rv = parse_json_request(BytesIO(b'{"lang":"\\u010de\\u0161tina"}'))
+        assert rv == {"lang": "čeština"}
+
+    def test_utf_struct(self):
+        rv = parse_json_request(BytesIO(b'{"lang":"\xc4\x8de\xc5\xa1tina"}'))
+        assert rv == {"lang": "čeština"}

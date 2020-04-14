@@ -96,6 +96,20 @@ class TestOpenAPI():
         data = res.json()
         assert data.get("error") is not None
 
+    def test_json_post_unicode(self, url):
+        data = "Česká Lípa"
+        res = check_api(url+"/json", status_code=418,
+                        method="POST", json=data,
+                        response_validator=VALIDATOR)
+        assert res.json()["request"] == data
+
+    def test_json_post_unicode_struct(self, url):
+        data = dict(city="Česká Lípa")
+        res = check_api(url+"/json", status_code=418,
+                        method="PUT", json=data,
+                        response_validator=VALIDATOR)
+        assert res.json()["request"] == data
+
     def test_arg_integer(self, url):
         res = check_api(url+"/arg/42",
                         headers={'Accept': 'application/json'},

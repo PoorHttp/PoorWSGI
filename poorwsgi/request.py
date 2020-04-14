@@ -1035,4 +1035,25 @@ class FieldStorage(CgiFieldStorage):
         val = CgiFieldStorage.getlist(self, key)
         for it in val:
             yield fce(it)
-# endclass
+
+    def __getitem__(self, key):
+        """Dictionary like [] operator."""
+        if self.list is None:
+            raise KeyError(key)
+        return super(FieldStorage, self).__getitem__(key)
+
+    def __contains__(self, key):
+        """Dictionary like in operator."""
+        if self.list is None:
+            return False
+        return super(FieldStorage, self).__contains__(key)
+
+    def __bool__(self):
+        """Bool operator."""
+        return bool(self.list)
+
+    def keys(self):
+        """Dictionary like keys() method."""
+        if self.list is None:
+            return tuple()
+        return super(FieldStorage, self).keys()

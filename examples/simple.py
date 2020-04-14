@@ -11,6 +11,7 @@ from json import dumps
 from collections import OrderedDict
 from io import FileIO as file
 from sys import path as python_path
+from tempfile import TemporaryFile
 
 import os
 import logging as log
@@ -35,6 +36,7 @@ app.secret_key = os.urandom(32)     # random key each run
 
 class Storage(file):
     def __init__(self, directory, filename):
+        log.debug("directory: %s; filename: %s", directory, filename)
         self.path = directory + '/' + filename
 
         if os.access(self.path, os.F_OK):
@@ -50,7 +52,9 @@ class StorageFactory:
             os.mkdir(directory)
 
     def create(self, filename):
-        return Storage(self.directory, filename)
+        if filename:
+            return Storage(self.directory, filename)
+        return TemporaryFile("wb+")
 
 
 app.auto_form = False
@@ -74,8 +78,8 @@ def auto_form(req):
                 req, keep_blank_values=app.keep_blank_values,
                 strict_parsing=app.strict_parsing,
                 file_callback=factory.create)
-        except Exception as e:
-            log.error(e)
+        except Exception:
+            log.exception()
 
 
 def get_crumbnav(req):

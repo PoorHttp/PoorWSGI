@@ -111,7 +111,7 @@ class PoorSession:
     """
 
     def __init__(self, req, expires=0, path='/', SID='SESSID', secure=False,
-                 compress=bz2):
+                 same_site=False, compress=bz2):
         """Constructor.
 
         Arguments:
@@ -121,6 +121,12 @@ class PoorSession:
                 cookie path
             SID : str
                 cookie key name
+            secure : bool
+                If `Secure cookie attribut could be set`
+            same_site: string
+                The `SameSite` attribute. When is set could be one of
+                `Strict|Lax|None`. By default attribute is not set which is
+                `Lax` by browser.
             compress : compress module or class.
                 Could be bz2, gzip.zlib, or any other, which have standard
                 compress and decompress methods. Or it could be None to not use
@@ -134,6 +140,7 @@ class PoorSession:
         self.__expires = expires
         self.__path = path
         self.__secure = secure
+        self.__same_site = same_site
         self.__cps = compress if compress is not None else NoCompress
 
         # data is session dictionary to store user data in cookie
@@ -185,6 +192,9 @@ class PoorSession:
         self.cookie[self.__SID]['HttpOnly'] = True
         if self.__secure:
             self.cookie[self.__SID]['Secure'] = True
+
+        if self.__same_site:
+            self.cookie[self.__SID]['SameSite'] = self.__same_site
 
         if self.__expires:
             self.data['expires'] = int(time()) + self.__expires

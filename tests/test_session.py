@@ -43,6 +43,28 @@ class TestSession:
         assert "; Secure" in headers[0][1]
 
 
+class TestSameSite:
+    def test_default(self, req):
+        session = PoorSession(req)
+        headers = session.header()
+        assert "; SameSite" not in headers[0][1]
+
+    def test_none(self, req):
+        session = PoorSession(req, same_site="None")
+        headers = session.header()
+        assert "; SameSite=None" in headers[0][1]
+
+    def test_lax(self, req):
+        session = PoorSession(req, same_site="Lax")
+        headers = session.header()
+        assert "; SameSite=Lax" in headers[0][1]
+
+    def test_strict(self, req):
+        session = PoorSession(req, same_site="Strict")
+        headers = session.header()
+        assert "; SameSite=Strict" in headers[0][1]
+
+
 class TestErrors:
     def test_no_secret_key(self):
         with raises(SessionError):

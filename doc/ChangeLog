@@ -4,9 +4,13 @@
     * JSONGeneratorResponse to returned json from generators as generator.
     * Fixies for new openapi_core 0.13.0 version.
     * Better error log when error in after_request process
-    * PoorSession have HttpOnly flag always, when it is self-contained session
-      cookie.
-    * Secure flag and parameter for PoorSession
+    * PoorSession cookie flags:
+        * always HttpOnly attribute
+        * Secure attribute by secure argument
+        * SameSite attribute by same_site argument
+        * Domain attribute by domain argument
+        * Path attribute could be None
+        * Max-Age attribute by max_age argument
     * SessionError when not possible to decode session
     * JSONResponse and JSONGeneratorResponse without charset
     * CORS and Security example for OpenAPI

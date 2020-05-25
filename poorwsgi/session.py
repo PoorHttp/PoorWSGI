@@ -43,7 +43,6 @@ def hidden(text, passwd):
             retval.append(text[i] ^ passwd[i % passlen])
 
     return retval
-# enddef
 
 
 class SessionError(RuntimeError):
@@ -53,7 +52,7 @@ class SessionError(RuntimeError):
 class NoCompress:
     """Fake compress class/module whith two static method for PoorSession.
 
-    If compress parameter is None, this class is use
+    If compress parameter is None, this class is use.
     """
 
     @staticmethod
@@ -116,26 +115,26 @@ class PoorSession:
 
         Arguments:
             expires : int
-                Cookie `Expires` time in seconds, if it 0, no expire is set
+                Cookie ``Expires`` time in seconds, if it 0, no expire is set
             max_age : int
-                Cookie `Max-Age` attribute. If both expires and max-age are
+                Cookie ``Max-Age`` attribute. If both expires and max-age are
                 set, max_age has precedence.
             domain : str
-                Cookie `Host` to which the cookie will be sent.
+                Cookie ``Host`` to which the cookie will be sent.
             path : str
-                Cookie `Path` that must exist in the requested URL.
+                Cookie ``Path`` that must exist in the requested URL.
             secure : bool
-                If `Secure` cookie attribute will be sent.
+                If ``Secure`` cookie attribute will be sent.
             same_site: str
-                The `SameSite` attribute. When is set could be one of
-                `Strict|Lax|None`. By default attribute is not set which is
-                `Lax` by browser.
+                The ``SameSite`` attribute. When is set could be one of
+                ``Strict|Lax|None``. By default attribute is not set which is
+                ``Lax`` by browser.
             compress : compress module or class.
-                Could be bz2, gzip.zlib, or any other, which have standard
-                compress and decompress methods. Or it could be None to not use
-                any compressing method.
+                Could be ``bz2``, ``gzip.zlib``, or any other, which have
+                standard compress and decompress methods. Or it could be
+                ``None`` to not use any compressing method.
             SID : str
-                cookie key name
+                Cookie key name.
         """
         if req.secret_key is None:
             raise SessionError("poor_SecretKey is not set!")
@@ -175,7 +174,6 @@ class PoorSession:
             if 'expires' in self.data and self.data['expires'] < int(time()):
                 log.info('Session was expired, generating new.')
                 self.data = {}
-    # enddef
 
     def renew(self):
         """Renew cookie, in fact set expires to next time if it set."""
@@ -230,8 +228,8 @@ class PoorSession:
 
         Returns list of cookie header pairs.
 
-            **headers** headers is Headers or Response object, which is used
-                        to write header directly.
+        :headers:   Headers or Response object, which is used
+                    to write header directly.
         """
         self.write()
         cookies = self.cookie.output().split('\r\n')
@@ -243,4 +241,3 @@ class PoorSession:
             if headers:
                 headers.add_header(var, val)
         return retval
-    # endclass

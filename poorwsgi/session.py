@@ -110,19 +110,22 @@ class PoorSession:
         obj.import(sess.data['dict'])
     """
 
-    def __init__(self, req, expires=0, domain=False, path='/', secure=False,
-                 same_site=False, compress=bz2, SID='SESSID'):
+    def __init__(self, req, expires=0, max_age=None, domain=False, path='/',
+                 secure=False, same_site=False, compress=bz2, SID='SESSID'):
         """Constructor.
 
         Arguments:
             expires : int
                 Cookie `Expires` time in seconds, if it 0, no expire is set
+            max_age : int
+                Cookie `Max-Age` attribute. If both expires and max-age are
+                set, max_age has precedence.
             domain : str
                 Cookie `Host` to which the cookie will be sent.
             path : str
                 Cookie `Path` that must exist in the requested URL.
             secure : bool
-                If `Secure` cookie attribut will be sent.
+                If `Secure` cookie attribute will be sent.
             same_site: str
                 The `SameSite` attribute. When is set could be one of
                 `Strict|Lax|None`. By default attribute is not set which is
@@ -140,6 +143,7 @@ class PoorSession:
         self.__secret_key = req.secret_key
         self.__SID = SID
         self.__expires = expires
+        self.__max_age = max_age
         self.__domain = domain
         self.__path = path
         self.__secure = secure
@@ -204,15 +208,19 @@ class PoorSession:
         if self.__expires:
             self.data['expires'] = int(time()) + self.__expires
             self.cookie[self.__SID]['expires'] = self.__expires
+        if self.__max_age is not None:
+            self.data['expires'] = int(time()) + self.__max_age
+            self.cookie[self.__SID]['Max-Age'] = self.__max_age
 
         return raw
-    # enddef
 
     def destroy(self):
         """Destroy session. In fact, set cookie expires value to past (-1)."""
         self.data = {}
         self.data['expires'] = -1
         self.cookie[self.__SID]['expires'] = -1
+        if self.__max_age is not None:
+            self.cookie[self.__SID]['Max-Age'] = -1
         self.cookie[self.__SID]['HttpOnly'] = True
         if self.__secure:
             self.cookie[self.__SID]['Secure'] = True

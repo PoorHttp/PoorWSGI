@@ -24,6 +24,8 @@ class TestSession:
     def test_default(self, req):
         session = PoorSession(req)
         headers = session.header()
+        assert "Expires" not in headers[0][1]
+        assert "Max-Age" not in headers[0][1]
         assert "Path" in headers[0][1]
         assert "Domain" not in headers[0][1]
 
@@ -32,6 +34,16 @@ class TestSession:
         session.destroy()
         headers = session.header()
         assert "; expires=" in headers[0][1]
+
+    def test_expires(self, req):
+        session = PoorSession(req, expires=10)
+        headers = session.header()
+        assert "; expires=" in headers[0][1]
+
+    def test_max_age(self, req):
+        session = PoorSession(req, max_age=10)
+        headers = session.header()
+        assert "; Max-Age=10;" in headers[0][1]
 
     def test_no_path(self, req):
         session = PoorSession(req, path=None)

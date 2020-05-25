@@ -21,11 +21,27 @@ def req():
 
 
 class TestSession:
+    def test_default(self, req):
+        session = PoorSession(req)
+        headers = session.header()
+        assert "Path" in headers[0][1]
+        assert "Domain" not in headers[0][1]
+
     def test_destroy(self, req):
         session = PoorSession(req)
         session.destroy()
         headers = session.header()
         assert "; expires=" in headers[0][1]
+
+    def test_no_path(self, req):
+        session = PoorSession(req, path=None)
+        headers = session.header()
+        assert "Path" not in headers[0][1]
+
+    def test_domain(self, req):
+        session = PoorSession(req, domain="example.org")
+        headers = session.header()
+        assert "; Domain=example.org; " in headers[0][1]
 
     def test_httponly(self, req):
         session = PoorSession(req)

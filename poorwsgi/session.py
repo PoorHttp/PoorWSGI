@@ -110,20 +110,20 @@ class PoorSession:
         obj.import(sess.data['dict'])
     """
 
-    def __init__(self, req, expires=0, path='/', SID='SESSID', secure=False,
-                 same_site=False, compress=bz2):
+    def __init__(self, req, expires=0, domain=False, path='/', secure=False,
+                 same_site=False, compress=bz2, SID='SESSID'):
         """Constructor.
 
         Arguments:
             expires : int
-                cookie expire time in seconds, if it 0, no expire is set
+                Cookie `Expires` time in seconds, if it 0, no expire is set
+            domain : str
+                Cookie `Host` to which the cookie will be sent.
             path : str
-                cookie path
-            SID : str
-                cookie key name
+                Cookie `Path` that must exist in the requested URL.
             secure : bool
-                If `Secure cookie attribut could be set`
-            same_site: string
+                If `Secure` cookie attribut will be sent.
+            same_site: str
                 The `SameSite` attribute. When is set could be one of
                 `Strict|Lax|None`. By default attribute is not set which is
                 `Lax` by browser.
@@ -131,6 +131,8 @@ class PoorSession:
                 Could be bz2, gzip.zlib, or any other, which have standard
                 compress and decompress methods. Or it could be None to not use
                 any compressing method.
+            SID : str
+                cookie key name
         """
         if req.secret_key is None:
             raise SessionError("poor_SecretKey is not set!")
@@ -138,6 +140,7 @@ class PoorSession:
         self.__secret_key = req.secret_key
         self.__SID = SID
         self.__expires = expires
+        self.__domain = domain
         self.__path = path
         self.__secure = secure
         self.__same_site = same_site
@@ -188,14 +191,16 @@ class PoorSession:
                                                    self.__secret_key), 9))
         raw = raw if isinstance(raw, str) else raw.decode()
         self.cookie[self.__SID] = raw
-        self.cookie[self.__SID]['path'] = self.__path
         self.cookie[self.__SID]['HttpOnly'] = True
+
+        if self.__domain:
+            self.cookie[self.__SID]['Domain'] = self.__domain
+        if self.__path:
+            self.cookie[self.__SID]['path'] = self.__path
         if self.__secure:
             self.cookie[self.__SID]['Secure'] = True
-
         if self.__same_site:
             self.cookie[self.__SID]['SameSite'] = self.__same_site
-
         if self.__expires:
             self.data['expires'] = int(time()) + self.__expires
             self.cookie[self.__SID]['expires'] = self.__expires

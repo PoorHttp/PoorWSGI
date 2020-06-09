@@ -1,7 +1,8 @@
 from os import urandom
+from sys import version_info
 from http.cookies import SimpleCookie
 
-from pytest import fixture, raises
+from pytest import fixture, raises, mark
 
 from poorwsgi.session import PoorSession, SessionError
 
@@ -71,6 +72,8 @@ class TestSession:
         assert "; Secure" in headers[0][1]
 
 
+@mark.skipif(version_info.minor < 8,
+             reason="SameSite is supported from Python 3.8")
 class TestSameSite:
     def test_default(self, req):
         session = PoorSession(req)

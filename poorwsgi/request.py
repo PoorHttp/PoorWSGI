@@ -768,9 +768,12 @@ class EmptyForm(dict):
     def getfirst(self, key, default=None, fce=str):
         return fce(default) if default is not None else default
 
-    def getlist(self, key, fce=str):
-        return
-        yield
+    def getlist(self, key, default=None, fce=str):
+        if isinstance(default, (list, set, tuple)):
+            for it in default:
+                yield fce(it)
+        elif default is not None:
+            yield fce(default)
 
 
 class Args(dict):
@@ -797,21 +800,23 @@ class Args(dict):
         if val is None:
             return None
 
-        if isinstance(val, list):
+        if isinstance(val, (list, set, tuple)):
             return fce(val[0])
         return fce(val)
 
-    def getlist(self, key, fce=str):
+    def getlist(self, key, default=None, fce=str):
         """Returns list of variable values for key or empty list.
 
         fce : convertor (str)
             function which processed value.
+        default : list
+            Default value, when argument was not set.
         """
-        val = self.get(key, None)
+        val = self.get(key, default)
         if val is None:
             return
 
-        if isinstance(val, list):
+        if isinstance(val, (list, set, tuple)):
             for it in val:
                 yield fce(it)
         else:
@@ -839,21 +844,23 @@ class JsonDict(dict):
         if val is None:
             return None
 
-        if isinstance(val, list):
+        if isinstance(val, (list, set, tuple)):
             return fce(val[0])
         return fce(val)
 
-    def getlist(self, key, fce=str):
+    def getlist(self, key, default=None, fce=str):
         """Returns generator of variable values for key.
 
+        default : list
+            Default value, when value not set.
         fce : convertor (str)
             Function which processed value.
         """
-        val = self.get(key, None)
+        val = self.get(key, default)
         if val is None:
             return
 
-        if isinstance(val, list):
+        if isinstance(val, (list, set, tuple)):
             for it in val:
                 yield fce(it)
         else:
@@ -875,7 +882,6 @@ class JsonList(list):
             Compatibility parametr is ignored.
         default : any
             Default value if key not exists.
-
         """
         return self[0] if self else default
 
@@ -889,18 +895,26 @@ class JsonList(list):
         fce : convertor
             Function which processed value.
         """
-        return fce(self.getvalue(default=default))
+        val = self.getvalue(default=default)
+        if val is not None:
+            return fce(val)
 
-    def getlist(self, key=None, fce=str):
+    def getlist(self, key=None, default=None, fce=str):
         """Returns generator of values.
 
         key : None
             Compatibility parametr is ignored.
         fce : convertor (str)
             Function which processed value.
+        default : list
+            Default value when self is empty.
         """
-        for it in self:
-            yield fce(it)
+        if not self:
+            for it in (default or []):
+                yield fce(it)
+        else:
+            for it in self:
+                yield fce(it)
 
 
 def parse_json_request(req, charset="utf-8"):
@@ -1023,16 +1037,21 @@ class FieldStorage(CgiFieldStorage):
             return None
         return fce(val)
 
-    def getlist(self, key, fce=str):
+    def getlist(self, key, default=None, fce=str):
         """Returns list of variable values for key or empty list.
 
         Arguments:
             key : str
                 key name
+            default : list
+                List of values when key was not sent.
             fce : convertor (str)
                 Function or class which processed value.
         """
-        val = CgiFieldStorage.getlist(self, key)
+        if key in self:
+            val = CgiFieldStorage.getlist(self, key)
+        else:
+            val = default or []
         for it in val:
             yield fce(it)
 

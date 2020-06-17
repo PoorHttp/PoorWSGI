@@ -1,4 +1,4 @@
-from json import load, loads
+from simplejson import load, loads
 
 import pytest
 

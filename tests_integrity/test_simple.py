@@ -157,7 +157,7 @@ class TestResponses():
         assert res.json()["request"] == data
 
     def test_empty_response(self, url):
-        check_url(f"{url}/test/empty")
+        check_url("{url}/test/empty".format(url=url))
 
 
 class TestSession():

@@ -36,7 +36,7 @@ def url(request):
 
     assert process is not None
     connect = False
-    for i in range(20):
+    for i in range(30):
         sck = socket()
         try:
             sck.connect(("localhost", 8080))
@@ -48,7 +48,7 @@ def url(request):
             sck.close()
     if not connect:
         process.kill()
-        raise RuntimeError("Server not started in 2 seconds")
+        raise RuntimeError("Server not started in 3 seconds")
 
     yield "http://localhost:8080"  # server is running
     process.kill()

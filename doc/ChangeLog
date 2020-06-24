@@ -22,6 +22,7 @@
     * Request.hostname contains only hostname without port
     * Request.timestamp - set as soon as possible
     * empty FieldStorage did't raise exception
+    * more info about request in internal server error page
 
 ==== 2.2.0 ====
     * openapi after_request example fix

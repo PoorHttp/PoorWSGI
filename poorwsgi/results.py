@@ -111,7 +111,17 @@ def internal_server_error(req):
 
     if req.debug:
         res.write(
-            "  <h2> Exception Traceback</h2>\n"
+            "  <h2>Response detail</h2>\n"
+            "  remote host: <b><code>{req.remote_host}</code></b><br/>\n"
+            "  remote addr: <b><code>{req.remote_addr}</code></b><br/>\n"
+            "  method: <b><code>{req.method}</code></b><br/>\n"
+            "  uri: <b><code>{req.uri}</code></b><br/>\n"
+            "  uri_rule: <b><code>{req.uri_rule}</code></b><br/>\n"
+            "  uri_handler: <b><code>{uri_handler}</code></b><br/>\n"
+            "".format(req=req, uri_handler=html_escape(str(req.uri_handler))))
+
+        res.write(
+            "  <h2>Exception Traceback</h2>\n"
             "  <pre>\n")
 
         # Traceback

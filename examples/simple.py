@@ -530,6 +530,11 @@ def method_raises_errror(req):
     raise RuntimeError('Test of internal server error')
 
 
+@app.route('/none-error')
+def none_error_handler(req):
+    return None
+
+
 @app.route('/bad-request')
 def bad_request(req):
     raise HTTPException(state.HTTP_BAD_REQUEST)

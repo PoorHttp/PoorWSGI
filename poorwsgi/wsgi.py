@@ -18,7 +18,7 @@ from poorwsgi.request import Request
 from poorwsgi.results import default_states, not_implemented, \
     internal_server_error, directory_index, debug_info
 from poorwsgi.response import Response, HTTPException, EmptyResponse, \
-    FileResponse, make_response
+    FileResponse, make_response, ResponseError
 
 log = getLogger("poorwsgi")
 
@@ -751,12 +751,14 @@ class Application(object):
                 and req.method_number in self.__shandlers[code]:
             try:
                 handler = self.__shandlers[code][req.method_number]
+                req.error_handler = handler
                 self.handler_from_before(req)       # call before handlers now
                 return handler(req)
             except BaseException:
                 return internal_server_error(req)
         elif code in default_states:
             handler = default_states[code][METHOD_GET]
+            req.error_handler = handler
             return handler(req)
         else:
             return not_implemented(req, code)
@@ -881,7 +883,8 @@ class Application(object):
 
         try:
             request = Request(env, self.__config)
-            response = to_response(self.handler_from_table(request))
+            args = self.handler_from_table(request)
+            response = to_response(args)
         except HTTPException as http_err:
             if isinstance(http_err.args[0], Response):
                 response = http_err.args[0]
@@ -896,8 +899,16 @@ class Application(object):
                         self.error_from_table(request, status_code))
         except (ConnectionError, SystemExit) as e:
             log.warning(str(e))
-            log.warning('   ***   You shoud ignore next error   ***')
+            log.warning('   ***   You should ignore next error   ***')
             return ()
+        except ResponseError:
+            log.error("Bad returned value from %s", request.uri_handler)
+            try:
+                response = to_response(self.error_from_table(request, 500))
+            except Exception:
+                log.error("Bad returned value from %s", request.error_handler)
+                response = internal_server_error(request)
+
         except BaseException as e:
             if request is None:
                 log.critical(str(e))
@@ -908,7 +919,11 @@ class Application(object):
                     env.get('SERVER_SOFTWARE', 'Unknown'),
                     env.get('SERVER_ADMIN', 'Unknown'))
 
-            response = to_response(self.error_from_table(request, 500))
+            try:
+                response = to_response(self.error_from_table(request, 500))
+            except Exception:
+                log.error("Bad returned value from %s", request.error_handler)
+                response = internal_server_error(request)
 
         __fn = None
         try:    # call post_process handler

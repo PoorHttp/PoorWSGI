@@ -229,6 +229,9 @@ class Request(object):
         # attributes
         self.__uri_handler = None
 
+        # Reference to error handler if exist.
+        self.__error_handler = None
+
         # A table object containing headers sent by the client.
         tmp = []
         for key, val in self.__environ.items():
@@ -391,6 +394,20 @@ class Request(object):
     def uri_handler(self, value):
         if self.__uri_handler is None:
             self.__uri_handler = value
+
+    @property
+    def error_handler(self):
+        """This property is set only when error handler was called.
+
+        It was set by Application object when error handler is known before
+        calling.
+        """
+        return self.__error_handler
+
+    @error_handler.setter
+    def error_handler(self, value):
+        if self.__error_handler is None:
+            self.__error_handler = value
 
     @property
     def headers(self):

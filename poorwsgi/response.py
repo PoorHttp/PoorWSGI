@@ -363,21 +363,29 @@ class RedirectResponse(Response):
         self.add_header("Location", location)
 
 
+class ResponseError(RuntimeError):
+    pass
+
+
 def make_response(data, content_type="text/html; charset=utf-8",
                   headers=None, status_code=HTTP_OK):
     """Create response from simple values.
 
     Data could be string, bytes, or bytes returns iterable object like file.
     """
-    if isinstance(data, (str, bytes)):      # "hello world"
-        return Response(data, content_type, headers, status_code)
     try:
-        iter(data)
-    except TypeError:
-        raise RuntimeError("Data must be str, bytes or bytes returns iterable "
-                           "object")
+        if isinstance(data, (str, bytes)):      # "hello world"
+            return Response(data, content_type, headers, status_code)
 
-    return GeneratorResponse(data, content_type, headers, status_code)
+        iter(data)  # try iter data
+        return GeneratorResponse(data, content_type, headers, status_code)
+    except Exception:
+        log.exception("Error in processing values: %s, %s, %s, %s",
+                      type(data), type(content_type), type(headers),
+                      type(status_code))
+
+    raise ResponseError(
+        "Returned data must by: <bytes|str>, <str>, <Headers|None>, <int>")
 
 
 def redirect(location, permanent=False, message=b'', headers=None):

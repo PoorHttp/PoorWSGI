@@ -43,7 +43,18 @@ class IBytesIO(BytesIO):
 
 
 class HTTPException(Exception):
-    """HTTP Exception to fast stop work."""
+    """HTTP Exception to fast stop work.
+
+    Simple error exception:
+
+    >>> HTTPException(404)
+    HTTPException(404)
+
+    Exception with response:
+
+    >>> HTTPException(Response(data=b'Created', status_code=201))
+    HTTPException(<poorwsgi.response.Response object at 0x...>)
+    """
     def __init__(self, arg):
         """status_code is one of HTTP_* status code from state module.
 
@@ -395,5 +406,21 @@ def redirect(location, permanent=False, message=b'', headers=None):
 
 
 def abort(arg):
-    """Raise HTTPException with arg."""
+    """Raise HTTPException with arg.
+
+    Raise simple error exception:
+
+    >>> abort(404)
+    Traceback (most recent call last):
+    ...
+    poorwsgi.response.HTTPException: 404
+
+    Raise exception with response:
+
+    >>> abort(Response(data=b'Created', status_code=201))
+    Traceback (most recent call last):
+    ...
+    poorwsgi.response.HTTPException:
+    <poorwsgi.response.Response object at 0x...>
+    """
     raise HTTPException(arg)

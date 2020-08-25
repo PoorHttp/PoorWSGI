@@ -17,8 +17,8 @@ Current Contents:
   object
 """
 
-from poorwsgi.response import redirect, abort
+from poorwsgi.response import redirect, abort, make_response
 
 from poorwsgi.wsgi import Application
 
-__all__ = ["Application", "redirect", "abort"]
+__all__ = ["Application", "redirect", "abort", "make_response"]

@@ -47,13 +47,14 @@ class HTTPException(Exception):
 
     Simple error exception:
 
-    >>> HTTPException(404)
-    HTTPException(404)
+    >>> HTTPException(404)  # doctest: +ELLIPSIS
+    HTTPException(404...)
 
     Exception with response:
 
     >>> HTTPException(Response(data=b'Created', status_code=201))
-    HTTPException(<poorwsgi.response.Response object at 0x...>)
+    ...                     # doctest: +ELLIPSIS
+    HTTPException(<poorwsgi.response.Response object at 0x...>...)
     """
     def __init__(self, arg):
         """status_code is one of HTTP_* status code from state module.

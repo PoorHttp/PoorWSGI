@@ -1,6 +1,11 @@
 ---
 language: python
 
+python:
+ - "3.6"
+ - "3.7"
+ - "3.8"
+
 install:
  - pip3 install pytest pytest-pep8 pytest-doctestplus requests openapi-core
    uwsgi simplejson

@@ -893,15 +893,20 @@ hidden function.
 
 .. code:: python
 
+    from functools import wraps
+    from os import urandom
+
+    import logging as log
+
     from poorwsgi import Application, state, redirect
     from poorwsgi.session import PoorSession
-    from os import urandom
-    import logging as log
+
 
     app = Application('test')
     app.secret_key = urandom(32)                    # random secret_key
 
     def check_login(fn):
+        @wraps(fn)      # using wraps make right/better /debug-info page
         def handler(req):
             cookie = PoorSession(req)
             if "passwd" not in cookie.data:         # expires or didn't set

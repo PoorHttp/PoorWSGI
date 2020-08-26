@@ -12,6 +12,7 @@ from collections import OrderedDict
 from io import FileIO as file
 from sys import path as python_path
 from tempfile import TemporaryFile
+from functools import wraps
 
 import os
 import logging as log
@@ -27,7 +28,7 @@ from poorwsgi.response import Response, RedirectResponse, FileResponse, \
 
 logger = log.getLogger()
 logger.setLevel("DEBUG")
-app = application = Application()
+app = application = Application("simple")
 app.debug = True
 app.document_root = '.'
 app.document_index = True
@@ -137,6 +138,7 @@ app.set_filter('email', r'[\w\.\-]+@[\w\.\-]+')
 
 
 def check_login(fn):
+    @wraps(fn)
     def handler(req):
         cookie = PoorSession(req)
         if 'login' not in cookie.data:
@@ -552,5 +554,5 @@ def not_implemented(req):
 
 if __name__ == '__main__':
     httpd = make_server('127.0.0.1', 8080, app)
-    print("Starting serve on 127.0.0.1:8080")
+    print("Starting serve on http://127.0.0.1:8080")
     httpd.serve_forever()

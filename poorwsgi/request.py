@@ -54,7 +54,7 @@ class Headers(Mapping):
     UTF-8 string.
     """
 
-    def __init__(self, headers=list(), strict=True):
+    def __init__(self, headers=None, strict=True):
         """Headers constructor.
 
         Headers object could be create from list, set or tuple of pairs
@@ -64,6 +64,7 @@ class Headers(Mapping):
         If strict is False, headers names and values are not encoded to
         iso-8859-1. This is for input headers using only!
         """
+        headers = headers or list()
         if isinstance(headers, (list, tuple, set)):
             if strict:
                 self.__headers = list(
@@ -91,9 +92,9 @@ class Headers(Mapping):
     def __getitem__(self, name):
         """Return header item identified by lower name."""
         name = Headers.iso88591(name.lower())
-        for k, v in self.__headers:
+        for k, val in self.__headers:
             if k.lower() == name:
-                return v
+                return val
         raise KeyError("{0!r} is not registered".format(name))
 
     def __delitem__(self, name):
@@ -140,8 +141,7 @@ class Headers(Mapping):
         if res is None:
             self.add_header(name, value)
             return value
-        else:
-            return res
+        return res
 
     def add(self, name, value):
         """Set header name to value.
@@ -174,13 +174,13 @@ class Headers(Mapping):
         if value is not None:
             parts.append(Headers.iso88591(value))
 
-        for k, v in kwargs.items():
+        for k, val in kwargs.items():
             k = Headers.iso88591(k)
-            if v is None:
+            if val is None:
                 parts.append(k.replace('_', '-'))
             else:
                 parts.append(_formatparam(k.replace('_', '-'),
-                             Headers.iso88591(v)))
+                                          Headers.iso88591(val)))
         self.__headers.append((Headers.iso88591(name), "; ".join(parts)))
 
     @staticmethod
@@ -202,7 +202,7 @@ class Headers(Mapping):
 # endclass Headers
 
 
-class Request(object):
+class Request():
     """HTTP request object with all server elements.
 
     It could be compatible as soon as possible with mod_python.apache.request.
@@ -220,7 +220,7 @@ class Request(object):
         self.__environ = environ
         if environ.get('PATH_INFO') is None:
             raise ConnectionError(
-                    "PATH_INFO not set, probably bad HTTP protocol used.")
+                "PATH_INFO not set, probably bad HTTP protocol used.")
 
         # The path portion of the URI.
         self.__uri_rule = None
@@ -598,10 +598,10 @@ class Request(object):
     @property
     def server_software(self):
         """Server software."""
-        ss = self.__environ.get('SERVER_SOFTWARE', 'Unknown')
-        if ss == 'Unknown' and 'uwsgi.version' in self.__environ:
-            ss = 'uWsgi'
-        return ss
+        soft = self.__environ.get('SERVER_SOFTWARE', 'Unknown')
+        if soft == 'Unknown' and 'uwsgi.version' in self.__environ:
+            soft = 'uWsgi'
+        return soft
 
     @property
     def server_admin(self):
@@ -733,7 +733,7 @@ class Request(object):
         if self.__content_length <= 0 and self.server_protocol != "HTTP/0.9":
             log.error("No Content-Length found, read was failed!")
             return b''
-        if length > -1 and length < self.__content_length:
+        if -1 < length < self.__content_length:
             self.read = self.__read
             return self.read(length)
         return self.__file.read(self.__content_length)
@@ -780,12 +780,15 @@ class Request(object):
 class EmptyForm(dict):
     """Compatibility class as fallback."""
     def getvalue(self, key, default=None):
+        """Just return default."""
         return default
 
     def getfirst(self, key, default=None, fce=str):
+        """Just return fce(default) if default is not None."""
         return fce(default) if default is not None else default
 
     def getlist(self, key, default=None, fce=str):
+        """Just yield fce(default) or iter default."""
         if isinstance(default, (list, set, tuple)):
             for it in default:
                 yield fce(it)
@@ -1031,8 +1034,7 @@ class FieldStorage(CgiFieldStorage):
         """
         if 'wsgi.file_callback' in self.environ:
             return self.environ['wsgi.file_callback'](self.filename)
-        else:
-            return CgiFieldStorage.make_file(self)
+        return CgiFieldStorage.make_file(self)
 
     def get(self, key, default=None):
         """Compatibility methods with dict, alias for getvalue."""

@@ -36,7 +36,7 @@ def to_response(response):
     return make_response(*response)
 
 
-class Application(object):
+class Application():
     """Poor WSGI application which is called by WSGI server.
 
     Working of is describe in PEP 0333. This object store route dispatch table,
@@ -51,7 +51,6 @@ class Application(object):
 
         That means, there could be exist only one instance with same name.
         """
-
         if Application.__instances.count(name):
             raise RuntimeError('Application with name %s exist yet.' % name)
         Application.__instances.append(name)
@@ -108,8 +107,11 @@ class Application(object):
             'document_index': 'Off',
             'secret_key': None
         }
-        # endtry
-    # enddef
+
+        # profile attributes
+        self.__runctx = None
+        self.__dump = None
+        self.__original_request__ = None
 
     def __regex(self, match):
         groups = match.groups()
@@ -127,7 +129,6 @@ class Application(object):
                                    _filter)
 
         return "(?P<%s>%s)" % (groups[0], regex)
-    # enddef
 
     def __convertor(self, _filter):
         _filter = str(_filter).lower()
@@ -430,12 +431,12 @@ class Application(object):
             def before_each_request(req):
                 print("Request coming")
         """
-        def wrapper(fn):
-            self.add_before_request(fn)
-            return fn
+        def wrapper(fun):
+            self.add_before_request(fun)
+            return fun
         return wrapper
 
-    def add_before_request(self, fn):
+    def add_before_request(self, fun):
         """Append handler to call before each request.
 
         Method adds function to list functions which is call before each
@@ -448,15 +449,15 @@ class Application(object):
 
             app.add_before(before_each_request)
         """
-        if self.__before.count(fn):
-            raise ValueError("%s is in list yet" % str(fn))
-        self.__before.append(fn)
+        if self.__before.count(fun):
+            raise ValueError("%s is in list yet" % str(fun))
+        self.__before.append(fun)
 
-    def pop_before_request(self, fn):
+    def pop_before_request(self, fun):
         """Remove handler added by add_before_request or before_request."""
-        if not self.__before.count(fn):
-            raise ValueError("%s is not in list" % str(fn))
-        self.__before.remove(fn)
+        if not self.__before.count(fun):
+            raise ValueError("%s is not in list" % str(fun))
+        self.__before.remove(fun)
 
     def after_request(self):
         """Append handler to call after each request.
@@ -471,12 +472,12 @@ class Application(object):
                 print("Request out")
                 return response
         """
-        def wrapper(fn):
-            self.add_after_request(fn)
-            return fn
+        def wrapper(fun):
+            self.add_after_request(fun)
+            return fun
         return wrapper
 
-    def add_after_request(self, fn):
+    def add_after_request(self, fun):
         """Append handler to call after each request.
 
         Method for direct append function to list functions which are called
@@ -490,15 +491,15 @@ class Application(object):
 
             app.add_after_request(after_each_request)
         """
-        if self.__after.count(fn):
-            raise ValueError("%s is in list yet" % str(fn))
-        self.__after.append(fn)
+        if self.__after.count(fun):
+            raise ValueError("%s is in list yet" % str(fun))
+        self.__after.append(fun)
 
-    def pop_after_request(self, fn):
+    def pop_after_request(self, fun):
         """Remove handler added by add_before_request or before_request."""
-        if not self.__before.count(fn):
-            raise ValueError("%s is not in list" % str(fn))
-        self.__after.remove(fn)
+        if not self.__before.count(fun):
+            raise ValueError("%s is not in list" % str(fun))
+        self.__after.remove(fun)
 
     def default(self, method=METHOD_HEAD | METHOD_GET):
         """Set default handler.
@@ -515,24 +516,24 @@ class Application(object):
                 # but without error
                 ...
         """
-        def wrapper(fn):
-            self.set_default(fn, method)
-            return fn
+        def wrapper(fun):
+            self.set_default(fun, method)
+            return fun
         return wrapper
     # enddef
 
-    def set_default(self, fn, method=METHOD_HEAD | METHOD_GET):
+    def set_default(self, fun, method=METHOD_HEAD | METHOD_GET):
         """Set default handler.
 
-        Set fn default handler for http method called befor error_not_found.
+        Set fun default handler for http method called befor error_not_found.
 
         .. code:: python
 
             app.set_default(default_get_post, METHOD_GET_POST)
         """
-        for m in methods.values():
-            if method & m:
-                self.__dhandlers[m] = fn
+        for val in methods.values():
+            if method & val:
+                self.__dhandlers[val] = fun
     # enddef
 
     def pop_default(self, method):
@@ -584,16 +585,16 @@ class Application(object):
         transfer to normal regular expression, and will be add to second
         internal table.
         """
-        def wrapper(fn):
-            self.set_route(uri, fn, method)
-            return fn
+        def wrapper(fun):
+            self.set_route(uri, fun, method)
+            return fun
         return wrapper
     # enddef
 
-    def set_route(self, uri, fn, method=METHOD_HEAD | METHOD_GET):
+    def set_route(self, uri, fun, method=METHOD_HEAD | METHOD_GET):
         """Set handler for uri and method.
 
-        Another way to add fn as handler for uri. See Application.route
+        Another way to add fun as handler for uri. See Application.route
         documentation for details.
 
         .. code:: python
@@ -604,15 +605,14 @@ class Application(object):
             r_uri = re_filter.sub(self.__regex, uri) + '$'
             convertors = tuple((g[0], self.__convertor(g[1]))
                                for g in (m.groups()
-                               for m in re_filter.finditer(uri)))
-            self.set_regular_route(r_uri, fn, method, convertors, uri)
+                                         for m in re_filter.finditer(uri)))
+            self.set_regular_route(r_uri, fun, method, convertors, uri)
         else:
             if uri not in self.__handlers:
                 self.__handlers[uri] = {}
-            for m in methods.values():
-                if method & m:
-                    self.__handlers[uri][m] = fn
-    # enddef
+            for val in methods.values():
+                if method & val:
+                    self.__handlers[uri][val] = fun
 
     def pop_route(self, uri, method):
         """Pop handler for uri and method from handers table.
@@ -624,12 +624,12 @@ class Application(object):
         if re_filter.search(uri):
             r_uri = re_filter.sub(self.__regex, uri) + '$'
             return self.pop_regular_route(r_uri, method)
-        else:
-            handlers = self.__handlers.get(uri, {})
-            rv = handlers.pop(method)
-            if not handlers:    # is empty
-                self.__handlers.pop(uri, None)
-            return rv
+
+        handlers = self.__handlers.get(uri, {})
+        rval = handlers.pop(method)
+        if not handlers:    # is empty
+            self.__handlers.pop(uri, None)
+        return rval
 
     def is_route(self, uri):
         """Check if uri have any registered record."""
@@ -661,13 +661,12 @@ class Application(object):
         as you create internal table of them. First match stops any other
         searching.
         """
-        def wrapper(fn):
-            self.set_regular_route(ruri, fn, method)
-            return fn
+        def wrapper(fun):
+            self.set_regular_route(ruri, fun, method)
+            return fun
         return wrapper
-    # enddef
 
-    def set_regular_route(self, r_uri, fn, method=METHOD_HEAD | METHOD_GET,
+    def set_regular_route(self, r_uri, fun, method=METHOD_HEAD | METHOD_GET,
                           convertors=(), rule=None):
         r"""Set hanlder for uri defined by regular expression.
 
@@ -685,10 +684,9 @@ class Application(object):
         r_uri = re.compile(r_uri, re.U)
         if r_uri not in self.__rhandlers:
             self.__rhandlers[r_uri] = {}
-        for m in methods.values():
-            if method & m:
-                self.__rhandlers[r_uri][m] = (fn, convertors, rule)
-    # enddef
+        for val in methods.values():
+            if method & val:
+                self.__rhandlers[r_uri][val] = (fun, convertors, rule)
 
     def pop_regular_route(self, r_uri, method):
         """Pop handler and convertors for uri and method from handlers table.
@@ -697,10 +695,10 @@ class Application(object):
         """
         r_uri = re.compile(r_uri, re.U)
         handlers = self.__rhandlers.get(r_uri, {})
-        rv = handlers.pop(method)
+        rval = handlers.pop(method)
         if not handlers:    # is empty
             self.__rhandlers.pop(r_uri, None)
-        return rv
+        return rval
 
     def is_regular_route(self, r_uri):
         """Check if regular expression uri have any registered record."""
@@ -716,21 +714,19 @@ class Application(object):
             def page_not_found(req):
                 return "Your request %s not found." % req.uri, "text/plain"
         """
-        def wrapper(fn):
-            self.set_http_state(code, fn, method)
-            return fn
+        def wrapper(fun):
+            self.set_http_state(code, fun, method)
+            return fun
         return wrapper
-    # enddef
 
-    def set_http_state(self, code, fn,
+    def set_http_state(self, code, fun,
                        method=METHOD_HEAD | METHOD_GET | METHOD_POST):
         """Set fn as handler for http state code and method."""
         if code not in self.__shandlers:
             self.__shandlers[code] = {}
-        for m in methods.values():
-            if method & m:
-                self.__shandlers[code][m] = fn
-    # enddef
+        for val in methods.values():
+            if method & val:
+                self.__shandlers[code][val] = fun
 
     def pop_http_state(self, code, method):
         """Pop handerl for http state and method.
@@ -782,8 +778,8 @@ class Application(object):
 
         This method was call before end-point route handler.
         """
-        for fn in self.__before:
-            fn(req)
+        for fun in self.__before:
+            fun(req)
 
     def handler_from_table(self, req):
         """Call right handler from handlers table (fill with route function).
@@ -801,11 +797,9 @@ class Application(object):
                 req.uri_handler = handler
                 self.handler_from_before(req)  # call before handlers now
                 return handler(req)       # call right handler now
-            else:
-                self.handler_from_before(req)  # call before handlers now
-                raise HTTPException(HTTP_METHOD_NOT_ALLOWED)
-            # endif
-        # endif
+
+            self.handler_from_before(req)  # call before handlers now
+            raise HTTPException(HTTP_METHOD_NOT_ALLOWED)
 
         # regular expression
         for ruri in self.__rhandlers.keys():
@@ -815,7 +809,7 @@ class Application(object):
                     self.__rhandlers[ruri][req.method_number]
                 req.uri_rule = rule or ruri.pattern
                 req.uri_handler = handler
-                if len(convertors):
+                if convertors:
                     # create OrderedDict from match insead of dict for
                     # convertors applying
                     req.path_args = OrderedDict(
@@ -823,11 +817,10 @@ class Application(object):
                                                         match.groups()))
                     self.handler_from_before(req)   # call before handlers now
                     return handler(req, *req.path_args.values())
-                else:
-                    req.path_args = match.groupdict()
-                    self.handler_from_before(req)   # call before handlers now
-                    return handler(req, *match.groups())
-        # endfor
+
+                req.path_args = match.groupdict()
+                self.handler_from_before(req)   # call before handlers now
+                return handler(req, *match.groups())
 
         # try file or index
         if req.document_root and \
@@ -860,7 +853,7 @@ class Application(object):
                 return directory_index(req, rfile)
             self.handler_from_before(req)      # call before handlers now
             raise HTTPException(HTTP_FORBIDDEN)
-        # endif
+        # req.document_root
 
         if req.debug and req.uri == '/debug-info':
             req.uri_rule = '/debug-info'
@@ -869,7 +862,6 @@ class Application(object):
             return debug_info(req, self)
 
         return self.handler_from_default(req)
-    # enddef
 
     def __request__(self, env, start_response):
         """Create Request instance and return wsgi response.
@@ -897,8 +889,8 @@ class Application(object):
                 else:
                     response = to_response(
                         self.error_from_table(request, status_code))
-        except (ConnectionError, SystemExit) as e:
-            log.warning(str(e))
+        except (ConnectionError, SystemExit) as err:
+            log.warning(str(err))
             log.warning('   ***   You should ignore next error   ***')
             return ()
         except ResponseError:
@@ -909,15 +901,17 @@ class Application(object):
                 log.error("Bad returned value from %s", request.error_handler)
                 response = internal_server_error(request)
 
-        except BaseException as e:
+        except BaseException as err:
             if request is None:
-                log.critical(str(e))
+                log.critical(str(err))
                 Failed = namedtuple(
-                    "Failed", ('debug', 'server_software', 'server_admin'))
+                    "Failed", ('debug', 'server_software', 'server_admin',
+                               'error_handler'))
                 request = Failed(
                     self.debug,
                     env.get('SERVER_SOFTWARE', 'Unknown'),
-                    env.get('SERVER_ADMIN', 'Unknown'))
+                    env.get('SERVER_ADMIN', 'Unknown'),
+                    internal_server_error)
 
             try:
                 response = to_response(self.error_from_table(request, 500))
@@ -927,9 +921,9 @@ class Application(object):
 
         __fn = None
         try:    # call post_process handler
-            for fn in self.__after:
-                __fn = fn
-                response = to_response(fn(request, response))
+            for fun in self.__after:
+                __fn = fun
+                response = to_response(fun(request, response))
         except BaseException:
             log.error("Handler %s from %s returns invalid data or crashed",
                       __fn, __fn.__module__)
@@ -952,15 +946,15 @@ class Application(object):
         """Profiler version of __request__.
 
         This method is used if set_profile is used."""
-        def wrapper(rv):
-            rv.append(self.__original_request__(env, start_response))
+        def wrapper(rval):
+            rval.append(self.__original_request__(env, start_response))
 
-        rv = []
-        uri_dump = (self._dump + env.get('PATH_INFO').replace('/', '_') +
+        rval = []
+        uri_dump = (self.__dump + env.get('PATH_INFO').replace('/', '_') +
                     '.profile')
         log.info('Generate %s', uri_dump)
-        self._runctx('wrapper(rv)', globals(), locals(), filename=uri_dump)
-        return rv[0]
+        self.__runctx('wrapper(rv)', globals(), locals(), filename=uri_dump)
+        return rval[0]
     # enddef
 
     def __repr__(self):
@@ -984,8 +978,8 @@ class Application(object):
                             filename="log/init.profile")
             app.set_profile(cProfile.runctx, 'log/req')
         """
-        self._runctx = runctx
-        self._dump = dump
+        self.__runctx = runctx
+        self.__dump = dump
 
         self.__original_request__ = self.__request__
         self.__request__ = self.__profile_request__

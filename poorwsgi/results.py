@@ -73,6 +73,7 @@ def handlers_view(handlers, sort=True):
 
 
 def not_modified(req):
+    """Return EmptyResponse with Not Modified status."""
     return EmptyResponse(HTTP_NOT_MODIFIED)
 
 
@@ -389,6 +390,10 @@ def directory_index(req, path):
 
 
 def debug_info(req, app):
+    """Return debug page.
+
+    When Application.debug is enable, this handler is used for /debug-info.
+    """
     # transform static handlers table to html
     shandlers_html = "<tr><th>Static:</th></tr>\n"
     shandlers_html += "\n".join(
@@ -423,7 +428,7 @@ def debug_info(req, app):
          '<td>%s</td><td>%s</td></tr>' %
          (human_methods_(m),
           f.__module__+'.'+f.__name__)
-            for x, m, f in handlers_view({'x': app.defaults})))
+         for x, m, f in handlers_view({'x': app.defaults})))
 
     # transform state handlers and default state table to html, users handler
     # from shandlers are preferer
@@ -606,8 +611,8 @@ def debug_info(req, app):
 
 def __fill_default_shandlers(code, handler):
     default_states[code] = {}
-    for m in methods.values():
-        default_states[code][m] = handler
+    for val in methods.values():
+        default_states[code][val] = handler
 
 
 __fill_default_shandlers(HTTP_NOT_MODIFIED, not_modified)

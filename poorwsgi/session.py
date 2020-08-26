@@ -33,14 +33,14 @@ def hidden(text, passwd):
     if isinstance(text, str):
         text = text.encode("utf-8")
 
-    if isinstance(text, str):       # text is str, we are in python 2.x
+    if isinstance(text, str):       # if text is str
         retval = ''
-        for i in range(len(text)):
-            retval += chr(ord(text[i]) ^ ord(passwd[i % passlen]))
-    else:                           # text is bytes, we are in python 3.x
+        for i, val in enumerate(text):
+            retval += chr(ord(val) ^ ord(passwd[i % passlen]))
+    else:                           # if text is bytes
         retval = bytearray()
-        for i in range(len(text)):
-            retval.append(text[i] ^ passwd[i % passlen])
+        for i, val in enumerate(text):
+            retval.append(val ^ passwd[i % passlen])
 
     return retval
 

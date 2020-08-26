@@ -274,6 +274,7 @@ class GeneratorResponse(Response):
         self.__generator = generator
 
     def write(self, data):
+        """Not possible to write data ro GeneratorResponse."""
         raise RuntimeError("Generator Response can't write data")
 
     def __end_of_response__(self):
@@ -375,7 +376,7 @@ class RedirectResponse(Response):
 
 
 class ResponseError(RuntimeError):
-    pass
+    """Exception for bad response values."""
 
 
 def make_response(data, content_type="text/html; charset=utf-8",

@@ -4,7 +4,6 @@
 :Functions: hidden
 """
 from hashlib import sha512
-from time import time
 from pickle import dumps, loads
 from base64 import b64decode, b64encode
 
@@ -12,6 +11,9 @@ import bz2
 import logging as log
 
 from http.cookies import SimpleCookie
+
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-instance-attributes
 
 
 def hidden(text, passwd):
@@ -56,7 +58,7 @@ class NoCompress:
     """
 
     @staticmethod
-    def compress(data, compresslevel=0):
+    def compress(data, compresslevel=0):  # pylint: disable=unused-argument
         """Get two params, data, and compresslevel. Method only return data."""
         return data
 
@@ -140,7 +142,7 @@ class PoorSession:
             raise SessionError("poor_SecretKey is not set!")
 
         self.__secret_key = req.secret_key
-        self.__SID = SID
+        self.__SID = SID  # pylint: disable=invalid-name
         self.__expires = expires
         self.__max_age = max_age
         self.__domain = domain
@@ -171,19 +173,6 @@ class PoorSession:
             if not isinstance(self.data, dict):
                 raise SessionError("Cookie data is not dictionary!")
 
-            if 'expires' in self.data and self.data['expires'] < int(time()):
-                log.info('Session was expired, generating new.')
-                self.data = {}
-
-    def renew(self):
-        """Renew cookie, in fact set expires to next time if it set."""
-        if self.__expires:
-            self.data['expires'] = int(time()) + self.__expires
-            return
-
-        if 'expires' in self.data:
-            self.data.pop('expires')
-
     def write(self):
         """Store data to cookie value.
 
@@ -204,18 +193,18 @@ class PoorSession:
         if self.__same_site:
             self.cookie[self.__SID]['SameSite'] = self.__same_site
         if self.__expires:
-            self.data['expires'] = int(time()) + self.__expires
             self.cookie[self.__SID]['expires'] = self.__expires
         if self.__max_age is not None:
-            self.data['expires'] = int(time()) + self.__max_age
             self.cookie[self.__SID]['Max-Age'] = self.__max_age
 
         return raw
 
     def destroy(self):
-        """Destroy session. In fact, set cookie expires value to past (-1)."""
-        self.data = {}
-        self.data['expires'] = -1
+        """Destroy session. In fact, set cookie expires value to past (-1).
+
+        Be sure, that data can't be changed:
+        https://stackoverflow.com/a/5285982/8379994
+        """
         self.cookie[self.__SID]['expires'] = -1
         if self.__max_age is not None:
             self.cookie[self.__SID]['Max-Age'] = -1

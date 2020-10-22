@@ -1,7 +1,7 @@
 ==== 2.3.0 ====
-    * Errors in parsing requests return with 500 Internal Server Error
+    * Errors in parsing requests end with 500 Internal Server Error
     * JsonDict and JsonList objects for dict or list json request variant.
-    * JSONGeneratorResponse to returned json from generators as generator.
+    * JSONGeneratorResponse to returns json from generators as generator.
     * Fixies for new openapi_core 0.13.0 version.
     * Better error log when error in after_request process
     * PoorSession cookie flags:
@@ -23,6 +23,9 @@
     * Request.timestamp - set as soon as possible
     * empty FieldStorage did't raise exception
     * more info about request in internal server error page
+    * Request path as right attribute for /path
+    * Request full_path attribute for /path?query=arguments
+    * HTTP Digest Authorization support
 
 ==== 2.2.0 ====
     * openapi after_request example fix

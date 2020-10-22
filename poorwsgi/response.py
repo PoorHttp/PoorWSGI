@@ -48,21 +48,26 @@ class HTTPException(Exception):
     Simple error exception:
 
     >>> HTTPException(404)  # doctest: +ELLIPSIS
-    HTTPException(404...)
+    HTTPException(404, {}...)
 
     Exception with response:
 
     >>> HTTPException(Response(data=b'Created', status_code=201))
     ...                     # doctest: +ELLIPSIS
     HTTPException(<poorwsgi.response.Response object at 0x...>...)
+
+    Attributes:
+
+    >>> HTTPException(401, stale=True)  # doctest: +ELLIPSIS
+    HTTPException(401, {'stale': True}...)
     """
-    def __init__(self, arg):
+    def __init__(self, arg, **kwargs):
         """status_code is one of HTTP_* status code from state module.
 
         If response is set, that will use, otherwise the handler from
         Application will be call."""
         assert isinstance(arg, (int, Response))
-        super(HTTPException, self).__init__(arg)
+        super(HTTPException, self).__init__(arg, kwargs)
 
 
 class Response:
@@ -415,7 +420,7 @@ def abort(arg):
     >>> abort(404)
     Traceback (most recent call last):
     ...
-    poorwsgi.response.HTTPException: 404
+    poorwsgi.response.HTTPException: (404, {})
 
     Raise exception with response:
 
@@ -423,6 +428,6 @@ def abort(arg):
     Traceback (most recent call last):
     ...
     poorwsgi.response.HTTPException:
-    <poorwsgi.response.Response object at 0x...>
+    (<poorwsgi.response.Response object at 0x...>, {})
     """
     raise HTTPException(arg)

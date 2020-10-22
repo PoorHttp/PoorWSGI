@@ -554,5 +554,5 @@ def not_implemented(req):
 
 if __name__ == '__main__':
     httpd = make_server('127.0.0.1', 8080, app)
-    print("Starting serve on http://127.0.0.1:8080")
+    print("Starting to serve on http://127.0.0.1:8080")
     httpd.serve_forever()

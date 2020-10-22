@@ -13,15 +13,17 @@ from operator import itemgetter
 from sys import version, exc_info
 from inspect import cleandoc
 from logging import getLogger
+from hashlib import sha256
 
 import mimetypes
 
 from poorwsgi.response import Response, EmptyResponse, HTTPException
 from poorwsgi.state import METHOD_ALL, methods, sorted_methods, \
-    HTTP_NOT_MODIFIED, HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_NOT_FOUND, \
-    HTTP_METHOD_NOT_ALLOWED, HTTP_INTERNAL_SERVER_ERROR, \
+    HTTP_NOT_MODIFIED, HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED, HTTP_FORBIDDEN, \
+    HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED, HTTP_INTERNAL_SERVER_ERROR, \
     HTTP_NOT_IMPLEMENTED, \
     __version__, __date__
+from poorwsgi.session import get_token
 
 HTML_ESCAPE_TABLE = {'&': "&amp;",
                      '"': "&quot;",
@@ -173,6 +175,57 @@ def bad_request(req):
         " </body>\n"
         "</html>" % (req.method, req.uri, req.server_admin))
     return Response(content, status_code=HTTP_BAD_REQUEST)
+
+
+def unauthorized(req, realm=None, stale=''):
+    """Return 401 Unauthorized response."""
+    headers = None
+    if req.app.auth_type == 'Digest':
+        if not realm:
+            raise RuntimeError("Digest: realm value must be set")
+
+        nonce = get_token(req.secret_key, req.user_agent,
+                          timeout=req.app.auth_timeout)
+        opaque = sha256(req.server_hostname.encode()).hexdigest()
+
+        qop = req.app.auth_qop or ''
+        if qop:
+            qop = 'qop="%s",' % req.app.auth_qop
+
+        header = (
+            'Digest realm="{realm}",{qop}algorithm="{algorithm}",'
+            'nonce="{nonce}",opaque="{opaque}"'
+            ''.format(realm=realm, qop=qop, algorithm=req.app.auth_algorithm,
+                      nonce=nonce, opaque=opaque))
+        if stale:
+            header += ',stale=true'
+
+        # Headers could be tuple, than each header value must be another
+        # available authenticate method, for example SHA-256 algorithm.
+        headers = {'WWW-Authenticate': header}
+
+    content = (
+        "<!DOCTYPE html>\n"
+        "<html>\n"
+        " <head>\n"
+        "  <title>401 - Unauthorized</title>\n"
+        '  <meta http-equiv="content-type" '
+        'content="text/html; charset=utf-8"/>\n'
+        "  <style>\n"
+        "   body {width: 80%%; margin: auto; padding-top: 30px;}\n"
+        "   h1 {text-align: center; color: #707070;}\n"
+        "   p {text-indent: 30px; margin-top: 30px; margin-bottom: 30px;}\n"
+        "  </style>\n"
+        " </head>\n"
+        " <body>\n"
+        "  <h1>401 - Unauthorized</h1>\n"
+        "  <p>Method %s for %s uri.</p>\n"
+        "  <hr>\n"
+        "  <small><i>webmaster: %s </i></small>\n"
+        " </body>\n"
+        "</html>" % (req.method, req.uri, req.server_admin))
+
+    return Response(content, headers=headers, status_code=HTTP_UNAUTHORIZED)
 
 
 def forbidden(req):
@@ -617,6 +670,7 @@ def __fill_default_shandlers(code, handler):
 
 __fill_default_shandlers(HTTP_NOT_MODIFIED, not_modified)
 __fill_default_shandlers(HTTP_BAD_REQUEST, bad_request)
+__fill_default_shandlers(HTTP_UNAUTHORIZED, unauthorized)
 __fill_default_shandlers(HTTP_FORBIDDEN, forbidden)
 __fill_default_shandlers(HTTP_NOT_FOUND, not_found)
 __fill_default_shandlers(HTTP_METHOD_NOT_ALLOWED, method_not_allowed)

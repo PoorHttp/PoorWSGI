@@ -24,7 +24,8 @@ from poorwsgi.state import methods, \
 log = getLogger("poorwsgi")
 
 # simple regular expression for construct_url method
-re_httpUrlPatern = re.compile(r"^(http|https):\/\/")
+RE_HTTPURLPATTERN = re.compile(r"^(http|https):\/\/")
+RE_AUTHORIZATION = re.compile(r'(\w+)[=] ?("[^"]+"|[\w-]+)')
 
 
 def parse_negotiation(value):
@@ -209,14 +210,14 @@ class Request():
     Special variables for user use are prefixed with ``app_``.
     """
 
-    def __init__(self, environ, app_config):
+    def __init__(self, environ, app):
         """Object was created automatically in wsgi module.
 
         It's input parameters are the same, which Application object gets from
         WSGI server plus file callback for auto request body parsing.
         """
         self.__timestamp = time()
-        self.__app_config = app_config
+        self.__app = app
         self.__environ = environ
         if environ.get('PATH_INFO') is None:
             raise ConnectionError(
@@ -256,6 +257,7 @@ class Request():
         self.__accept_charset = None
         self.__accept_encoding = None
         self.__accept_language = None
+        self.__authorization = None
 
         # uwsgi do not sent environ variables to apps environ
         if 'uwsgi.version' in self.__environ or 'poor.Version' in os.environ:
@@ -266,8 +268,8 @@ class Request():
         self.__file = self.__environ.get("wsgi.input")
         self._errors = self.__environ.get("wsgi.errors")
 
-        if app_config['auto_data'] and \
-                0 <= self.__content_length <= app_config['data_size']:
+        if app.auto_data and \
+                0 <= self.__content_length <= app.data_size:
             self.__file = BytesIO(self.__file.read(self.__content_length))
             self.__file.seek(0)
 
@@ -275,37 +277,40 @@ class Request():
         self.__path_args = None
 
         # args
-        if app_config['auto_args']:
-            self.__args = Args(self, app_config['keep_blank_values'],
-                               app_config['strict_parsing'])
+        if app.auto_args:
+            self.__args = Args(self, app.keep_blank_values,
+                               app.strict_parsing)
         else:
             self.__args = EmptyForm()
 
         # test auto json parsing
-        if app_config['auto_json'] and self.is_body_request \
-                and self.__mime_type in app_config['json_mime_types']:
+        if app.auto_json and self.is_body_request \
+                and self.__mime_type in app.json_mime_types:
             self.__json = parse_json_request(self, self.__charset)
             self.__form = EmptyForm()
         # test auto form parsing
-        elif app_config['auto_form'] and self.is_body_request \
-                and self.__mime_type in app_config['form_mime_types']:
+        elif app.auto_form and self.is_body_request \
+                and self.__mime_type in app.form_mime_types:
             self.__form = FieldStorage(
-                self, keep_blank_values=app_config['keep_blank_values'],
-                strict_parsing=app_config['strict_parsing'],
-                file_callback=app_config['file_callback'])
+                self, keep_blank_values=app.keep_blank_values,
+                strict_parsing=app.strict_parsing,
+                file_callback=app.file_callback)
             self.__json = EmptyForm()
         else:
             self.__form = EmptyForm()
             self.__json = EmptyForm()
 
-        if app_config['auto_cookies'] and 'Cookie' in self.__headers:
+        if app.auto_cookies and 'Cookie' in self.__headers:
             self.__cookies = SimpleCookie()
             self.__cookies.load(self.__headers['Cookie'])
         else:
             self.__cookies = tuple()
 
-        self.__debug = self.__poor_environ.get(
-            'poor_Debug', app_config['debug']).lower() == 'on'
+        var = self.__poor_environ.get('poor_Debug')
+        if var:
+            self.__debug = var.lower() == 'on'
+        else:
+            self.__debug = app.debug
 
         # variables for user use
         self.__user = None
@@ -313,6 +318,11 @@ class Request():
     # enddef
 
     # -------------------------- Properties --------------------------- #
+    @property
+    def app(self):
+        """Return Application object which was created Request."""
+        return self.__app
+
     @property
     def mime_type(self):
         """Request ``Content-Type`` header string."""
@@ -356,8 +366,24 @@ class Request():
 
     @property
     def uri(self):
-        """The path portion of the URI."""
+        """Deprecated alias for path of the URI."""
         return self.__environ.get('PATH_INFO')
+
+    @property
+    def path(self):
+        """Path part of url."""
+        return self.__environ.get('PATH_INFO')
+
+    @property
+    def query(self):
+        """The QUERY_STRING environment variable."""
+        return self.__environ.get('QUERY_STRING', '').strip()
+
+    @property
+    def full_path(self):
+        """Path with query, if it exist, from url."""
+        query = self.query
+        return self.path + ('?'+query if query else '')
 
     @property
     def uri_rule(self):
@@ -466,6 +492,17 @@ class Request():
            values.
         """
         return "application/json" in dict(self.accept)
+
+    @property
+    def authorization(self):
+        """Return Authorization header parsed to dictionary."""
+        if self.__authorization is None:
+            auth = self.__headers.get('Authorization', '').strip()
+            self.__authorization = dict(
+                (key, val.strip('"')) for key, val in
+                RE_AUTHORIZATION.findall(auth))
+            self.__authorization['type'] = auth[:auth.find(' ')].capitalize()
+        return self.__authorization.copy()
 
     @property
     def is_xhr(self):
@@ -662,7 +699,7 @@ class Request():
         """
         return self.__poor_environ.get(
             'poor_SecretKey',
-            self.__app_config['secret_key'])
+            self.__app.secret_key)
 
     @property
     def document_index(self):
@@ -671,16 +708,17 @@ class Request():
         Variable is used to generate index html page, when poor_DocumentRoot
         is set.
         """
-        return self.__poor_environ.get(
-            'poor_DocumentIndex',
-            self.__app_config['document_index']).lower() == 'on'
+        var = self.__poor_environ.get('poor_DocumentIndex')
+        if var:
+            return var.lower() == 'on'
+        return self.__app.document_index
 
     @property
     def document_root(self):
         """Returns DocumentRoot setting."""
         return self.__poor_environ.get(
             'poor_DocumentRoot',
-            self.__app_config['document_root'])
+            self.__app.document_root)
 
     @property
     def data(self):
@@ -766,7 +804,7 @@ class Request():
         and port. The port number is not included in the string if it is the
         same as the default port 80."""
 
-        if not re_httpUrlPatern.match(uri):
+        if not RE_HTTPURLPATTERN.match(uri):
             return "%s://%s%s" % (self.forwarded_proto or self.server_scheme,
                                   self.forwarded_host or self.hostname, uri)
         return uri
@@ -803,7 +841,7 @@ class Args(dict):
     which can call function on values.
     """
     def __init__(self, req, keep_blank_values=0, strict_parsing=0):
-        qs = req.environ.get('QUERY_STRING', '').strip()
+        qs = req.query
         args = parse_qs(qs, keep_blank_values, strict_parsing) if qs else {}
         dict.__init__(self, ((key, val[0] if len(val) < 2 else val)
                              for key, val in args.items()))

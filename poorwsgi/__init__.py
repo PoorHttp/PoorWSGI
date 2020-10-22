@@ -13,6 +13,7 @@ Current Contents:
 * state: constants like http status code and method types
 * wsgi: Application callable class, which is the main point for poorwsgi web
   application.
+* digest: HTTP Digest Authorization support.
 * openapi_wrapper: OpenAPI core wrapper for PoorWSGI Request and Response
   object
 """

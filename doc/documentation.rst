@@ -14,17 +14,17 @@ convert to bytes, because it's WSGI internal. HTTP Response is 200 OK with
 
 .. code:: python
 
-   @app.route('/some/uri')
-   def some_uri(req):
-      return 'This is content for some uri'
+   @app.route('/some/path')
+   def some_path(req):
+      return 'This is content for some path'
 
 This examples returns the same values.
 
 .. code:: python
 
-   @app.route('/other/uri')
-   def some_uri(req):
-      return b'This is content for some uri'
+   @app.route('/other/path')
+   def some_path(req):
+      return b'This is content for some path'
 
 Generator
 `````````
@@ -283,7 +283,7 @@ Have the same interface as HTTPException, and voila, it raise the HTTPException.
 Routing
 -------
 
-There are too ways how to set uri handler. Via decorators of Application object,
+There are two ways how to set path handler. Via decorators of Application object,
 or method set\_ where one of parameter is your handler. It is important how look
 your application. If your web project have one or a few files where your
 handlers are, it is good idea to use decorators. But if you have big project
@@ -295,26 +295,26 @@ Static Routing
 ~~~~~~~~~~~~~~
 There are method and decorator to set your function (handler) to response static
 route. Application.set_route and Application.route. Both of them have tho
-parametrs, first the required uri like ``/some/uri/for/you`` and next method
+parametrs, first the required path like ``/some/path/for/you`` and next method
 flags, which is default METHOD_HEAD | METHOD_GET. There are other methods
 in state module like METHOD_POST, METHOD_PUT etc. There is two special constants
 METHOD_GET_POST which is HEAD | GET | POST, aned METHOD_ALL which is all
-supported methods. If method not match, but uri is exist in internal table,
-http state HTTP_METHOD_NOT_ALLOWED is return.
+supported methods. If method does not match, but path is exist in internal
+table, http state HTTP_METHOD_NOT_ALLOWED is return.
 
 .. code:: python
 
-    @app.route('/some/uri')
-    def some_uri(req):
-        return 'Data of some uri'
+    @app.route('/some/path')
+    def some_path(req):
+        return 'Data of some path'
 
-    def other_uri(req):
-        return 'Data of other uri'
-    app.set_route('/some/other/uri', other_uri, state.METHOD_GET_POST)
+    def other_path(req):
+        return 'Data of other path'
+    app.set_route('/some/other/path', other_path, state.METHOD_GET_POST)
 
 You pop from application table via method Application.pop_route, or get internal
-table via Application.routes property. **Each uri could have only one handler**,
-but one handler could be use for more uris.
+table via Application.routes property. **Each path can have only one handler**,
+but one handler can be use for more path.
 
 Regular expression routes
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -446,7 +446,7 @@ route handlers.
 
     @app.http_state(state.HTTP_NOT_FOUND)
     def page_not_found(req):
-        return "Your request %s not found." % req.uri, "text/plain"
+        return "Your request %s not found." % req.path, "text/plain"
 
 If your http state (error) handler was crashed with error, internal server
 error was return and right handler is called. If this your handler was crashed
@@ -494,7 +494,7 @@ TODO: How to write output filter, gzip for example....
 
 Request variables
 -----------------
-PoorWSGI has two extra classes for get arguments. From request uri, typical
+PoorWSGI has two extra classes for get arguments. From request path, typical
 for GET method and from request body, typical for POST method. This parsing is
 enabled by default, but you can configure with options.
 
@@ -856,6 +856,7 @@ Next to it there are some Request properties, to get parset header values.
                     header.
 :is_xhr:            True if ``X-Requested-With`` is ``XMLHttpRequest``.
 :cookies:           Cooike object created from ``Cookie`` header or empty tuple.
+:authorization:     Parsed ``Authorization`` header to dictionary.
 :referer:           Http referer from ``Referer`` header or None
 :user_agent:        User's client from ``User-Agent`` header or None.
 :forwarded_for:     Value of ``X-Forward-For`` header or None.
@@ -873,8 +874,8 @@ more times.
 
 .. code:: python
 
-    @app.route('/some/uri')
-    def some_uri(req):
+    @app.route('/some/path')
+    def some_path(req):
         xparam = int(req.headers.get('X-Param', '0'))
         # res.headers will have X-Powered-By, Content-Type and Content-Length
         res = Response("O yea!", content_type="text/plain")
@@ -923,7 +924,7 @@ hidden function.
                 log.info('Bad password')
                 redirect('/login', text='Bad password')
 
-            response = RedirectResponse("/private/uri")
+            response = RedirectResponse("/private/path")
             cookie = PoorSession(req)
             cookie.data['passwd'] = passwd
             cookie.header(response)
@@ -932,9 +933,9 @@ hidden function.
         return 'some html login form'
 
 
-    @app.route('/private/uri')
+    @app.route('/private/path')
     @check_login
-    def private_uri(req):
+    def private_path(req):
         return 'Some private data'
 
 
@@ -945,6 +946,86 @@ hidden function.
         cookie.destroy()
         cookie.header(response)
         return response
+
+HTTP Digest Auth
+~~~~~~~~~~~~~~~~
+
+PoorWSGI supports HTTP Digest Authorization from version 2.3.x.
+Supported are:
+
+    * MD5, MD5-sess, SHA-256, SHA-256-sess algorithm, **MD5-sess** is default
+    * none or auth quality of protection (qop), **auth** is default
+    * nonce value timeout, so new hash will be count every N seconds,
+      **300** sec (5min) is default
+    * ``nc`` header value from browser **is not checked** on server side now
+
+
+Application settings
+````````````````````
+
+There are some application options, which are used for HTTP Authorization
+configuration.
+
+    :secret_key:        Secret Key is used for generating ``nonce`` value,
+                        which is server side token.
+    :auth_type:         At this moment, only ``Digest`` value can be set.
+    :auth_algorithm:    You can choose algorithm type for hash computing. But
+                        most browser understand only ``MD5`` or ``MD5-sess``,
+                        which is default. ``SHA256`` is supported by PoorWSGI
+                        too.
+    :auth_qop:          Only ``auth`` is supported. You can switch off it, when
+                        you set it to ``None`` or empty string.
+    :auth_timeout:      You can set timeout for ``nonce`` token, so browser must
+                        generate new hash values at least each *timeout* value.
+    :auth_map:          Must be dictionary of dictionary of users digests. You
+                        can use PasswordMap, which has some additional methods
+                        for managing it, and save to / load from standard
+                        digest files.
+
+.. code:: python
+
+    from poorwsgi import Application
+
+    app = Application(__name__)
+    # secret key must set before auth_type
+    app.secret_key = sha256(str(time()).encode()).hexdigest()
+    app.auth_type = 'Digest'
+    app.auth_map = PasswordMap('test.digest')
+    app.auth_map.load()  # load table from test.digest file
+
+Usage
+`````
+
+There is check_digest decorator, which can be used simply to check
+``Authorization`` header in client requests. Be careful to overriding default
+HTTP_UNAUTHORIZED handler, which must return right ``WWW-Authenticate`` header,
+when browser doesn't sent right ``Authorization`` header.
+
+.. code:: python
+
+    @app.route('/admin_zone')
+    @check_digest('Admin Zone')
+    def admin_zone(req):
+        """Page only for *Admin Zone* realm."""
+        return "You are %s user" % req.user.
+
+
+    @app.route('/user')
+    @check_digest('User Zone', 'foo')
+    def user_only(req):
+        """Page only for *foo* user in *User Zone* only."""
+        ...
+
+The poorwsgi.digest module can be use for managing digest file too. But you
+can manage PasswordMap directly with methods.
+
+.. code:: sh
+
+    python3 -m poorwsgi.digest -c digest.passwd 'User Zone' bfu
+    ...
+
+    # see full help
+    python3 -m poorwsgi.digest -h
 
 
 Debugging

@@ -93,3 +93,7 @@ test or use it as you can. See:
 **openapi3.py**
     https://github.com/PoorHttp/PoorWSGI/blob/master/examples/openapi3.py
     https://github.com/PoorHttp/PoorWSGI/blob/master/examples/openapi.json
+
+**http_digest.py**
+    https://github.com/PoorHttp/PoorWSGI/blob/master/examples/http_digest.py
+    https://github.com/PoorHttp/PoorWSGI/blob/master/examples/test.digest

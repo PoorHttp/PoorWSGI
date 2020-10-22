@@ -48,6 +48,8 @@ class TestJSON:
 
 class TestArgs:
     class Req:
+        app = None
+        query = ''
         environ = {}
 
     def test_empty(self):

@@ -8,6 +8,7 @@
 from os import path, access, R_OK, environ
 from collections import OrderedDict, namedtuple
 from logging import getLogger
+from hashlib import md5, sha256
 
 import re
 
@@ -24,6 +25,16 @@ log = getLogger("poorwsgi")
 
 # check, if there is define filter in uri
 re_filter = re.compile(r'<(\w+)(:[^>]+)?>')
+
+# Supported authorization algorithms
+AUTH_DIGEST_ALGORITHMS = {
+    'MD5': md5,
+    'MD5-sess': md5,
+    'SHA-256': sha256,
+    'SHA-256-sess': sha256,
+    # 'SHA-512-256': sha512,  # Need extend library
+    # 'SHA-512-256-sess': sha512,
+}
 
 
 def to_response(response):
@@ -105,8 +116,16 @@ class Application():
             'debug': 'Off',
             'document_root': '',
             'document_index': 'Off',
-            'secret_key': None
+            'secret_key': None,
+            'auth_type': None,
+            'auth_algorithm': 'MD5-sess',
+            'auth_qop': 'auth',
+            'auth_timeout': 300,
         }
+        self.__auth_hash = md5
+
+        # authorization map object
+        self.auth_map = {}
 
         # profile attributes
         self.__runctx = None
@@ -392,6 +411,91 @@ class Application():
         testing, when automatics Json object is create from request body.
         """
         return self.__config['json_mime_types']
+
+    @property
+    def auth_type(self):
+        """Authorization type.
+
+        Only ``Digest`` type is supported now.
+        """
+        return self.__config['auth_type']
+
+    @auth_type.setter
+    def auth_type(self, value):
+        value = value.capitalize()
+        if value not in ('Digest',):
+            raise ValueError('Unsupported authorization type')
+        # for Digest
+        if self.__config['secret_key'] is None:
+            raise ValueError('Set secret key first')
+        self.__config['auth_type'] = value
+
+    @property
+    def auth_algorithm(self):
+        """Authorization algorithm.
+
+        Algorithm depends on authorization type and client support.
+        Supported:
+
+        :Digest: MD5 | MD5-sess | SHA256 | SHA256-sess
+        :default: MD5-sess
+        """
+        return self.__config['auth_algorithm']
+
+    @auth_algorithm.setter
+    def auth_algorithm(self, value):
+        if self.__config['auth_algorithm'] is None:
+            raise ValueError('Set authorization type first')
+
+        if self.__config['auth_algorithm'] == 'Digest':
+            if value not in AUTH_DIGEST_ALGORITHMS:
+                raise ValueError('Unsupported Digest algorithm')
+        self.__config['auth_algorithm'] = value
+        self.__auth_hash = AUTH_DIGEST_ALGORITHMS[value]
+
+    @property
+    def auth_hash(self):
+        """Return authorization hash function.
+
+        Function can be changed by auth_algorithm property.
+
+        :default: md5
+        """
+        return self.__auth_hash
+
+    @property
+    def auth_qop(self):
+        """Authorization quality of protection.
+
+        This is use for Digest authorization only. When browsers
+        supports only ``auth`` or empty value, PoorWSGI supports the same.
+
+        :default: auth
+        """
+        return self.__config['auth_qop']
+
+    @auth_qop.setter
+    def auth_qop(self, value):
+        if value not in ('', 'auth', None):
+            raise ValueError('Unsupported quality of protection')
+        self.__config['auth_qop'] = value
+
+    @property
+    def auth_timeout(self):
+        """Digest Authorization timeout of nonce value in seconds.
+
+        In fact, timeout will be between timeout and 2*timeout, because
+        time alignment is used. If timeout is None or 0, no timeout is used.
+
+        :default: 300 (5min)
+        """
+        return self.__config['auth_timeout']
+
+    @auth_timeout.setter
+    def auth_timeout(self, value):
+        if not isinstance(value, (type(None), int)):
+            raise ValueError('Unsupported auth_timeout value')
+        self.__config['auth_timeout'] = value
 
     @property
     def form_mime_types(self):
@@ -737,7 +841,7 @@ class Application():
         handlers = self.__shandlers.get(code, {})
         return handlers.pop(method)
 
-    def error_from_table(self, req, code):
+    def error_from_table(self, req, code, **kwargs):
         """Internal method, which is called if error was accured.
 
         If status code is in Application.shandlers (fill with http_state
@@ -748,14 +852,14 @@ class Application():
             try:
                 handler = self.__shandlers[code][req.method_number]
                 req.error_handler = handler
-                self.handler_from_before(req)       # call before handlers now
-                return handler(req)
-            except BaseException:
+                self.handler_from_before(req)  # call before handlers now
+                return handler(req, **kwargs)
+            except Exception:  # pylint: disable=broad-except
                 return internal_server_error(req)
         elif code in default_states:
             handler = default_states[code][METHOD_GET]
             req.error_handler = handler
-            return handler(req)
+            return handler(req, **kwargs)
         else:
             return not_implemented(req, code)
     # enddef
@@ -874,7 +978,7 @@ class Application():
         request = None
 
         try:
-            request = Request(env, self.__config)
+            request = Request(env, self)
             args = self.handler_from_table(request)
             response = to_response(args)
         except HTTPException as http_err:
@@ -882,13 +986,14 @@ class Application():
                 response = http_err.args[0]
             else:
                 status_code = http_err.args[0]
+                kwargs = http_err.args[1]
                 if status_code == DECLINED:
                     return ()   # decline the connection
                 if status_code == HTTP_OK:
                     response = EmptyResponse()
                 else:
                     response = to_response(
-                        self.error_from_table(request, status_code))
+                        self.error_from_table(request, status_code, **kwargs))
         except (ConnectionError, SystemExit) as err:
             log.warning(str(err))
             log.warning('   ***   You should ignore next error   ***')

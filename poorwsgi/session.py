@@ -1,16 +1,20 @@
 """PoorSession self-contained cookie class.
 
 :Classes:   NoCompress, PoorSession
-:Functions: hidden
+:Functions: hidden, get_token, check_token
 """
-from hashlib import sha512
+from hashlib import sha512, sha256
 from pickle import dumps, loads
 from base64 import b64decode, b64encode
+from logging import getLogger
+from time import time
 
 import bz2
-import logging as log
 
 from http.cookies import SimpleCookie
+
+log = getLogger("poorwsgi")  # pylint: disable=invalid-name
+
 
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-instance-attributes
@@ -45,6 +49,43 @@ def hidden(text, passwd):
             retval.append(val ^ passwd[i % passlen])
 
     return retval
+
+
+def get_token(secret, client, timeout=None, expired=0):
+    """Create token from secret, and client string.
+
+    If timeout is set, token contains time align with twice of this value.
+    Twice, because time of creating can be so near to computed time.
+    """
+    if timeout is None:
+        text = "%s%s" % (secret, client)
+    else:
+        if expired == 0:
+            now = int(time() / timeout) * timeout   # shift to start time
+            expired = now + 2 * timeout
+        text = "%s%s%s" % (secret, expired, client)
+
+    return sha256(text.encode()).hexdigest()
+
+
+def check_token(token, secret, client, timeout=None):
+    """Check token, if it is right.
+
+    Arguments secret, client and expired must be same, when token was
+    generated. If expired is set, than token must be younger than 2*expired.
+    """
+    if timeout is None:
+        return token == get_token(secret, client)
+
+    now = int(time() / timeout) * timeout
+    expired = now + timeout
+    new_token = get_token(secret, client, timeout, expired)
+    if token == new_token:
+        return True
+
+    expired += timeout
+    new_token = get_token(secret, client, timeout, expired)
+    return token == new_token
 
 
 class SessionError(RuntimeError):

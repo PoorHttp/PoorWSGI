@@ -1,5 +1,8 @@
-from sys import stderr
+from sys import stderr, executable
 from warnings import warn
+from time import sleep
+from subprocess import Popen
+from socket import socket, error as SocketError
 
 from requests import Request, Session
 from requests.exceptions import RequestException
@@ -15,6 +18,37 @@ from . openapi import OpenAPIRequest, OpenAPIResponse
 
 class TestError(RuntimeError):
     """Support exception."""
+
+
+def start_server(request, example):
+    """Start web server with example."""
+
+    process = None
+    print("Starting wsgi application...")
+    if request.config.getoption("--with-uwsgi"):
+        process = Popen(["uwsgi", "--plugin", "python3",
+                         "--http-socket", "localhost:8080", "--wsgi-file",
+                         example])
+    else:
+        process = Popen([executable, example])
+
+    assert process is not None
+    connect = False
+    for i in range(30):
+        sck = socket()
+        try:
+            sck.connect(("localhost", 8080))
+            connect = True
+            break
+        except SocketError:
+            sleep(0.1)
+        finally:
+            sck.close()
+    if not connect:
+        process.kill()
+        raise RuntimeError("Server not started in 3 seconds")
+
+    return process
 
 
 def check_url(url, method="GET", status_code=200, allow_redirects=True,

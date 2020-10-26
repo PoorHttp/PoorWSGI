@@ -1,14 +1,10 @@
 from os import environ
 from os.path import dirname, join, pardir
-from sys import executable
-from subprocess import Popen
-from time import sleep
-from socket import socket, error as SocketError
 
 from pytest import fixture
 from requests import Session
 
-from . support import check_url, check_api
+from . support import start_server, check_url, check_api
 from . openapi import response_validator_json
 
 VALIDATOR = response_validator_json(
@@ -22,33 +18,9 @@ def url(request):
         yield url
         return
 
-    process = None
-    print("Starting wsgi application...")
-    if request.config.getoption("--with-uwsgi"):
-        process = Popen(["uwsgi", "--plugin", "python3",
-                         "--http-socket", "localhost:8080", "--wsgi-file",
-                         join(dirname(__file__), pardir,
-                              "examples/openapi3.py")])
-    else:
-        process = Popen([executable,
-                         join(dirname(__file__), pardir,
-                              "examples/openapi3.py")])
-
-    assert process is not None
-    connect = False
-    for i in range(30):
-        sck = socket()
-        try:
-            sck.connect(("localhost", 8080))
-            connect = True
-            break
-        except SocketError:
-            sleep(0.1)
-        finally:
-            sck.close()
-    if not connect:
-        process.kill()
-        raise RuntimeError("Server not started in 3 seconds")
+    process = start_server(
+        request,
+        join(dirname(__file__), pardir, 'examples/openapi3.py'))
 
     yield "http://localhost:8080"  # server is running
     process.kill()

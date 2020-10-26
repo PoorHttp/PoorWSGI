@@ -1,15 +1,12 @@
 """Base integrity test"""
 from os import environ
 from os.path import dirname, join, pardir
-from sys import executable
-from subprocess import Popen
-from time import sleep, time
-from socket import socket, error as SocketError
+from time import time
 
 from requests import Session
 from pytest import fixture
 
-from . support import check_url
+from . support import start_server, check_url
 
 
 @fixture(scope="module")
@@ -18,32 +15,9 @@ def url(request):
     if url:
         return url
 
-    process = None
-    print("Starting wsgi application...")
-    if request.config.getoption("--with-uwsgi"):
-        process = Popen(["uwsgi", "--plugin", "python3",
-                         "--http-socket", "localhost:8080", "--wsgi-file",
-                         join(dirname(__file__), pardir,
-                              "examples/simple.py")])
-    else:
-        process = Popen([executable,
-                         join(dirname(__file__), pardir,
-                              "examples/simple.py")])
-    assert process is not None
-    connect = False
-    for i in range(20):
-        sck = socket()
-        try:
-            sck.connect(("localhost", 8080))
-            connect = True
-            break
-        except SocketError:
-            sleep(0.1)
-        finally:
-            sck.close()
-    if not connect:
-        process.kill()
-        raise RuntimeError("Server not started in 2 seconds")
+    process = start_server(
+        request,
+        join(dirname(__file__), pardir, 'examples/simple.py'))
 
     yield "http://localhost:8080"  # server is running
     process.kill()

@@ -4,6 +4,7 @@
 :Functions: to_response
 
 """
+# pylint: disable=too-many-lines
 
 from os import path, access, R_OK, environ
 from collections import OrderedDict, namedtuple
@@ -54,7 +55,8 @@ class Application():
     and have methods for it's using and of course __call__ method for use
     as WSGI application.
     """
-
+    # pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-many-public-methods
     __instances = []
 
     def __init__(self, name="__main__"):
@@ -143,9 +145,9 @@ class Application():
         else:
             try:
                 regex = self.__filters[_filter][0]
-            except KeyError:
+            except KeyError as err:
                 raise RuntimeError("Undefined route group filter '%s'" %
-                                   _filter)
+                                   _filter) from err
 
         return "(?P<%s>%s)" % (groups[0], regex)
 
@@ -154,8 +156,9 @@ class Application():
         _filter = ':re:' if _filter[:4] == ':re:' else _filter
         try:
             return self.__filters[_filter][1]
-        except KeyError:
-            raise RuntimeError("Undefined route group filter '%s'" % _filter)
+        except KeyError as err:
+            raise RuntimeError("Undefined route group filter '%s'" %
+                               _filter) from err
 
     @property
     def name(self):
@@ -785,6 +788,7 @@ class Application():
         This method is internally use, when groups are found in static route,
         adding by route or set_route method.
         """
+        # pylint: disable=too-many-arguments
         r_uri = re.compile(r_uri, re.U)
         if r_uri not in self.__rhandlers:
             self.__rhandlers[r_uri] = {}
@@ -862,7 +866,6 @@ class Application():
             return handler(req, **kwargs)
         else:
             return not_implemented(req, code)
-    # enddef
 
     def handler_from_default(self, req):
         """Internal method, which is called if no handler is found."""
@@ -875,7 +878,6 @@ class Application():
         self.handler_from_before(req)       # call before handlers now
         log.error("404 Not Found: %s %s", req.method, req.uri)
         raise HTTPException(HTTP_NOT_FOUND)
-    # enddef
 
     def handler_from_before(self, req):
         """Internal method, which run all before (pre_proccess) handlers.
@@ -892,7 +894,7 @@ class Application():
         resp. Document Index is set. Then try to call default handler for right
         method or call handler for status code 404 - not found.
         """
-
+        # pylint: disable=too-many-return-statements
         # static routes
         if req.uri in self.__handlers:
             if req.method_number in self.__handlers[req.uri]:
@@ -975,6 +977,7 @@ class Application():
         (Application.defaults) or error handler (Application.error_from_table),
         and handlers from Application.after.
         """
+        # pylint: disable=method-hidden,too-many-branches
         request = None
 
         try:
@@ -1002,11 +1005,11 @@ class Application():
             log.error("Bad returned value from %s", request.uri_handler)
             try:
                 response = to_response(self.error_from_table(request, 500))
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 log.error("Bad returned value from %s", request.error_handler)
                 response = internal_server_error(request)
 
-        except BaseException as err:
+        except BaseException as err:  # pylint: disable=broad-except
             if request is None:
                 log.critical(str(err))
                 Failed = namedtuple(
@@ -1020,7 +1023,7 @@ class Application():
 
             try:
                 response = to_response(self.error_from_table(request, 500))
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 log.error("Bad returned value from %s", request.error_handler)
                 response = internal_server_error(request)
 
@@ -1029,7 +1032,7 @@ class Application():
             for fun in self.__after:
                 __fn = fun
                 response = to_response(fun(request, response))
-        except BaseException:
+        except BaseException:  # pylint: disable=broad-except
             log.error("Handler %s from %s returns invalid data or crashed",
                       __fn, __fn.__module__)
             response = to_response(self.error_from_table(request, 500))

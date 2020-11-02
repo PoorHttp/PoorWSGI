@@ -67,7 +67,7 @@ class HTTPException(Exception):
         If response is set, that will use, otherwise the handler from
         Application will be call."""
         assert isinstance(arg, (int, Response))
-        super(HTTPException, self).__init__(arg, kwargs)
+        super().__init__(arg, kwargs)
 
 
 class Response:
@@ -177,6 +177,7 @@ class Response:
         if self.__status_code == 304:
             # Not Modified MUST NOT include other entity-headers
             # http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+            # pylint: disable=too-many-boolean-expressions
             if 'Content-Encoding' in self.__headers \
                     or 'Content-Language' in self.__headers \
                     or 'Content-Length' in self.__headers \
@@ -243,13 +244,13 @@ class FileResponse(Response):
             (content_type, encoding) = mimetypes.guess_type(path)
         if content_type is None:     # default mime type
             content_type = "application/octet-stream"
-        super(FileResponse, self).__init__(content_type=content_type,
-                                           headers=headers,
-                                           status_code=status_code)
+        super().__init__(content_type=content_type,
+                         headers=headers,
+                         status_code=status_code)
         self.__buffer = open(path, 'rb')
         self.__content_length = fstat(self.__buffer.fileno()).st_size
 
-    def write(self):
+    def write(self, data):
         raise RuntimeError("File Response can't write data")
 
     # must be redefined, because self.__buffer is private attribute
@@ -274,9 +275,9 @@ class GeneratorResponse(Response):
     """For response, which use generator as returned value."""
     def __init__(self, generator, content_type="text/html; charset=utf-8",
                  headers=None, status_code=HTTP_OK):
-        super(GeneratorResponse, self).__init__(content_type=content_type,
-                                                headers=headers,
-                                                status_code=status_code)
+        super().__init__(content_type=content_type,
+                         headers=headers,
+                         status_code=status_code)
         self.__generator = generator
 
     def write(self, data):
@@ -325,7 +326,7 @@ else:
         Data will be processed in generator way, so they need to be buffered.
         This class need simplejson module.
         """
-
+        # pylint: disable=super-init-not-called
         def __init__(self):
             raise NotImplementedError(
                 "JSONGeneratorResponse need simplejson module")
@@ -334,7 +335,7 @@ else:
 class EmptyResponse(GeneratorResponse):
     """For situation, where only state could be return."""
     def __init__(self, status_code=HTTP_OK):
-        super(EmptyResponse, self).__init__((), status_code=status_code)
+        super().__init__((), status_code=status_code)
 
     @property
     def headers(self):
@@ -343,6 +344,7 @@ class EmptyResponse(GeneratorResponse):
 
     @headers.setter
     def headers(self, value):
+        # pylint: disable=unused-argument,logging-format-interpolation
         stack_record = stack()[1]
         log.warning("EmptyResponse don't use headers.\n"
                     "  File {1}, line {2}, in {3} \n"
@@ -350,6 +352,7 @@ class EmptyResponse(GeneratorResponse):
 
     def add_header(self, *args, **kwargs):
         """EmptyResponse don't have headers"""
+        # pylint: disable=unused-argument,logging-format-interpolation
         stack_record = stack()[1]
         log.warning("EmptyResponse don't use headers.\n"
                     "  File {1}, line {2}, in {3} \n"
@@ -374,10 +377,10 @@ class RedirectResponse(Response):
             status_code = HTTP_MOVED_PERMANENTLY
         else:
             status_code = HTTP_MOVED_TEMPORARILY
-        super(RedirectResponse, self).__init__(message,
-                                               content_type="text/plain",
-                                               headers=headers,
-                                               status_code=status_code)
+        super().__init__(message,
+                         content_type="text/plain",
+                         headers=headers,
+                         status_code=status_code)
         self.add_header("Location", location)
 
 
@@ -397,7 +400,7 @@ def make_response(data, content_type="text/html; charset=utf-8",
 
         iter(data)  # try iter data
         return GeneratorResponse(data, content_type, headers, status_code)
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         log.exception("Error in processing values: %s, %s, %s, %s",
                       type(data), type(content_type), type(headers),
                       type(status_code))

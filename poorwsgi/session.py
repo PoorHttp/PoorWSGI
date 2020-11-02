@@ -209,7 +209,7 @@ class PoorSession:
                                          self.__secret_key))
             except Exception as err:
                 log.info(err.__repr__())
-                raise SessionError("Bad session data.")
+                raise SessionError("Bad session data.") from err
 
             if not isinstance(self.data, dict):
                 raise SessionError("Cookie data is not dictionary!")

@@ -36,6 +36,8 @@ log = getLogger("poorwsgi")
 # http state handlers, which is called if programmer don't defined his own
 default_states = {}
 
+# pylint: disable=invalid-name
+
 
 def html_escape(s):
     """Escape to html entities."""
@@ -76,6 +78,7 @@ def handlers_view(handlers, sort=True):
 
 def not_modified(req):
     """Return EmptyResponse with Not Modified status."""
+    # pylint: disable=unused-argument
     return EmptyResponse(HTTP_NOT_MODIFIED)
 
 
@@ -128,8 +131,8 @@ def internal_server_error(req):
             "  <pre>\n")
 
         # Traceback
-        for i in range(len(traceback)):
-            traceback_line = html_escape(traceback[i])
+        for i, line in enumerate(traceback):
+            traceback_line = html_escape(line)
             res.write('<span class="line%s">%s</span>\n' %
                       (i % 2, traceback_line))
 
@@ -447,6 +450,7 @@ def debug_info(req, app):
 
     When Application.debug is enable, this handler is used for /debug-info.
     """
+    # pylint: disable=too-many-locals
     # transform static handlers table to html
     shandlers_html = "<tr><th>Static:</th></tr>\n"
     shandlers_html += "\n".join(
@@ -487,11 +491,11 @@ def debug_info(req, app):
     # from shandlers are preferer
     _tmp_shandlers = {}
     _tmp_shandlers.update(default_states)
-    for k, v in app.states.items():
-        if k in _tmp_shandlers:
-            _tmp_shandlers[k].update(app.states[k])
+    for key, val in app.states.items():
+        if key in _tmp_shandlers:
+            _tmp_shandlers[key].update(val)
         else:
-            _tmp_shandlers[k] = app.states[k]
+            _tmp_shandlers[key] = val
 
     ehandlers_html = "\n".join(
         "   <tr><td>%s</td><td>%s</td><td>%s</td></tr>" %

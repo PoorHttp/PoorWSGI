@@ -3,6 +3,7 @@
 :Classes:   Headers, Request, EmptyForm, Args, Json, FieldStorage
 :Functions: parse_negotiation
 """
+# pylint: disable=too-many-lines
 
 from collections.abc import Mapping
 from wsgiref.headers import _formatparam
@@ -31,10 +32,10 @@ RE_AUTHORIZATION = re.compile(r'(\w+)[=] ?("[^"]+"|[\w-]+)')
 def parse_negotiation(value):
     """Parse Content Negotiation headers to list of value, quality tuples."""
     values = []
-    for it in value.split(','):
-        pair = it.split(';')
-        if pair[0] == it:
-            values.append((it, 1.0))
+    for item in value.split(','):
+        pair = item.split(';')
+        if pair[0] == item:
+            values.append((item, 1.0))
             continue
         try:
             quality = float(pair[1].split('=')[1])
@@ -195,9 +196,9 @@ class Headers(Mapping):
             if isinstance(value, str):
                 return value.encode('utf-8').decode('iso-8859-1')
 
-        except UnicodeError:
+        except UnicodeError as err:
             raise AssertionError("Header name/value must be iso-8859-1 "
-                                 "encoded (got {0})".format(value))
+                                 "encoded (got {0})".format(value)) from err
         raise AssertionError("Header name/value must be of type str "
                              "(got {0})".format(value))
 # endclass Headers
@@ -209,6 +210,8 @@ class Request():
     It could be compatible as soon as possible with mod_python.apache.request.
     Special variables for user use are prefixed with ``app_``.
     """
+    # pylint: disable=too-many-instance-attributes,
+    # pylint: disable=too-many-public-methods
 
     def __init__(self, environ, app):
         """Object was created automatically in wsgi module.
@@ -216,6 +219,7 @@ class Request():
         It's input parameters are the same, which Application object gets from
         WSGI server plus file callback for auto request body parsing.
         """
+        # pylint: disable=too-many-branches, too-many-statements
         self.__timestamp = time()
         self.__app = app
         self.__environ = environ
@@ -721,7 +725,7 @@ class Request():
             self.__app.document_root)
 
     @property
-    def data(self):
+    def data(self):  # pylint: disable=inconsistent-return-statements
         """Returns input data from wsgi.input file.
 
         This works only, when auto_data configuration and Content-Length of
@@ -762,7 +766,7 @@ class Request():
     def __read(self, length=-1):
         return self.__file.read(length)
 
-    def read(self, length=-1):
+    def read(self, length=-1):  # pylint: disable=method-hidden
         """Read data from client (typical for XHR2 data POST).
 
         If length is not set, or if is lower then zero, Content-Length was
@@ -817,6 +821,8 @@ class Request():
 
 class EmptyForm(dict):
     """Compatibility class as fallback."""
+    # pylint: disable=unused-argument
+    # pylint: disable=no-self-use
     def getvalue(self, key, default=None):
         """Just return default."""
         return default
@@ -828,8 +834,8 @@ class EmptyForm(dict):
     def getlist(self, key, default=None, fce=str):
         """Just yield fce(default) or iter default."""
         if isinstance(default, (list, set, tuple)):
-            for it in default:
-                yield fce(it)
+            for item in default:
+                yield fce(item)
         elif default is not None:
             yield fce(default)
 
@@ -841,8 +847,9 @@ class Args(dict):
     which can call function on values.
     """
     def __init__(self, req, keep_blank_values=0, strict_parsing=0):
-        qs = req.query
-        args = parse_qs(qs, keep_blank_values, strict_parsing) if qs else {}
+        query = req.query
+        args = parse_qs(
+            query, keep_blank_values, strict_parsing) if query else {}
         dict.__init__(self, ((key, val[0] if len(val) < 2 else val)
                              for key, val in args.items()))
 
@@ -875,8 +882,8 @@ class Args(dict):
             return
 
         if isinstance(val, (list, set, tuple)):
-            for it in val:
-                yield fce(it)
+            for item in val:
+                yield fce(item)
         else:
             yield fce(val)
 
@@ -919,8 +926,8 @@ class JsonDict(dict):
             return
 
         if isinstance(val, (list, set, tuple)):
-            for it in val:
-                yield fce(it)
+            for item in val:
+                yield fce(item)
         else:
             yield fce(val)
 
@@ -930,9 +937,7 @@ class JsonList(list):
 
     It has getfirst and getlist methods, which can call function on values.
     """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
+    # pylint: disable=unused-argument
     def getvalue(self, key=None, default=None):
         """Returns first item or defualt if no exists.
 
@@ -943,6 +948,7 @@ class JsonList(list):
         """
         return self[0] if self else default
 
+    # pylint: disable=inconsistent-return-statements
     def getfirst(self, key=None, default=None, fce=str):
         """Returns first variable value or default, if no one exist.
 
@@ -968,11 +974,11 @@ class JsonList(list):
             Default value when self is empty.
         """
         if not self:
-            for it in (default or []):
-                yield fce(it)
+            for item in (default or []):
+                yield fce(item)
         else:
-            for it in self:
-                yield fce(it)
+            for item in self:
+                yield fce(item)
 
 
 def parse_json_request(req, charset="utf-8"):
@@ -993,8 +999,8 @@ def parse_json_request(req, charset="utf-8"):
         if isinstance(data, list):
             return JsonList(data)
         return data
-    except BaseException as e:
-        log.warning("Invalid request json: %s", str(e))
+    except BaseException as err:  # pylint: disable=broad-except
+        log.warning("Invalid request json: %s", str(err))
 
 
 class FieldStorage(CgiFieldStorage):
@@ -1039,6 +1045,7 @@ class FieldStorage(CgiFieldStorage):
         file_callback : callback
             Callback for creating instance of uploading files.
         """
+        # pylint: disable=too-many-arguments
 
         if isinstance(req, Request):
             if req.environ.get('wsgi.input', None) is None:
@@ -1089,6 +1096,7 @@ class FieldStorage(CgiFieldStorage):
             fce : convertor (str)
                 Function or class which processed value.
         """
+        # pylint: disable=arguments-differ
         val = CgiFieldStorage.getfirst(self, key, default)
         if val is None:
             return None
@@ -1105,24 +1113,25 @@ class FieldStorage(CgiFieldStorage):
             fce : convertor (str)
                 Function or class which processed value.
         """
+        # pylint: disable=arguments-differ
         if key in self:
             val = CgiFieldStorage.getlist(self, key)
         else:
             val = default or []
-        for it in val:
-            yield fce(it)
+        for item in val:
+            yield fce(item)
 
     def __getitem__(self, key):
         """Dictionary like [] operator."""
         if self.list is None:
             raise KeyError(key)
-        return super(FieldStorage, self).__getitem__(key)
+        return super().__getitem__(key)
 
     def __contains__(self, key):
         """Dictionary like in operator."""
         if self.list is None:
             return False
-        return super(FieldStorage, self).__contains__(key)
+        return super().__contains__(key)
 
     def __bool__(self):
         """Bool operator."""
@@ -1132,4 +1141,4 @@ class FieldStorage(CgiFieldStorage):
         """Dictionary like keys() method."""
         if self.list is None:
             return tuple()
-        return super(FieldStorage, self).keys()
+        return super().keys()

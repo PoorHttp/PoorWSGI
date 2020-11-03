@@ -197,7 +197,7 @@ setup(
         "Natural Language :: Czech",
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: POSIX",
-        "Operating System :: POSIX :: BSD :: NetBSD",
+        "Operating System :: POSIX :: BSD",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3 :: Only",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content",

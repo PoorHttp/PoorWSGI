@@ -34,7 +34,7 @@ def start_server(request, example):
 
     assert process is not None
     connect = False
-    for i in range(30):
+    for i in range(100):  # pylint: disable=unused-variable
         sck = socket()
         try:
             sck.connect(("localhost", 8080))
@@ -46,7 +46,7 @@ def start_server(request, example):
             sck.close()
     if not connect:
         process.kill()
-        raise RuntimeError("Server not started in 3 seconds")
+        raise RuntimeError("Server not started in 10 seconds")
 
     return process
 

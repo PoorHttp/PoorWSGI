@@ -186,7 +186,13 @@ def hexdigest(username, realm, password, algorithm=md5):
 
 
 class PasswordMap(defaultdict):
-    """Simple memory object to store user password."""
+    """Simple memory object to store user password.
+
+    Attributes:
+        pathname : str
+            Full path to password file, must be set for PasswordMap.write
+            and PasswordMap.load methods.
+    """
     def __init__(self, pathname=None):
         super().__init__(dict)
         self.pathname = pathname

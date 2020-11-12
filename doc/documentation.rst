@@ -601,14 +601,15 @@ There are a few variants which req.json could be:
 
 File uploading
 ~~~~~~~~~~~~~~
-By default, pythons FieldStorage, so poorwsgi.FieldStorage too, store files
-somewhere to /tmp dictionary. This works in FieldStorage, which calls
-TemporaryFile. Uploaded files are accessible like another form variables, but.
+By default, python's FieldStorage, so poorwsgi.FieldStorage too, store files
+somewhere to ``/tmp`` directory. This is happened in FieldStorage, which calls
+``TemporaryFile``. Uploaded files are accessible like another form variables,
+but.
 
-Any variables from FieldStorage is accessible with __getitem__ method. So you
-can get variable by {req.form[key]}, which gets FieldStorage instance. This
-instance have some another variables, which you can test, what type of
-variable is.
+Any variables from FieldStorage is accessible with ``__getitem__`` method.
+So you can get variable by ``req.form[key]``, which gets FieldStorage
+instance. This instance has some another variables, which you can test,
+what type of variable is it.
 
 .. code:: python
 

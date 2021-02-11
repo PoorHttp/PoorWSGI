@@ -1,6 +1,7 @@
 from os import urandom
 from sys import version_info
 from http.cookies import SimpleCookie
+from typing import Any
 
 from pytest import fixture, raises, mark
 
@@ -9,7 +10,7 @@ from poorwsgi.session import PoorSession, SessionError
 
 class Request:
     secret_key = urandom(32)
-    cookies = SimpleCookie()
+    cookies: Any = SimpleCookie()
 
 
 class Empty:

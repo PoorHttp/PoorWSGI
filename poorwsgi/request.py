@@ -6,11 +6,12 @@
 # pylint: disable=too-many-lines
 
 from collections.abc import Mapping
-from wsgiref.headers import _formatparam
+from wsgiref.headers import _formatparam  # type: ignore
 from cgi import FieldStorage as CgiFieldStorage, parse_header
 from json import loads as json_loads
 from io import BytesIO
 from time import time
+from typing import Union, Callable, Any, Iterable, List, Tuple
 
 import os
 import re
@@ -28,8 +29,10 @@ log = getLogger("poorwsgi")
 RE_HTTPURLPATTERN = re.compile(r"^(http|https):\/\/")
 RE_AUTHORIZATION = re.compile(r'(\w+)[=] ?("[^"]+"|[\w-]+)')
 
+# pylint: disable=unsubscriptable-object
 
-def parse_negotiation(value):
+
+def parse_negotiation(value: str):
     """Parse Content Negotiation headers to list of value, quality tuples."""
     values = []
     for item in value.split(','):
@@ -45,6 +48,9 @@ def parse_negotiation(value):
     return values
 
 
+HeadersList = Union[list, tuple, set, dict]
+
+
 class Headers(Mapping):
     """Class inherited from collections.Mapping.
 
@@ -56,7 +62,7 @@ class Headers(Mapping):
     UTF-8 string.
     """
 
-    def __init__(self, headers=None, strict=True):
+    def __init__(self, headers: HeadersList = None, strict: bool = True):
         """Headers constructor.
 
         Headers object could be create from list, set or tuple of pairs
@@ -91,7 +97,7 @@ class Headers(Mapping):
         """Return len of header items."""
         return len(self.__headers)
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str):
         """Return header item identified by lower name."""
         name = Headers.iso88591(name.lower())
         for k, val in self.__headers:
@@ -99,13 +105,13 @@ class Headers(Mapping):
                 return val
         raise KeyError("{0!r} is not registered".format(name))
 
-    def __delitem__(self, name):
+    def __delitem__(self, name: str):
         """Delete item identied by lower name."""
         name = Headers.iso88591(name.lower())
         self.__headers = list(kv for kv in self.__headers
                               if kv[0].lower() != name)
 
-    def __setitem__(self, name, value):
+    def __setitem__(self, name: str, value: str):
         """Delete item if exist and set it's new value."""
         del self[name]
         self.add_header(name, value)
@@ -128,7 +134,7 @@ class Headers(Mapping):
         """Return tuple of headers values."""
         return tuple(v for k, v in self.__headers)
 
-    def get_all(self, name):
+    def get_all(self, name: str):
         """Return tuple of all values of header identifed by lower name."""
         name = Headers.iso88591(name.lower())
         return tuple(kv[1] for kv in self.__headers if kv[0].lower() == name)
@@ -137,7 +143,7 @@ class Headers(Mapping):
         """Return tuple of headers pairs."""
         return tuple(self.__headers)
 
-    def setdefault(self, name, value):
+    def setdefault(self, name: str, value: str):
         """Set header value if not exist, and return it's value."""
         res = self.get(name)
         if res is None:
@@ -145,7 +151,7 @@ class Headers(Mapping):
             return value
         return res
 
-    def add(self, name, value):
+    def add(self, name: str, value: str):
         """Set header name to value.
 
         Duplicate names are not allowed instead of ``Set-Cookie``.
@@ -154,7 +160,7 @@ class Headers(Mapping):
             raise KeyError("Key %s exist." % name)
         self.add_header(name, value)
 
-    def add_header(self, name, value, **kwargs):
+    def add_header(self, name: str, value: str, **kwargs):
         """Extended header setting.
 
         name is the header field to add. kwargs arguments can be used to set
@@ -186,7 +192,7 @@ class Headers(Mapping):
         self.__headers.append((Headers.iso88591(name), "; ".join(parts)))
 
     @staticmethod
-    def iso88591(value):
+    def iso88591(value: str) -> str:
         """Doing automatic conversion to iso-8859-1 strings.
 
         Converts from utf-8 to iso-8859-1 string. That means, all input value
@@ -402,7 +408,7 @@ class Request():
         return self.__uri_rule
 
     @uri_rule.setter
-    def uri_rule(self, value):
+    def uri_rule(self, value: str):
         if self.__uri_rule is None:
             self.__uri_rule = value
 
@@ -421,7 +427,7 @@ class Request():
         return self.__uri_handler
 
     @uri_handler.setter
-    def uri_handler(self, value):
+    def uri_handler(self, value: Callable):
         if self.__uri_handler is None:
             self.__uri_handler = value
 
@@ -435,7 +441,7 @@ class Request():
         return self.__error_handler
 
     @error_handler.setter
-    def error_handler(self, value):
+    def error_handler(self, value: Callable):
         if self.__error_handler is None:
             self.__error_handler = value
 
@@ -534,7 +540,7 @@ class Request():
         return (self.__path_args or {}).copy()
 
     @path_args.setter
-    def path_args(self, value):
+    def path_args(self, value: str):
         if self.__path_args is None:
             self.__path_args = value
 
@@ -551,7 +557,7 @@ class Request():
         return self.__args
 
     @args.setter
-    def args(self, value):
+    def args(self, value: 'Args'):
         if isinstance(self.__args, EmptyForm):
             self.__args = value
 
@@ -569,7 +575,7 @@ class Request():
         return self.__form
 
     @form.setter
-    def form(self, value):
+    def form(self, value: 'FieldStorage'):
         if isinstance(self.__form, EmptyForm):
             self.__form = value
 
@@ -763,7 +769,7 @@ class Request():
         self.__api = value
 
     # -------------------------- Methods --------------------------- #
-    def __read(self, length=-1):
+    def __read(self, length: int = -1):
         return self.__file.read(length)
 
     def read(self, length=-1):  # pylint: disable=method-hidden
@@ -800,7 +806,7 @@ class Request():
                 options[key[4:].lower()] = val.strip()
         return options
 
-    def construct_url(self, uri):
+    def construct_url(self, uri: str):
         """This function returns a fully qualified URI string.
 
         Url is create from the path specified by uri, using the information
@@ -823,15 +829,15 @@ class EmptyForm(dict):
     """Compatibility class as fallback."""
     # pylint: disable=unused-argument
     # pylint: disable=no-self-use
-    def getvalue(self, key, default=None):
+    def getvalue(self, key: str, default: Any = None):
         """Just return default."""
         return default
 
-    def getfirst(self, key, default=None, fce=str):
+    def getfirst(self, key: str, default: Any = None, fce: Callable = str):
         """Just return fce(default) if default is not None."""
         return fce(default) if default is not None else default
 
-    def getlist(self, key, default=None, fce=str):
+    def getlist(self, key: str, default: Any = None, fce: Callable = str):
         """Just yield fce(default) or iter default."""
         if isinstance(default, (list, set, tuple)):
             for item in default:
@@ -846,7 +852,7 @@ class Args(dict):
     Class is based on dictionary. It has getfirst and getlist methods,
     which can call function on values.
     """
-    def __init__(self, req, keep_blank_values=0, strict_parsing=0):
+    def __init__(self, req: Request, keep_blank_values=0, strict_parsing=0):
         query = req.query
         args = parse_qs(
             query, keep_blank_values, strict_parsing) if query else {}
@@ -855,7 +861,8 @@ class Args(dict):
 
         self.getvalue = self.get
 
-    def getfirst(self, key, default=None, fce=str):
+    def getfirst(self, key: str, default: Union[List, Tuple] = None,
+                 fce: Callable = str):
         """Returns first variable value for key or default.
 
         fce : convertor (str)
@@ -865,11 +872,11 @@ class Args(dict):
         if val is None:
             return None
 
-        if isinstance(val, (list, set, tuple)):
+        if isinstance(val, (list, tuple)):
             return fce(val[0])
         return fce(val)
 
-    def getlist(self, key, default=None, fce=str):
+    def getlist(self, key: str, default: Iterable = None, fce: Callable = str):
         """Returns list of variable values for key or empty list.
 
         fce : convertor (str)
@@ -897,7 +904,7 @@ class JsonDict(dict):
         super().__init__(*args, **kwargs)
         self.getvalue = self.get
 
-    def getfirst(self, key, default=None, fce=str):
+    def getfirst(self, key: str, default: Any = None, fce: Callable = str):
         """Returns first variable value for key or default, if key not exist.
 
         default : any
@@ -909,11 +916,11 @@ class JsonDict(dict):
         if val is None:
             return None
 
-        if isinstance(val, (list, set, tuple)):
+        if isinstance(val, (list, tuple)):
             return fce(val[0])
         return fce(val)
 
-    def getlist(self, key, default=None, fce=str):
+    def getlist(self, key: str, default: Iterable = None, fce: Callable = str):
         """Returns generator of variable values for key.
 
         default : list
@@ -938,7 +945,7 @@ class JsonList(list):
     It has getfirst and getlist methods, which can call function on values.
     """
     # pylint: disable=unused-argument
-    def getvalue(self, key=None, default=None):
+    def getvalue(self, key=None, default: Any = None):
         """Returns first item or defualt if no exists.
 
         key : None
@@ -949,7 +956,8 @@ class JsonList(list):
         return self[0] if self else default
 
     # pylint: disable=inconsistent-return-statements
-    def getfirst(self, key=None, default=None, fce=str):
+    def getfirst(self, key: str = None, default: Any = None,
+                 fce: Callable = str):
         """Returns first variable value or default, if no one exist.
 
         key : None
@@ -963,7 +971,7 @@ class JsonList(list):
         if val is not None:
             return fce(val)
 
-    def getlist(self, key=None, default=None, fce=str):
+    def getlist(self, key=None, default: Iterable = None, fce: Callable = str):
         """Returns generator of values.
 
         key : None
@@ -981,7 +989,7 @@ class JsonList(list):
                 yield fce(item)
 
 
-def parse_json_request(req, charset="utf-8"):
+def parse_json_request(req, charset: str = "utf-8"):
     """Try to parse request data.
 
     Returned type could be:
@@ -1070,22 +1078,17 @@ class FieldStorage(CgiFieldStorage):
                                  strict_parsing, limit, encoding, errors)
     # enddef
 
-    def make_file(self, binary=None):
-        """Return readable and writable temporary file.
-
-        Arguments:
-            binary : None
-                Unused. Here is only for backward compatibility
-        """
+    def make_file(self):
+        """Return readable and writable temporary file."""
         if 'wsgi.file_callback' in self.environ:
             return self.environ['wsgi.file_callback'](self.filename)
         return CgiFieldStorage.make_file(self)
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: Any = None):
         """Compatibility methods with dict, alias for getvalue."""
         return self.getvalue(key, default)
 
-    def getfirst(self, key, default=None, fce=str):
+    def getfirst(self, key: str, default: Any = None, fce: Callable = str):
         """Returns first variable value for key or default, if key not exist.
 
         Arguments:
@@ -1102,7 +1105,7 @@ class FieldStorage(CgiFieldStorage):
             return None
         return fce(val)
 
-    def getlist(self, key, default=None, fce=str):
+    def getlist(self, key: str, default: List = None, fce: Callable = str):
         """Returns list of variable values for key or empty list.
 
         Arguments:
@@ -1121,13 +1124,13 @@ class FieldStorage(CgiFieldStorage):
         for item in val:
             yield fce(item)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str):
         """Dictionary like [] operator."""
         if self.list is None:
             raise KeyError(key)
         return super().__getitem__(key)
 
-    def __contains__(self, key):
+    def __contains__(self, key: str):
         """Dictionary like in operator."""
         if self.list is None:
             return False

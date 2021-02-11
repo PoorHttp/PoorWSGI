@@ -1,3 +1,6 @@
+==== 2.3.1 ====
+    * mypy support
+
 ==== 2.3.0 ====
     * Errors in parsing requests end with 500 Internal Server Error
     * JsonDict and JsonList objects for dict or list json request variant.

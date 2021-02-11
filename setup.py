@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+"""PoorWSGI setup.py"""
 from distutils.core import Command
-from distutils.command.install_data import install_data
+from distutils.command.install_data import install_data  # type: ignore
 from distutils.dir_util import remove_tree
 from distutils.errors import DistutilsError
 from distutils import log
@@ -8,13 +8,13 @@ from distutils import log
 from os import path, makedirs, walk, environ
 from shutil import copyfile
 from subprocess import call
+from io import FileIO as file
 
-from setuptools import setup
-from setuptools.command.test import test
+from setuptools import setup  # type: ignore
+from setuptools.command.test import test  # type: ignore
 
 from poorwsgi.state import __version__
 
-from io import FileIO as file
 
 environ.update({'PYTHONPATH': 'poorwsgi'})
 

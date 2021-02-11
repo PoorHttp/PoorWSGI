@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
-#
-# This is example and test application for PoorWSGI connector with openapi3
-# support.
-#
-# This sample testing example is free to use, modify and study under same BSD
-# licence as PoorWSGI. So enjoy it ;)
+"""This is example and test application for PoorWSGI connector with openapi3
+support.
+
+This sample testing example is free to use, modify and study under same BSD
+licence as PoorWSGI. So enjoy it ;)
+"""
 
 from wsgiref.simple_server import make_server
 from os import urandom, path
@@ -13,14 +12,17 @@ from sys import path as python_path
 import logging as log
 import json
 
-from openapi_core import create_spec
-from openapi_core.validation.request.validators import RequestValidator
-from openapi_core.validation.response.validators import ResponseValidator
-from openapi_core.validation.exceptions import InvalidSecurity
-from openapi_core.schema.operations.exceptions import InvalidOperation
-from openapi_core.schema.paths.exceptions import InvalidPath
-from openapi_core.templating.paths.exceptions import \
-    PathNotFound, OperationNotFound
+from openapi_core import create_spec  # type: ignore
+from openapi_core.validation.request.validators import (  # type: ignore
+        RequestValidator)
+from openapi_core.validation.response.validators import (  # type: ignore
+        ResponseValidator)
+from openapi_core.validation.exceptions import InvalidSecurity  # type: ignore
+from openapi_core.schema.operations.exceptions import (  # type: ignore
+        InvalidOperation)
+from openapi_core.schema.paths.exceptions import InvalidPath  # type: ignore
+from openapi_core.templating.paths.exceptions import (  # type: ignore
+    PathNotFound, OperationNotFound)
 
 TEST_PATH = path.dirname(__file__)              # noqa
 python_path.insert(0, path.abspath(             # noqa

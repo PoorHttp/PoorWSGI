@@ -6,12 +6,15 @@ from socket import socket, error as SocketError
 
 from requests import Request, Session
 from requests.exceptions import RequestException
-from openapi_core.schema.operations.exceptions import InvalidOperation
-from openapi_core.schema.paths.exceptions import InvalidPath
-from openapi_core.schema.servers.exceptions import InvalidServer
-from openapi_core.schema.responses.exceptions import InvalidResponse
-from openapi_core.templating.paths.exceptions import \
-    PathNotFound, OperationNotFound
+from openapi_core.schema.operations.exceptions import (  # type: ignore
+        InvalidOperation)
+from openapi_core.schema.paths.exceptions import InvalidPath  # type: ignore
+from openapi_core.schema.servers.exceptions import (  # type: ignore
+        InvalidServer)
+from openapi_core.schema.responses.exceptions import (  # type: ignore
+        InvalidResponse)
+from openapi_core.templating.paths.exceptions import (  # type: ignore
+    PathNotFound, OperationNotFound)
 
 from . openapi import OpenAPIRequest, OpenAPIResponse
 

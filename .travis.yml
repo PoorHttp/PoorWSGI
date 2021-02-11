@@ -5,14 +5,16 @@ python:
  - "3.6"
  - "3.7"
  - "3.8"
+ - "3.9"
 
 install:
- - pip3 install pytest pytest-pep8 pytest-doctestplus requests openapi-core
-   uwsgi simplejson
+ - pip3 install -U pytest pytest-doctestplus pytest-pylint pytest-mypy
+   requests openapi-core uwsgi simplejson
 
 script:
- - pytest -v --pep8 --doctest-plus --doctest-rst
- - pytest -v tests_integrity --with-uwsgi
+ - pytest -v poorwsgi --pylint --mypy --doctest-plus --doctest-rst
+ - pytest -v tests --mypy
+ - pytest -v tests_integrity --mypy --with-uwsgi
 
 before_deploy:
  - python3 setup.py sdist
@@ -25,6 +27,7 @@ deploy:
     secure: JL4umK8xRzuxBJyxm6pE9bClGd7PB7Vuy4q7rfEQCt9bQg9SCd29eFlA2EowG/xkWjlVe940hygKY/ZzHOq0ieg3vU4u2D99opyHPncdLcqF6ECpyBkeeUbFMmxkfH8n8vhWUDzxaOcYErFB1B0rypyuJRVuUrm8fJJVBMjboiI3h/pn8xDDbV3i1iVPsk4qzU2eleSQgc5ONe+YVsZK4rnctycobLscz2vlo7rPHfZLtgMJq27squs1iMrFyTa4S35nuBCGl2Na9u4Wjl8Sniv/naa96ZORDxnWSJLBmANgjinaTd4UslU2K8SyGI0Y0YPxlbm8OefAsY6OXt2GgtQGKGrCM75dMHwUlK1ULDi7kiQZMIlDbtFLWwP4ykQRsuaQaWibSZW3Gckajo925OKxXVTGOU4jfcYhy4ZT0dTiIEA2zooYSc40DE2t9j5oaJ/edBTDZbYGbY/5CbKYEM8+SXt6CFTe8PuNv+S5TUxBoPYAs88NiEvRs/+xoAeRKAIX5N4qGXnc4kTre/Jix1RxZS9LV/oBF1tbefo+Nyv4iVi91B3NRQ9AyvcDvq4fMH9vp6UMPsyi703vwdAHhwx9LrkAAR0dtJA+h3TB9dfcxKrt5hfzuWUmOVOyG8LdeJeEIxRjEh64oBxqeO7NFj81UTvHzUr63ufWZNX/ETQ=
    distribution: "sdist bdist_wheel"
    skip_cleanup: true
+   skip_existing: true
    overwrite: true
    on:
     repo: PoorHttp/PoorWSGI

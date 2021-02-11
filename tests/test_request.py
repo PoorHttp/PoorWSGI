@@ -1,4 +1,5 @@
 from io import BytesIO
+from typing import Dict, Any
 
 from poorwsgi.request import JsonDict, JsonList, parse_json_request, \
     EmptyForm, Args, FieldStorage
@@ -50,7 +51,7 @@ class TestArgs:
     class Req:
         app = None
         query = ''
-        environ = {}
+        environ: Dict[str, Any] = {}
 
     def test_empty(self):
         args = Args(self.Req())
@@ -64,7 +65,7 @@ class TestArgs:
 
 class TestForm:
     class Req:
-        environ = {}
+        environ: Dict[str, Any] = {}
 
     def test_empty(self):
         form = FieldStorage(self.Req())

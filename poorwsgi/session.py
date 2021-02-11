@@ -8,25 +8,29 @@ from pickle import dumps, loads
 from base64 import b64decode, b64encode
 from logging import getLogger
 from time import time
+from typing import Union
 
 import bz2
 
 from http.cookies import SimpleCookie
 
-log = getLogger("poorwsgi")  # pylint: disable=invalid-name
+from poorwsgi.request import Headers
+from poorwsgi.response import Response
 
+log = getLogger("poorwsgi")  # pylint: disable=invalid-name
 
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-instance-attributes
+# pylint: disable=unsubscriptable-object
 
 
-def hidden(text, passwd):
+def hidden(text: Union[str, bytes], passwd: Union[str, bytes]) -> bytes:
     """(en|de)crypt text with sha hash of passwd via xor.
 
     Arguments:
-        text : str
-            raw data to (en|de)crypt. Could be str, or bytes
-        passwd : str
+        text : str or bytes
+            raw data to (en|de)crypt
+        passwd : str or bytes
             password
     """
     if isinstance(passwd, bytes):
@@ -51,7 +55,7 @@ def hidden(text, passwd):
     return retval
 
 
-def get_token(secret, client, timeout=None, expired=0):
+def get_token(secret: str, client: str, timeout: int = None, expired: int = 0):
     """Create token from secret, and client string.
 
     If timeout is set, token contains time align with twice of this value.
@@ -68,7 +72,7 @@ def get_token(secret, client, timeout=None, expired=0):
     return sha256(text.encode()).hexdigest()
 
 
-def check_token(token, secret, client, timeout=None):
+def check_token(token: str, secret: str, client: str, timeout: int = None):
     """Check token, if it is right.
 
     Arguments secret, client and expired must be same, when token was
@@ -152,8 +156,9 @@ class PoorSession:
         obj.import(sess.data['dict'])
     """
 
-    def __init__(self, req, expires=0, max_age=None, domain=False, path='/',
-                 secure=False, same_site=False, compress=bz2, SID='SESSID'):
+    def __init__(self, req, expires: int = 0, max_age: int = None,
+                 domain: str = '', path: str = '/', secure: bool = False,
+                 same_site: bool = False, compress=bz2, SID: str = 'SESSID'):
         """Constructor.
 
         Arguments:
@@ -194,8 +199,8 @@ class PoorSession:
 
         # data is session dictionary to store user data in cookie
         self.data = {}
-        self.cookie = SimpleCookie()
-        self.cookie[SID] = None
+        self.cookie: SimpleCookie = SimpleCookie()
+        self.cookie[SID] = ''
 
         raw = None
 
@@ -253,13 +258,13 @@ class PoorSession:
         if self.__secure:
             self.cookie[self.__SID]['Secure'] = True
 
-    def header(self, headers=None):
+    def header(self, headers: Union[Headers, Response] = None):
         """Generate cookie headers and append it to headers if it set.
 
         Returns list of cookie header pairs.
 
-        :headers:   Headers or Response object, which is used
-                    to write header directly.
+        headers : Headers or Response
+            Object, which is used to write header directly.
         """
         self.write()
         cookies = self.cookie.output().split('\r\n')

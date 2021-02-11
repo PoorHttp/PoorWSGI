@@ -6,7 +6,7 @@
 # licence as PoorWSGI. So enjoy it ;)
 
 from wsgiref.simple_server import make_server
-from base64 import decodebytes, encodestring
+from base64 import decodebytes, encodebytes
 from json import dumps
 from collections import OrderedDict
 from io import FileIO as file
@@ -418,7 +418,7 @@ def test_upload(req):
                              html(req.form.getvalue(key).decode('utf-8')))
             else:
                 files.append("<pre>%s</pre>" %
-                             encodestring(req.form.getvalue(key)).decode())
+                             encodebytes(req.form.getvalue(key)).decode())
             os.remove("./upload/%s" % (req.form[key].filename))
 
     buff = get_header('HTTP file upload test') + \

@@ -5,11 +5,13 @@
 
 """
 # pylint: disable=too-many-lines
+# pylint: disable=unsubscriptable-object
 
 from os import path, access, R_OK, environ
 from collections import OrderedDict, namedtuple
 from logging import getLogger
 from hashlib import md5, sha256
+from typing import List, Union, Callable, Optional
 
 import re
 
@@ -57,7 +59,7 @@ class Application():
     """
     # pylint: disable=too-many-instance-attributes
     # pylint: disable=too-many-public-methods
-    __instances = []
+    __instances: List[str] = []
 
     def __init__(self, name="__main__"):
         """Application class is per name singleton.
@@ -289,7 +291,7 @@ class Application():
         return self.__config['auto_data']
 
     @auto_data.setter
-    def auto_data(self, value):
+    def auto_data(self, value: Union[int, bool]):
         self.__config['auto_data'] = bool(value)
 
     @property
@@ -302,7 +304,7 @@ class Application():
         return self.__config['data_size']
 
     @data_size.setter
-    def data_size(self, value):
+    def data_size(self, value: int):
         self.__config['data_size'] = int(value)
 
     @property
@@ -315,7 +317,7 @@ class Application():
         return self.__config['auto_cookies']
 
     @auto_cookies.setter
-    def auto_cookies(self, value):
+    def auto_cookies(self, value: Union[int, bool]):
         self.__config['auto_cookies'] = bool(value)
 
     @property
@@ -327,7 +329,7 @@ class Application():
         return self.__config['debug'] == 'On'
 
     @debug.setter
-    def debug(self, value):
+    def debug(self, value: Union[int, bool]):
         self.__config['debug'] = 'On' if bool(value) else 'Off'
 
     @property
@@ -339,7 +341,7 @@ class Application():
         return self.__config['document_root']
 
     @document_root.setter
-    def document_root(self, value):
+    def document_root(self, value: str):
         self.__config['document_root'] = value
 
     @property
@@ -351,7 +353,7 @@ class Application():
         return self.__config['document_index'] == 'On'
 
     @document_index.setter
-    def document_index(self, value):
+    def document_index(self, value: Union[int, bool]):
         self.__config['document_index'] = 'On' if bool(value) else 'Off'
 
     @property
@@ -364,7 +366,7 @@ class Application():
         return self.__config['secret_key']
 
     @secret_key.setter
-    def secret_key(self, value):
+    def secret_key(self, value: str):
         self.__config['secret_key'] = value
 
     @property
@@ -377,7 +379,7 @@ class Application():
         return self.__config['keep_blank_values']
 
     @keep_blank_values.setter
-    def keep_blank_values(self, value):
+    def keep_blank_values(self, value: Union[int, bool]):
         self.__config['keep_blank_values'] = int(value)
 
     @property
@@ -390,7 +392,7 @@ class Application():
         return self.__config['strict_parsing']
 
     @strict_parsing.setter
-    def strict_parsing(self, value):
+    def strict_parsing(self, value: Union[int, bool]):
         self.__config['strict_parsing'] = int(value)
 
     @property
@@ -403,7 +405,7 @@ class Application():
         return self.__config['file_callback']
 
     @file_callback.setter
-    def file_callback(self, value):
+    def file_callback(self, value: Callable):
         self.__config['file_callback'] = value
 
     @property
@@ -424,7 +426,7 @@ class Application():
         return self.__config['auth_type']
 
     @auth_type.setter
-    def auth_type(self, value):
+    def auth_type(self, value: str):
         value = value.capitalize()
         if value not in ('Digest',):
             raise ValueError('Unsupported authorization type')
@@ -446,7 +448,7 @@ class Application():
         return self.__config['auth_algorithm']
 
     @auth_algorithm.setter
-    def auth_algorithm(self, value):
+    def auth_algorithm(self, value: str):
         if self.__config['auth_algorithm'] is None:
             raise ValueError('Set authorization type first')
 
@@ -478,7 +480,7 @@ class Application():
         return self.__config['auth_qop']
 
     @auth_qop.setter
-    def auth_qop(self, value):
+    def auth_qop(self, value: str):
         if value not in ('', 'auth', None):
             raise ValueError('Unsupported quality of protection')
         self.__config['auth_qop'] = value
@@ -495,7 +497,7 @@ class Application():
         return self.__config['auth_timeout']
 
     @auth_timeout.setter
-    def auth_timeout(self, value):
+    def auth_timeout(self, value: Optional[int]):
         if not isinstance(value, (type(None), int)):
             raise ValueError('Unsupported auth_timeout value')
         self.__config['auth_timeout'] = value
@@ -509,7 +511,7 @@ class Application():
         """
         return self.__config['form_mime_types']
 
-    def set_filter(self, name, regex, convertor=str):
+    def set_filter(self, name: str, regex: str, convertor: Callable = str):
         r"""Create new filter or overwrite builtins.
 
         name : str
@@ -543,7 +545,7 @@ class Application():
             return fun
         return wrapper
 
-    def add_before_request(self, fun):
+    def add_before_request(self, fun: Callable):
         """Append handler to call before each request.
 
         Method adds function to list functions which is call before each
@@ -551,7 +553,7 @@ class Application():
 
         .. code:: python
 
-            def def before_each_request(req):
+            def before_each_request(req):
                 print("Request coming")
 
             app.add_before(before_each_request)
@@ -560,7 +562,7 @@ class Application():
             raise ValueError("%s is in list yet" % str(fun))
         self.__before.append(fun)
 
-    def pop_before_request(self, fun):
+    def pop_before_request(self, fun: Callable):
         """Remove handler added by add_before_request or before_request."""
         if not self.__before.count(fun):
             raise ValueError("%s is not in list" % str(fun))
@@ -584,7 +586,7 @@ class Application():
             return fun
         return wrapper
 
-    def add_after_request(self, fun):
+    def add_after_request(self, fun: Callable):
         """Append handler to call after each request.
 
         Method for direct append function to list functions which are called
@@ -602,13 +604,13 @@ class Application():
             raise ValueError("%s is in list yet" % str(fun))
         self.__after.append(fun)
 
-    def pop_after_request(self, fun):
+    def pop_after_request(self, fun: Callable):
         """Remove handler added by add_before_request or before_request."""
         if not self.__before.count(fun):
             raise ValueError("%s is not in list" % str(fun))
         self.__after.remove(fun)
 
-    def default(self, method=METHOD_HEAD | METHOD_GET):
+    def default(self, method: int = METHOD_HEAD | METHOD_GET):
         """Set default handler.
 
         This is decorator for default handler for http method (called before
@@ -629,7 +631,8 @@ class Application():
         return wrapper
     # enddef
 
-    def set_default(self, fun, method=METHOD_HEAD | METHOD_GET):
+    def set_default(self, fun: Callable,
+                    method: int = METHOD_HEAD | METHOD_GET):
         """Set default handler.
 
         Set fun default handler for http method called befor error_not_found.
@@ -643,11 +646,11 @@ class Application():
                 self.__dhandlers[val] = fun
     # enddef
 
-    def pop_default(self, method):
+    def pop_default(self, method: int):
         """Pop default handler for method."""
         return self.__dhandlers.pop(method)
 
-    def route(self, uri, method=METHOD_HEAD | METHOD_GET):
+    def route(self, uri: str, method: int = METHOD_HEAD | METHOD_GET):
         r"""Wrap function to be handler for uri and specified method.
 
         You can define uri as static path or as groups which are hand
@@ -698,7 +701,8 @@ class Application():
         return wrapper
     # enddef
 
-    def set_route(self, uri, fun, method=METHOD_HEAD | METHOD_GET):
+    def set_route(self, uri: str, fun: Callable,
+                  method: int = METHOD_HEAD | METHOD_GET):
         """Set handler for uri and method.
 
         Another way to add fun as handler for uri. See Application.route
@@ -721,7 +725,7 @@ class Application():
                 if method & val:
                     self.__handlers[uri][val] = fun
 
-    def pop_route(self, uri, method):
+    def pop_route(self, uri: str, method: int):
         """Pop handler for uri and method from handers table.
 
         Method must be define unique, so METHOD_GET_POST could not be use.
@@ -738,14 +742,14 @@ class Application():
             self.__handlers.pop(uri, None)
         return rval
 
-    def is_route(self, uri):
+    def is_route(self, uri: str):
         """Check if uri have any registered record."""
         if re_filter.search(uri):
             r_uri = re_filter.sub(self.__regex, uri) + '$'
             return self.is_regular_route(r_uri)
         return uri in self.__handlers
 
-    def regular_route(self, ruri, method=METHOD_HEAD | METHOD_GET):
+    def regular_route(self, ruri: str, method: int = METHOD_HEAD | METHOD_GET):
         r"""Wrap function to be handler for uri defined by regular expression.
 
         Both of function, regular_route and set_regular_route store routes
@@ -773,8 +777,9 @@ class Application():
             return fun
         return wrapper
 
-    def set_regular_route(self, r_uri, fun, method=METHOD_HEAD | METHOD_GET,
-                          convertors=(), rule=None):
+    def set_regular_route(self, uri: str, fun: Callable,
+                          method: int = METHOD_HEAD | METHOD_GET,
+                          convertors=(), rule: str = None):
         r"""Set hanlder for uri defined by regular expression.
 
         Another way to add fn as handler for uri defined by regular expression.
@@ -789,19 +794,19 @@ class Application():
         adding by route or set_route method.
         """
         # pylint: disable=too-many-arguments
-        r_uri = re.compile(r_uri, re.U)
+        r_uri = re.compile(uri, re.U)
         if r_uri not in self.__rhandlers:
             self.__rhandlers[r_uri] = {}
         for val in methods.values():
             if method & val:
                 self.__rhandlers[r_uri][val] = (fun, convertors, rule)
 
-    def pop_regular_route(self, r_uri, method):
+    def pop_regular_route(self, uri: str, method: int):
         """Pop handler and convertors for uri and method from handlers table.
 
         For mor details see Application.pop_route.
         """
-        r_uri = re.compile(r_uri, re.U)
+        r_uri = re.compile(uri, re.U)
         handlers = self.__rhandlers.get(r_uri, {})
         rval = handlers.pop(method)
         if not handlers:    # is empty
@@ -813,7 +818,8 @@ class Application():
         r_uri = re.compile(r_uri, re.U)
         return r_uri in self.__rhandlers
 
-    def http_state(self, code, method=METHOD_HEAD | METHOD_GET | METHOD_POST):
+    def http_state(self, status_code: int,
+                   method: int = METHOD_HEAD | METHOD_GET | METHOD_POST):
         """Wrap function to handle http status codes like http errors.
 
         .. code:: python
@@ -823,49 +829,49 @@ class Application():
                 return "Your request %s not found." % req.uri, "text/plain"
         """
         def wrapper(fun):
-            self.set_http_state(code, fun, method)
+            self.set_http_state(status_code, fun, method)
             return fun
         return wrapper
 
-    def set_http_state(self, code, fun,
-                       method=METHOD_HEAD | METHOD_GET | METHOD_POST):
+    def set_http_state(self, status_code: int, fun: Callable,
+                       method: int = METHOD_HEAD | METHOD_GET | METHOD_POST):
         """Set fn as handler for http state code and method."""
-        if code not in self.__shandlers:
-            self.__shandlers[code] = {}
+        if status_code not in self.__shandlers:
+            self.__shandlers[status_code] = {}
         for val in methods.values():
             if method & val:
-                self.__shandlers[code][val] = fun
+                self.__shandlers[status_code][val] = fun
 
-    def pop_http_state(self, code, method):
+    def pop_http_state(self, status_code, method: int):
         """Pop handerl for http state and method.
 
         As Application.pop_route, for pop multimethod handler, you must call
         pop_http_state for each method.
         """
-        handlers = self.__shandlers.get(code, {})
+        handlers = self.__shandlers.get(status_code, {})
         return handlers.pop(method)
 
-    def error_from_table(self, req, code, **kwargs):
+    def error_from_table(self, req, status_code, **kwargs):
         """Internal method, which is called if error was accured.
 
         If status code is in Application.shandlers (fill with http_state
         function), call this handler.
         """
-        if code in self.__shandlers \
-                and req.method_number in self.__shandlers[code]:
+        if status_code in self.__shandlers \
+                and req.method_number in self.__shandlers[status_code]:
             try:
-                handler = self.__shandlers[code][req.method_number]
+                handler = self.__shandlers[status_code][req.method_number]
                 req.error_handler = handler
                 self.handler_from_before(req)  # call before handlers now
                 return handler(req, **kwargs)
             except Exception:  # pylint: disable=broad-except
                 return internal_server_error(req)
-        elif code in default_states:
-            handler = default_states[code][METHOD_GET]
+        elif status_code in default_states:
+            handler = default_states[status_code][METHOD_GET]
             req.error_handler = handler
             return handler(req, **kwargs)
         else:
-            return not_implemented(req, code)
+            return not_implemented(req, status_code)
 
     def handler_from_default(self, req):
         """Internal method, which is called if no handler is found."""
@@ -1054,6 +1060,7 @@ class Application():
         """Profiler version of __request__.
 
         This method is used if set_profile is used."""
+        # pylint: disable=possibly-unused-variable
         def wrapper(rval):
             rval.append(self.__original_request__(env, start_response))
 

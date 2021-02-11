@@ -14,6 +14,7 @@ from sys import version, exc_info
 from inspect import cleandoc
 from logging import getLogger
 from hashlib import sha256
+from typing import Dict
 
 import mimetypes
 
@@ -34,7 +35,7 @@ HTML_ESCAPE_TABLE = {'&': "&amp;",
 log = getLogger("poorwsgi")
 
 # http state handlers, which is called if programmer don't defined his own
-default_states = {}
+default_states: Dict[str, Dict] = {}
 
 # pylint: disable=invalid-name
 
@@ -404,6 +405,7 @@ def directory_index(req, path):
         ftype = ""
 
         if isfile(fpath):
+            # pylint: disable=unused-variable
             (ftype, encoding) = mimetypes.guess_type(fpath)
             if not ftype:
                 ftype = 'application/octet-stream'

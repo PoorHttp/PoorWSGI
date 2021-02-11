@@ -7,8 +7,8 @@ https://github.com/p1c2u/openapi-core with version 0.13.0 or higher.
 """
 import re
 
-from openapi_core.validation.request.datatypes import \
-    RequestParameters
+from openapi_core.validation.request.datatypes import (  # type: ignore
+        RequestParameters)
 
 
 class OpenAPIRequest():

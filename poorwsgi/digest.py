@@ -57,6 +57,7 @@ def check_response(req, password):
 
     # auth qop
     if req.app.auth_qop:
+        # pylint: disable=fixme
         # TODO: check nc value on server side
         response = req.app.auth_hash(
             '{hash1}:{nonce}:{nc}:{cnonce}:{qop}:{hash2}'

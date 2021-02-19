@@ -1,17 +1,5 @@
 Install
 =======
-Source tarbal
--------------
-
-.. code:: sh
-
-    ~$ wget https://pypi.python.org/packages/source/P/PoorWSGI/PoorWSGI-2.3.0.tar.gz
-    ~$ tar xzf PoorWSGI-2.3.0.tar.gz
-    ~$ cd PoorWSGI-2.3.0
-    ~$ pip3 install .
-
-    # if you have jinja24doc and you want to install this html documentation
-    ~$ python3 setup.py install_doc
 
 Source from git
 ---------------

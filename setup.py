@@ -180,6 +180,7 @@ setup(
     maintainer_email="mcbig@zeropage.cz",
     url="http://poorhttp.zeropage.cz/poorwsgi",
     packages=['poorwsgi'],
+    package_data={'': ['py.typed']},
     data_files=[
         ('share/doc/poorwsgi',
          ['doc/ChangeLog', 'doc/licence.txt', 'README.rst',

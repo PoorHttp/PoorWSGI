@@ -4,7 +4,7 @@ from operator import itemgetter
 
 __author__ = "Ondrej Tuma (McBig) <mcbig@zeropage.cz>"
 __date__ = "19 Feb 2021"
-__version__ = "2.3.1"       # https://www.python.org/dev/peps/pep-0386/
+__version__ = "2.3.2"       # https://www.python.org/dev/peps/pep-0386/
 
 DECLINED = 0
 

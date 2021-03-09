@@ -77,6 +77,7 @@ def root(req):
         '<li>%s - user (user/looser)</li>' % get_link('/user'),
         '<li>%s - foo (foo/bar)</li>' % get_link('/foo'),
         '<li>%s - unknown</li>' % get_link('/unknown'),
+        '<li>%s - spaces in url</li>' % get_link('/spaces in url'),
         '</ul>'
     )
 
@@ -171,6 +172,23 @@ def foo_password(req):
 def unknown_endpoint(req):
     """Page for digest test."""
     return EmptyResponse()
+
+
+@app.route('/spaces in url')
+@check_digest(USER)
+def spaces_in_url(req):
+    """Page for USER realm."""
+    body = (
+        '<h2>%s test for %s algorithm.</h2>' % (USER, app.auth_algorithm),
+        'User: %s' % req.user,
+        '<ul>',
+        '<li>'+get_link('/', 'Root')+'</li>',
+        '<li>'+get_link('/spaces in url?param=text', 'one more time')+'</li>',
+        '</ul>'
+    )
+
+    for line in get_header("Root") + body + get_footer():
+        yield line.encode()+b'\n'
 
 
 if __name__ == '__main__':

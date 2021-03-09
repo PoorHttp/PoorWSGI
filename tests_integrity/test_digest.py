@@ -16,7 +16,7 @@ from . support import start_server, check_url
 @fixture(scope="module")
 def url(request):
     """URL (server fixture in fact)."""
-    val = environ.get("TEST_SIMPLE_URL", "").strip('/')
+    val = environ.get("TEST_DIGEST_URL", "").strip('/')
     if val:
         return val
 
@@ -66,6 +66,9 @@ class TestDigest:
 
         auth = HTTPDigestAuth('foo', 'rab')
         check_url(url+'/foo', auth=auth)
+
+    def test_spaces(self, url, user_auth):
+        check_url(url+'/spaces%20in%20url', auth=user_auth)
 
     def test_unknown(self, url, user_auth):
         check_url(url+'/unknown', auth=user_auth, status_code=401)

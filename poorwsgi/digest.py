@@ -17,6 +17,7 @@ from os.path import exists
 from logging import getLogger
 from functools import wraps
 from collections import defaultdict
+from urllib.parse import unquote
 
 import sys
 
@@ -91,7 +92,7 @@ def check_credentials(req, realm, username=None):
                   auth.get('opaque'), opaque)
         return False
 
-    if not auth.get('uri').endswith(req.full_path):
+    if not unquote(auth.get('uri')).endswith(req.full_path):
         log.error('Digest: uri %s not equal to %s',
                   auth.get('uri'), req.full_path)
         return False

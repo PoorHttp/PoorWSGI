@@ -313,7 +313,7 @@ class JSONGeneratorResponse(StrGeneratorResponse):
 
 
 class EmptyResponse(GeneratorResponse):
-    """For situation, where only state could be return."""
+    """For situation, where only state is returned."""
     def __init__(self, status_code: int = HTTP_OK):
         super().__init__((), status_code=status_code)
 

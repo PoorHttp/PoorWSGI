@@ -1,5 +1,6 @@
 ==== 2.3.3 ====
     * supported space in url with http digest
+    * Request.construct_url improvement
 
 ==== 2.3.2 ====
     * mypy support

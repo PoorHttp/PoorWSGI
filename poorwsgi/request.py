@@ -363,6 +363,14 @@ class Request():
                                   self.server_hostname).split(':')[0]
 
     @property
+    def host_port(self):
+        """Port, as set by full URI or Host."""
+        host = self.__environ.get('HTTP_HOST', '')
+        if ':' in host:
+            return int(host.split(':')[1])
+        return self.server_port
+
+    @property
     def method(self):
         """String containing the method, ``GET, HEAD, POST``, etc."""
         return self.__environ.get('REQUEST_METHOD')
@@ -691,8 +699,24 @@ class Request():
 
     @property
     def forwarded_host(self):
-        """``X-Forward-Host`` http header if exists."""
-        return self.__environ.get('HTTP_X_FORWARDED_HOST')
+        """``X-Forward-Host`` http header without port if exists."""
+        host = self.__environ.get('HTTP_X_FORWARDED_HOST')
+        if host:
+            host = host.split(':')[0]
+        return host
+
+    @property
+    def forwarded_port(self):
+        """Port from ``X-Forward-Host`` or ``X-Forward-Proto`` header."""
+        host = self.__environ.get('HTTP_X_FORWARDED_HOST')
+        if host and ':' in host:
+            return int(host.split(':')[1])
+        proto = self.forwarded_proto
+        if proto == 'https':
+            return 443
+        if proto == 'http':
+            return 80
+        return None
 
     @property
     def forwarded_proto(self):
@@ -815,14 +839,17 @@ class Request():
         same as the default port 80."""
 
         if not RE_HTTPURLPATTERN.match(uri):
-            return "%s://%s%s" % (self.forwarded_proto or self.server_scheme,
-                                  self.forwarded_host or self.hostname, uri)
+            scheme = self.forwarded_proto or self.server_scheme
+            host = self.forwarded_host or self.hostname
+            port = self.forwarded_port or self.host_port
+            if not ((port == 80 and scheme == 'http') or
+                    (port == 443 and scheme == 'https')):
+                return "%s://%s:%d%s" % (scheme, host, port, uri)
+            return "%s://%s%s" % (scheme, host, uri)
         return uri
-    # enddef
 
     def __del__(self):
         log.debug("Request: Hasta la vista, baby.")
-# endclass
 
 
 class EmptyForm(dict):

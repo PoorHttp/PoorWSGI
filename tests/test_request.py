@@ -1,8 +1,21 @@
+"""Test for request module fuctionality."""
 from io import BytesIO
 from typing import Dict, Any
 
+from pytest import fixture
+
+from poorwsgi import Application
 from poorwsgi.request import JsonDict, JsonList, parse_json_request, \
-    EmptyForm, Args, FieldStorage
+    EmptyForm, Args, FieldStorage, Request
+
+# pylint: disable=missing-function-docstring
+# pylint: disable=no-self-use
+# pylint: disable=redefined-outer-name
+
+
+@fixture(scope='session')
+def app():
+    return Application(__name__)
 
 
 class TestEmpty:
@@ -117,3 +130,49 @@ class TestParseJson:
     def test_utf_struct(self):
         rv = parse_json_request(BytesIO(b'{"lang":"\xc4\x8de\xc5\xa1tina"}'))
         assert rv == {"lang": "čeština"}
+
+
+class TestRequest:
+    """Test Request class."""
+    def test_host_wsgi(self, app):
+        env = {
+             'PATH_INFO': '/path',
+             'wsgi.url_scheme': 'http',
+             'SERVER_NAME': 'example.org',
+             'SERVER_PORT': '80'
+        }
+        req = Request(env, app)
+        assert req.server_scheme == 'http'
+        assert req.hostname == 'example.org'
+        assert req.host_port == 80
+        assert req.construct_url('/x') == 'http://example.org/x'
+
+    def test_host_header(self, app):
+        env = {
+             'PATH_INFO': '/path',
+             'wsgi.url_scheme': 'http',
+             'SERVER_NAME': 'example.org',
+             'SERVER_PORT': '80',
+             'HTTP_HOST': 'example.net:8080'
+        }
+        req = Request(env, app)
+        assert req.server_scheme == 'http'
+        assert req.hostname == 'example.net'
+        assert req.host_port == 8080
+        assert req.construct_url('/x') == 'http://example.net:8080/x'
+
+    def test_forward_header(self, app):
+        env = {
+             'PATH_INFO': '/path',
+             'wsgi.url_scheme': 'http',
+             'SERVER_NAME': 'example.org',
+             'SERVER_PORT': '80',
+             'HTTP_HOST': 'example.net:8080',
+             'HTTP_X_FORWARDED_PROTO': 'https',
+             'HTTP_X_FORWARDED_HOST': 'example.com'
+        }
+        req = Request(env, app)
+        assert req.server_scheme == 'http'
+        assert req.hostname == 'example.net'
+        assert req.host_port == 8080
+        assert req.construct_url('/x') == 'https://example.com/x'

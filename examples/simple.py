@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
-#
-# This is example and test application for PoorWSGI connector.
-#
-# This sample testing example is free to use, modify and study under same BSD
-# licence as PoorWSGI. So enjoy it ;)
+"""This is example and test application for PoorWSGI connector.
+
+This sample testing example is free to use, modify and study under same BSD
+licence as PoorWSGI. So enjoy it ;)
+"""
 
 from wsgiref.simple_server import make_server
 from base64 import decodebytes, encodebytes

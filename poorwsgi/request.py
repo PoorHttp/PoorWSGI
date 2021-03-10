@@ -294,12 +294,12 @@ class Request():
             self.__args = EmptyForm()
 
         # test auto json parsing
-        if app.auto_json and self.is_body_request \
+        if app.auto_json and self.is_body_request and self.has_body \
                 and self.__mime_type in app.json_mime_types:
             self.__json = parse_json_request(self, self.__charset)
             self.__form = EmptyForm()
         # test auto form parsing
-        elif app.auto_form and self.is_body_request \
+        elif app.auto_form and self.is_body_request and self.has_body \
                 and self.__mime_type in app.form_mime_types:
             self.__form = FieldStorage(
                 self, keep_blank_values=app.keep_blank_values,
@@ -532,7 +532,14 @@ class Request():
     def is_body_request(self):
         """True if request is body request type, so it is PATCH, POST or PUT.
         """
-        return self.method_number & (METHOD_PATCH | METHOD_POST | METHOD_PUT)
+        return bool(self.method_number
+                    & (METHOD_PATCH | METHOD_POST | METHOD_PUT))
+
+    @property
+    def has_body(self):
+        """True if request can have body."""
+        return (self.__content_length > 0
+                or self.server_protocol == "HTTP/0.9")
 
     @property
     def poor_environ(self):
@@ -802,7 +809,7 @@ class Request():
         If length is not set, or if is lower then zero, Content-Length was
         be use.
         """
-        if self.__content_length <= 0 and self.server_protocol != "HTTP/0.9":
+        if not self.has_body:
             log.error("No Content-Length found, read was failed!")
             return b''
         if -1 < length < self.__content_length:

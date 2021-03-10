@@ -8,6 +8,10 @@ from pytest import fixture
 
 from . support import start_server, check_url
 
+# pylint: disable=missing-function-docstring
+# pylint: disable=no-self-use
+# pylint: disable=redefined-outer-name
+
 
 @fixture(scope="module")
 def url(request):

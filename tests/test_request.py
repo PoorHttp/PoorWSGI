@@ -176,3 +176,17 @@ class TestRequest:
         assert req.hostname == 'example.net'
         assert req.host_port == 8080
         assert req.construct_url('/x') == 'https://example.com/x'
+
+    def test_emoty_form(self, app):
+        env = {
+            'PATH_INFO': '/path',
+            'SERVER_PROTOCOL': 'HTTP/1.0',
+            'REQUEST_METHOD': 'POST',
+            'HTTP_CONTENT_TYPE': 'multipart/form-data',
+            'wsgi.input': BytesIO()
+            }
+        req = Request(env, app)
+        assert app.auto_form is True
+        assert req.is_body_request is True
+        assert req.mime_type in app.form_mime_types
+        assert isinstance(req.form, EmptyForm)

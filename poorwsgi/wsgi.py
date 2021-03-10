@@ -8,7 +8,7 @@
 # pylint: disable=unsubscriptable-object
 
 from os import path, access, R_OK, environ
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 from logging import getLogger
 from hashlib import md5, sha256
 from typing import List, Union, Callable, Optional
@@ -18,7 +18,7 @@ import re
 from poorwsgi.state import HTTP_OK, DECLINED, \
     METHOD_GET, METHOD_POST, METHOD_HEAD, methods, \
     HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN
-from poorwsgi.request import Request
+from poorwsgi.request import Request, SimpleRequest
 from poorwsgi.results import default_states, not_implemented, \
     internal_server_error, directory_index, debug_info
 from poorwsgi.response import Response, HTTPException, EmptyResponse, \
@@ -1018,14 +1018,7 @@ class Application():
         except BaseException as err:  # pylint: disable=broad-except
             if request is None:
                 log.critical(str(err))
-                Failed = namedtuple(
-                    "Failed", ('debug', 'server_software', 'server_admin',
-                               'error_handler'))
-                request = Failed(
-                    self.debug,
-                    env.get('SERVER_SOFTWARE', 'Unknown'),
-                    env.get('SERVER_ADMIN', 'Unknown'),
-                    internal_server_error)
+                request = SimpleRequest(env, self)
 
             try:
                 response = to_response(self.error_from_table(request, 500))

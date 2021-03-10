@@ -3,6 +3,7 @@
     * Request.construct_url improvement
     * fix inconsistent return statements
     * fix parsing empty form error and Request.has_body property
+    * fix error when Request.__init__ failed
 
 ==== 2.3.2 ====
     * mypy support

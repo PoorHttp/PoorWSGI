@@ -207,31 +207,14 @@ class Headers(Mapping):
                                  "encoded (got {0})".format(value)) from err
         raise AssertionError("Header name/value must be of type str "
                              "(got {0})".format(value))
-# endclass Headers
 
 
-class Request():
-    """HTTP request object with all server elements.
-
-    It could be compatible as soon as possible with mod_python.apache.request.
-    Special variables for user use are prefixed with ``app_``.
-    """
-    # pylint: disable=too-many-instance-attributes,
+class SimpleRequest:
+    """Request proxy properties implementation - for internal use only."""
     # pylint: disable=too-many-public-methods
-
     def __init__(self, environ, app):
-        """Object was created automatically in wsgi module.
-
-        It's input parameters are the same, which Application object gets from
-        WSGI server plus file callback for auto request body parsing.
-        """
-        # pylint: disable=too-many-branches, too-many-statements
-        self.__timestamp = time()
-        self.__app = app
         self.__environ = environ
-        if environ.get('PATH_INFO') is None:
-            raise ConnectionError(
-                "PATH_INFO not set, probably bad HTTP protocol used.")
+        self.__app = app
 
         # The path portion of the URI.
         self.__uri_rule = None
@@ -243,78 +226,11 @@ class Request():
         # Reference to error handler if exist.
         self.__error_handler = None
 
-        # A table object containing headers sent by the client.
-        tmp = []
-        for key, val in self.__environ.items():
-            if key[:5] == 'HTTP_':
-                key = '-'.join(map(lambda x: x.capitalize(),
-                                   key[5:].split('_')))
-                tmp.append((key, val))
-            elif key in ("CONTENT_LENGTH", "CONTENT_TYPE"):
-                key = '-'.join(map(lambda x: x.capitalize(),
-                                   key.split('_')))
-                tmp.append((key, val))
-
-        self.__headers = Headers(tmp, False)  # do not convert to iso-8859-1
-
-        ctype, pdict = parse_header(self.__headers.get('Content-Type', ''))
-        self.__mime_type = ctype
-        self.__charset = pdict.get('charset', 'utf-8')
-
-        self.__content_length = int(self.__headers.get("Content-Length") or -1)
-        # will be set with first property call
-        self.__accept = None
-        self.__accept_charset = None
-        self.__accept_encoding = None
-        self.__accept_language = None
-        self.__authorization = None
-
         # uwsgi do not sent environ variables to apps environ
         if 'uwsgi.version' in self.__environ or 'poor.Version' in os.environ:
             self.__poor_environ = os.environ
         else:
             self.__poor_environ = self.__environ
-
-        self.__file = self.__environ.get("wsgi.input")
-        self._errors = self.__environ.get("wsgi.errors")
-
-        if app.auto_data and \
-                0 <= self.__content_length <= app.data_size:
-            self.__file = BytesIO(self.__file.read(self.__content_length))
-            self.__file.seek(0)
-
-        # path args are set via wsgi.handler_from_table
-        self.__path_args = None
-
-        # args
-        if app.auto_args:
-            self.__args = Args(self, app.keep_blank_values,
-                               app.strict_parsing)
-        else:
-            self.__args = EmptyForm()
-
-        # test auto json parsing
-        if app.auto_json and self.is_body_request and self.has_body \
-                and self.__mime_type in app.json_mime_types:
-            self.__json = parse_json_request(self, self.__charset)
-            self.__form = EmptyForm()
-        # test auto form parsing
-        elif app.auto_form and self.is_body_request and self.has_body \
-                and self.__mime_type in app.form_mime_types:
-            self.__form = FieldStorage(
-                self, keep_blank_values=app.keep_blank_values,
-                strict_parsing=app.strict_parsing,
-                file_callback=app.file_callback)
-            self.__json = EmptyForm()
-        else:
-            self.__form = EmptyForm()
-            self.__json = EmptyForm()
-
-        if app.auto_cookies and 'Cookie' in self.__headers:
-            self.__cookies = SimpleCookie()
-            self.__cookies.load(self.__headers['Cookie'])
-        else:
-            self.__cookies = tuple()
 
         var = self.__poor_environ.get('poor_Debug')
         if var:
@@ -322,31 +238,15 @@ class Request():
         else:
             self.__debug = app.debug
 
-        # variables for user use
-        self.__user = None
-        self.__api = None
-    # enddef
+    @property
+    def debug(self):
+        """Value of ``poor_Debug`` variable."""
+        return self.__debug
 
-    # -------------------------- Properties --------------------------- #
     @property
     def app(self):
         """Return Application object which was created Request."""
         return self.__app
-
-    @property
-    def mime_type(self):
-        """Request ``Content-Type`` header string."""
-        return self.__mime_type
-
-    @property
-    def charset(self):
-        """Request ``Content-Type`` charset header string, utf-8 if not set."""
-        return self.__charset
-
-    @property
-    def content_length(self):
-        """Request ``Content-Length`` header value, -1 if not set."""
-        return self.__content_length
 
     @property
     def environ(self):
@@ -357,51 +257,12 @@ class Request():
         return self.__environ.copy()
 
     @property
-    def hostname(self):
-        """Host, as set by full URI or Host: header without port."""
-        return self.__environ.get('HTTP_HOST',
-                                  self.server_hostname).split(':')[0]
+    def poor_environ(self):
+        """Environ with ``poor_`` variables.
 
-    @property
-    def host_port(self):
-        """Port, as set by full URI or Host."""
-        host = self.__environ.get('HTTP_HOST', '')
-        if ':' in host:
-            return int(host.split(':')[1])
-        return self.server_port
-
-    @property
-    def method(self):
-        """String containing the method, ``GET, HEAD, POST``, etc."""
-        return self.__environ.get('REQUEST_METHOD')
-
-    @property
-    def method_number(self):
-        """Method number constant from state module."""
-        if self.method not in methods:
-            return methods['GET']
-        return methods[self.method]
-
-    @property
-    def uri(self):
-        """Deprecated alias for path of the URI."""
-        return self.__environ.get('PATH_INFO')
-
-    @property
-    def path(self):
-        """Path part of url."""
-        return self.__environ.get('PATH_INFO')
-
-    @property
-    def query(self):
-        """The QUERY_STRING environment variable."""
-        return self.__environ.get('QUERY_STRING', '').strip()
-
-    @property
-    def full_path(self):
-        """Path with query, if it exist, from url."""
-        query = self.query
-        return self.path + ('?'+query if query else '')
+        It is environ from request, or os.environ
+        """
+        return self.__poor_environ.copy()
 
     @property
     def uri_rule(self):
@@ -454,178 +315,51 @@ class Request():
             self.__error_handler = value
 
     @property
-    def headers(self):
-        """Reference to input headers object."""
-        return self.__headers
+    def hostname(self):
+        """Host, as set by full URI or Host: header without port."""
+        return self.__environ.get('HTTP_HOST',
+                                  self.server_hostname).split(':')[0]
 
     @property
-    def accept(self):
-        """Tuple of client supported mime types from Accept header."""
-        if self.__accept is None:
-            self.__accept = tuple(parse_negotiation(
-                self.__headers.get("Accept", '')))
-        return self.__accept
+    def host_port(self):
+        """Port, as set by full URI or Host."""
+        host = self.__environ.get('HTTP_HOST', '')
+        if ':' in host:
+            return int(host.split(':')[1])
+        return self.server_port
 
     @property
-    def accept_charset(self):
-        """Tuple of client supported charset from Accept-Charset header."""
-        if self.__accept_charset is None:
-            self.__accept_charset = tuple(parse_negotiation(
-                self.__headers.get("Accept-Charset", '')))
-        return self.__accept_charset
+    def method(self):
+        """String containing the method, ``GET, HEAD, POST``, etc."""
+        return self.__environ.get('REQUEST_METHOD')
 
     @property
-    def accept_encoding(self):
-        """Tuple of client supported charset from Accept-Encoding header."""
-        if self.__accept_encoding is None:
-            self.__accept_encoding = tuple(parse_negotiation(
-                self.__headers.get("Accept-Encoding", '')))
-        return self.__accept_encoding
+    def method_number(self):
+        """Method number constant from state module."""
+        if self.method not in methods:
+            return methods['GET']
+        return methods[self.method]
 
     @property
-    def accept_language(self):
-        """List of client supported languages from Accept-Language header."""
-        if self.__accept_language is None:
-            self.__accept_language = tuple(parse_negotiation(
-                self.__headers.get("Accept-Language", '')))
-        return self.__accept_language
+    def uri(self):
+        """Deprecated alias for path of the URI."""
+        return self.__environ.get('PATH_INFO')
 
     @property
-    def accept_html(self):
-        """Return true if ``text/html`` mime type is in accept neogetions
-           values.
-        """
-        return "text/html" in dict(self.accept)
+    def path(self):
+        """Path part of url."""
+        return self.__environ.get('PATH_INFO')
 
     @property
-    def accept_xhtml(self):
-        """Return true if ``text/xhtml`` mime type is in accept neogetions
-           values.
-        """
-        return "text/xhtml" in dict(self.accept)
+    def query(self):
+        """The QUERY_STRING environment variable."""
+        return self.__environ.get('QUERY_STRING', '').strip()
 
     @property
-    def accept_json(self):
-        """Return true if ``application/json`` mime type is in accept neogetions
-           values.
-        """
-        return "application/json" in dict(self.accept)
-
-    @property
-    def authorization(self):
-        """Return Authorization header parsed to dictionary."""
-        if self.__authorization is None:
-            auth = self.__headers.get('Authorization', '').strip()
-            self.__authorization = dict(
-                (key, val.strip('"')) for key, val in
-                RE_AUTHORIZATION.findall(auth))
-            self.__authorization['type'] = auth[:auth.find(' ')].capitalize()
-        return self.__authorization.copy()
-
-    @property
-    def is_xhr(self):
-        """If ``X-Requested-With`` header is set with ``XMLHttpRequest`` value.
-        """
-        return self.__headers.get('X-Requested-With') == 'XMLHttpRequest'
-
-    @property
-    def is_body_request(self):
-        """True if request is body request type, so it is PATCH, POST or PUT.
-        """
-        return bool(self.method_number
-                    & (METHOD_PATCH | METHOD_POST | METHOD_PUT))
-
-    @property
-    def has_body(self):
-        """True if request can have body."""
-        return (self.__content_length > 0
-                or self.server_protocol == "HTTP/0.9")
-
-    @property
-    def poor_environ(self):
-        """Environ with ``poor_`` variables.
-
-        It is environ from request, or os.environ
-        """
-        return self.__poor_environ.copy()
-
-    @property
-    def path_args(self):
-        """Dictionary arguments from path of regual expression rule."""
-        return (self.__path_args or {}).copy()
-
-    @path_args.setter
-    def path_args(self, value: str):
-        if self.__path_args is None:
-            self.__path_args = value
-
-    @property
-    def args(self):
-        """Extended dictionary (Args instance) of request arguments.
-
-        Argument are parsed from QUERY_STRING, which is typical, but not only
-        for GET method. Arguments are parsed when Application.auto_args is set
-        which is default.
-
-        This property could be **set only once**.
-        """
-        return self.__args
-
-    @args.setter
-    def args(self, value: 'Args'):
-        if isinstance(self.__args, EmptyForm):
-            self.__args = value
-
-    @property
-    def form(self):
-        """Dictionary like class (FieldStorage instance) of body arguments.
-
-        Arguments must be send in request body with mime type
-        one of Application.form_mime_types. Method must be POST, PUT
-        or PATCH. Request body is parsed when Application.auto_form
-        is set, which default and when method is POST, PUT or PATCH.
-
-        This property could be **set only once**.
-        """
-        return self.__form
-
-    @form.setter
-    def form(self, value: 'FieldStorage'):
-        if isinstance(self.__form, EmptyForm):
-            self.__form = value
-
-    @property
-    def json(self):
-        """Json dictionary if request mime type is JSON.
-
-        Json types is defined in Application.json_mime_types, typical is
-        ``application/json`` and request method must be POST, PUT or PATCH and
-        Application.auto_json must be set to true (default). Otherwise json
-        is EmptyForm.
-
-        When request data is present, that will by parsed with
-        parse_json_request function.
-        """
-        return self.__json
-
-    @property
-    def cookies(self):
-        """SimpleCookie iterable object of all cookies from Cookie header.
-
-        This property was set if Application.auto_cookies is set to true,
-        which is default. Otherwise cookies was empty tuple.
-        """
-        return self.__cookies
-
-    @property
-    def debug(self):
-        """Value of ``poor_Debug`` variable."""
-        return self.__debug
-
-    @property
-    def timestamp(self):
-        """Return timestamp of request."""
-        return self.__timestamp
+    def full_path(self):
+        """Path with query, if it exist, from url."""
+        query = self.query
+        return self.path + ('?'+query if query else '')
 
     @property
     def remote_host(self):
@@ -761,6 +495,298 @@ class Request():
             'poor_DocumentRoot',
             self.__app.document_root)
 
+    def get_options(self):
+        """Returns dictionary with application variables from environment.
+
+        Application variables start with ``app_`` prefix, but in returned
+        dictionary is set without this prefix.
+
+        .. code:: ini
+
+            poor_Debug = on             # Poor WSGI variable
+            app_db_server = localhost   # application variable db_server
+            app_templates = app/templ   # application variable templates
+        """
+        options = {}
+        for key, val in self.__poor_environ.items():
+            key = key.strip()
+            if key[:4].lower() == 'app_':
+                options[key[4:].lower()] = val.strip()
+        return options
+
+
+class Request(SimpleRequest):
+    """HTTP request object with all server elements.
+
+    It could be compatible as soon as possible with mod_python.apache.request.
+    Special variables for user use are prefixed with ``app_``.
+    """
+    # pylint: disable=too-many-instance-attributes,
+    # pylint: disable=too-many-public-methods
+
+    def __init__(self, environ, app):
+        """Object was created automatically in wsgi module.
+
+        It's input parameters are the same, which Application object gets from
+        WSGI server plus file callback for auto request body parsing.
+        """
+        # pylint: disable=too-many-branches, too-many-statements
+        self.__timestamp = time()
+        super().__init__(environ, app)
+
+        if environ.get('PATH_INFO') is None:
+            raise ConnectionError(
+                "PATH_INFO not set, probably bad HTTP protocol used.")
+
+        # A table object containing headers sent by the client.
+        tmp = []
+        for key, val in environ.items():
+            if key[:5] == 'HTTP_':
+                key = '-'.join(map(lambda x: x.capitalize(),
+                                   key[5:].split('_')))
+                tmp.append((key, val))
+            elif key in ("CONTENT_LENGTH", "CONTENT_TYPE"):
+                key = '-'.join(map(lambda x: x.capitalize(),
+                                   key.split('_')))
+                tmp.append((key, val))
+
+        self.__headers = Headers(tmp, False)  # do not convert to iso-8859-1
+
+        ctype, pdict = parse_header(self.__headers.get('Content-Type', ''))
+        self.__mime_type = ctype
+        self.__charset = pdict.get('charset', 'utf-8')
+
+        self.__content_length = int(self.__headers.get("Content-Length") or -1)
+        # will be set with first property call
+        self.__accept = None
+        self.__accept_charset = None
+        self.__accept_encoding = None
+        self.__accept_language = None
+        self.__authorization = None
+
+        self.__file = environ.get("wsgi.input")
+        self._errors = environ.get("wsgi.errors")
+
+        if app.auto_data and \
+                0 <= self.__content_length <= app.data_size:
+            self.__file = BytesIO(self.__file.read(self.__content_length))
+            self.__file.seek(0)
+
+        # path args are set via wsgi.handler_from_table
+        self.__path_args = None
+
+        # args
+        if app.auto_args:
+            self.__args = Args(self, app.keep_blank_values,
+                               app.strict_parsing)
+        else:
+            self.__args = EmptyForm()
+
+        # test auto json parsing
+        if app.auto_json and self.is_body_request and self.has_body \
+                and self.__mime_type in app.json_mime_types:
+            self.__json = parse_json_request(self, self.__charset)
+            self.__form = EmptyForm()
+        # test auto form parsing
+        elif app.auto_form and self.is_body_request and self.has_body \
+                and self.__mime_type in app.form_mime_types:
+            self.__form = FieldStorage(
+                self, keep_blank_values=app.keep_blank_values,
+                strict_parsing=app.strict_parsing,
+                file_callback=app.file_callback)
+            self.__json = EmptyForm()
+        else:
+            self.__form = EmptyForm()
+            self.__json = EmptyForm()
+
+        if app.auto_cookies and 'Cookie' in self.__headers:
+            self.__cookies = SimpleCookie()
+            self.__cookies.load(self.__headers['Cookie'])
+        else:
+            self.__cookies = tuple()
+
+        # variables for user use
+        self.__user = None
+        self.__api = None
+    # enddef
+
+    # -------------------------- Properties --------------------------- #
+    @property
+    def mime_type(self):
+        """Request ``Content-Type`` header string."""
+        return self.__mime_type
+
+    @property
+    def charset(self):
+        """Request ``Content-Type`` charset header string, utf-8 if not set."""
+        return self.__charset
+
+    @property
+    def content_length(self):
+        """Request ``Content-Length`` header value, -1 if not set."""
+        return self.__content_length
+
+    @property
+    def headers(self):
+        """Reference to input headers object."""
+        return self.__headers
+
+    @property
+    def accept(self):
+        """Tuple of client supported mime types from Accept header."""
+        if self.__accept is None:
+            self.__accept = tuple(parse_negotiation(
+                self.__headers.get("Accept", '')))
+        return self.__accept
+
+    @property
+    def accept_charset(self):
+        """Tuple of client supported charset from Accept-Charset header."""
+        if self.__accept_charset is None:
+            self.__accept_charset = tuple(parse_negotiation(
+                self.__headers.get("Accept-Charset", '')))
+        return self.__accept_charset
+
+    @property
+    def accept_encoding(self):
+        """Tuple of client supported charset from Accept-Encoding header."""
+        if self.__accept_encoding is None:
+            self.__accept_encoding = tuple(parse_negotiation(
+                self.__headers.get("Accept-Encoding", '')))
+        return self.__accept_encoding
+
+    @property
+    def accept_language(self):
+        """List of client supported languages from Accept-Language header."""
+        if self.__accept_language is None:
+            self.__accept_language = tuple(parse_negotiation(
+                self.__headers.get("Accept-Language", '')))
+        return self.__accept_language
+
+    @property
+    def accept_html(self):
+        """Return true if ``text/html`` mime type is in accept neogetions
+           values.
+        """
+        return "text/html" in dict(self.accept)
+
+    @property
+    def accept_xhtml(self):
+        """Return true if ``text/xhtml`` mime type is in accept neogetions
+           values.
+        """
+        return "text/xhtml" in dict(self.accept)
+
+    @property
+    def accept_json(self):
+        """Return true if ``application/json`` mime type is in accept neogetions
+           values.
+        """
+        return "application/json" in dict(self.accept)
+
+    @property
+    def authorization(self):
+        """Return Authorization header parsed to dictionary."""
+        if self.__authorization is None:
+            auth = self.__headers.get('Authorization', '').strip()
+            self.__authorization = dict(
+                (key, val.strip('"')) for key, val in
+                RE_AUTHORIZATION.findall(auth))
+            self.__authorization['type'] = auth[:auth.find(' ')].capitalize()
+        return self.__authorization.copy()
+
+    @property
+    def is_xhr(self):
+        """If ``X-Requested-With`` header is set with ``XMLHttpRequest`` value.
+        """
+        return self.__headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    @property
+    def is_body_request(self):
+        """True if request is body request type, so it is PATCH, POST or PUT.
+        """
+        return bool(self.method_number
+                    & (METHOD_PATCH | METHOD_POST | METHOD_PUT))
+
+    @property
+    def has_body(self):
+        """True if request can have body."""
+        return (self.__content_length > 0
+                or self.server_protocol == "HTTP/0.9")
+
+    @property
+    def path_args(self):
+        """Dictionary arguments from path of regual expression rule."""
+        return (self.__path_args or {}).copy()
+
+    @path_args.setter
+    def path_args(self, value: str):
+        if self.__path_args is None:
+            self.__path_args = value
+
+    @property
+    def args(self):
+        """Extended dictionary (Args instance) of request arguments.
+
+        Argument are parsed from QUERY_STRING, which is typical, but not only
+        for GET method. Arguments are parsed when Application.auto_args is set
+        which is default.
+
+        This property could be **set only once**.
+        """
+        return self.__args
+
+    @args.setter
+    def args(self, value: 'Args'):
+        if isinstance(self.__args, EmptyForm):
+            self.__args = value
+
+    @property
+    def form(self):
+        """Dictionary like class (FieldStorage instance) of body arguments.
+
+        Arguments must be send in request body with mime type
+        one of Application.form_mime_types. Method must be POST, PUT
+        or PATCH. Request body is parsed when Application.auto_form
+        is set, which default and when method is POST, PUT or PATCH.
+
+        This property could be **set only once**.
+        """
+        return self.__form
+
+    @form.setter
+    def form(self, value: 'FieldStorage'):
+        if isinstance(self.__form, EmptyForm):
+            self.__form = value
+
+    @property
+    def json(self):
+        """Json dictionary if request mime type is JSON.
+
+        Json types is defined in Application.json_mime_types, typical is
+        ``application/json`` and request method must be POST, PUT or PATCH and
+        Application.auto_json must be set to true (default). Otherwise json
+        is EmptyForm.
+
+        When request data is present, that will by parsed with
+        parse_json_request function.
+        """
+        return self.__json
+
+    @property
+    def cookies(self):
+        """SimpleCookie iterable object of all cookies from Cookie header.
+
+        This property was set if Application.auto_cookies is set to true,
+        which is default. Otherwise cookies was empty tuple.
+        """
+        return self.__cookies
+
+    @property
+    def timestamp(self):
+        """Return timestamp of request."""
+        return self.__timestamp
+
     @property
     def data(self):  # pylint: disable=inconsistent-return-statements
         """Returns input data from wsgi.input file.
@@ -817,25 +843,6 @@ class Request():
             return self.read(length)
         return self.__file.read(self.__content_length)
     # enddef
-
-    def get_options(self):
-        """Returns dictionary with application variables from environment.
-
-        Application variables start with ``app_`` prefix, but in returned
-        dictionary is set without this prefix.
-
-        .. code:: ini
-
-            poor_Debug = on             # Poor WSGI variable
-            app_db_server = localhost   # application variable db_server
-            app_templates = app/templ   # application variable templates
-        """
-        options = {}
-        for key, val in self.__poor_environ.items():
-            key = key.strip()
-            if key[:4].lower() == 'app_':
-                options[key[4:].lower()] = val.strip()
-        return options
 
     def construct_url(self, uri: str):
         """This function returns a fully qualified URI string.

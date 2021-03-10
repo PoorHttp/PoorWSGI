@@ -1028,6 +1028,7 @@ def parse_json_request(req, charset: str = "utf-8"):
       or None.
     * None when parsing of JSON fails. That is logged with WARNING log level.
     """
+    # pylint: disable=inconsistent-return-statements
     try:
         data = json_loads(req.read().decode(charset))
         if isinstance(data, dict):

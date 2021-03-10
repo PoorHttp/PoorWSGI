@@ -353,6 +353,7 @@ def main():
     except Exception as err:  # pylint: disable=broad-except
         print_exc(file=sys.stderr)
         parser.error(str(err))
+        return 1
 
 
 if __name__ == "__main__":

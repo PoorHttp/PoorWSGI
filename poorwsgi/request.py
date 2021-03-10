@@ -1016,6 +1016,7 @@ class JsonList(list):
                 yield fce(item)
 
 
+# pylint: disable=inconsistent-return-statements
 def parse_json_request(req, charset: str = "utf-8"):
     """Try to parse request data.
 

@@ -45,8 +45,14 @@ def html_escape(s):
     return ''.join(HTML_ESCAPE_TABLE.get(c, c) for c in s)
 
 
-def hbytes(val):
-    """Return pair value and unit."""
+def hbytes(val: float):
+    """Return pair value and unit.
+
+    >>> hbytes(2000000)
+    (1.9..., 'M')
+    >>> hbytes(1024.0)
+    (1.0, 'k')
+    """
     unit = ('', 'k', 'M', 'G', 'T', 'P')
     u = 0
     while val > 1000 and u < len(unit):

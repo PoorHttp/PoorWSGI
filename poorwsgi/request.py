@@ -33,19 +33,42 @@ RE_AUTHORIZATION = re.compile(r'(\w+)[=] ?("[^"]+"|[\w-]+)')
 
 
 def parse_negotiation(value: str):
-    """Parse Content Negotiation headers to list of value, quality tuples."""
+    """Parse content negotiation headers to list of value, quality tuples.
+
+    >>> parse_negotiation('gzip;q=1.0, identity;q=0.5, *;q=0')
+    [('gzip', 1.0), ('identity', 0.5), ('*', 0.0)]
+    >>> parse_negotiation('text/html;level=1, text/html;level=2;q=0.5')
+    [('text/html;level=1', 1.0), ('text/html;level=2', 0.5)]
+    """
     values = []
     for item in value.split(','):
-        pair = item.split(';')
+        pair = item.split(';q=')
         if pair[0] == item:
-            values.append((item, 1.0))
+            values.append((item.strip(), 1.0))
             continue
         try:
-            quality = float(pair[1].split('=')[1])
+            quality = float(pair[1])
         except (IndexError, ValueError):
             quality = 1.0
-        values.append((pair[0], quality))
+        values.append((pair[0].strip(), quality))
     return values
+
+
+def render_negotiation(negotation: List[Tuple]):
+    """Render negotiation header value from tuples.
+
+    >>> render_negotiation([('gzip',1.0), ('*',0)])
+    'gzip;q=1.0, *;q=0'
+    >>> render_negotiation((('gzip',1.0), ('compress',)))
+    'gzip;q=1.0, compress'
+    >>> render_negotiation((('text/html;level=1',),
+    ...                     ('text/html;level=2', 0.5)))
+    'text/html;level=1, text/html;level=2;q=0.5'
+    """
+    values = []
+    for nego in negotation:
+        values.append(';q='.join(map(str, nego)))
+    return ', '.join(values)
 
 
 HeadersList = Union[list, tuple, set, dict]
@@ -60,6 +83,30 @@ class Headers(Mapping):
     and Headers.add_header do auto convert values from UTF-8 to ISO-8859-1
     encoding if it is possible. So on every modification methods must be use
     UTF-8 string.
+
+    Some headers can be set twice. At this moment, response can contain only
+    more ``Set-Cookie`` headers, but you can use add_header method to add more
+    headers with same name. Or you can create headers from tuples, which is
+    used in Request.
+
+    When more same named header is set in HTTP request, server join it's value
+    to one.
+
+    Empty header is not allowed.
+
+    >>> headers = Headers({'X-Powered-By': 'Test'})
+    >>> headers['X-Powered-By']
+    'Test'
+    >>> headers['x-powered-by']
+    'Test'
+    >>> headers.get('X-Powered-By')
+    'Test'
+    >>> headers.get('x-powered-by')
+    'Test'
+    >>> 'X-Powered-By' in headers
+    True
+    >>> 'x-powered-by' in headers
+    True
     """
 
     def __init__(self, headers: HeadersList = None, strict: bool = True):
@@ -88,9 +135,9 @@ class Headers(Mapping):
             else:
                 self.__headers = list((k, v) for k, v in headers.items())
         else:
-            raise AssertionError("headers must be tuple, list or set "
-                                 "of str, or dict "
-                                 "(got {0})".format(type(headers)))
+            raise TypeError("headers must be tuple, list or set "
+                            "of str pairs, or dict "
+                            "(got {0})".format(type(headers)))
     # enddef
 
     def __len__(self):
@@ -135,7 +182,14 @@ class Headers(Mapping):
         return tuple(v for k, v in self.__headers)
 
     def get_all(self, name: str):
-        """Return tuple of all values of header identifed by lower name."""
+        """Return tuple of all values of header identifed by lower name.
+
+        >>> headers = Headers([('Set-Cookie', 'one'), ('Set-Cookie', 'two')])
+        >>> headers.get_all('Set-Cookie')
+        ('one', 'two')
+        >>> headers.get_all('X-Test')
+        ()
+        """
         name = Headers.iso88591(name.lower())
         return tuple(kv[1] for kv in self.__headers if kv[0].lower() == name)
 
@@ -160,18 +214,27 @@ class Headers(Mapping):
             raise KeyError("Key %s exist." % name)
         self.add_header(name, value)
 
-    def add_header(self, name: str, value: str, **kwargs):
+    def add_header(self, name: str, value: Union[str, List[Tuple]] = None,
+                   **kwargs):
         """Extended header setting.
 
-        name is the header field to add. kwargs arguments can be used to set
-        additional parameters for the header field, with underscores converted
-        to dashes.  Normally the parameter will be added as name="value" unless
-        value is None, in which case only the name will be added.
+        name : str
+            Header field to add.
+
+        value : str or list of tuples
+            If value is list of tuples, render_negogation will be used.
+
+        kwargs : dict
+            arguments can be used to set additional value parameters for the
+            header field, with underscores converted to dashes. Normally the
+            parameter will be added as name="value".
 
         .. code:: python
 
+            h.add_header('X-Header', 'value')
             h.add_header('Content-Disposition', 'attachment',
                          filename='image.png')
+            h.add_header('Accept-Encodding', [('gzip',1.0), ('*',0)])
 
         All names must be US-ASCII string except control characters
         or separators.
@@ -179,16 +242,22 @@ class Headers(Mapping):
 
         parts = []
 
-        if value is not None:
-            parts.append(Headers.iso88591(value))
+        if isinstance(value, (list, tuple)):
+            parts.append(Headers.iso88591(render_negotiation(value)))
 
-        for k, val in kwargs.items():
-            k = Headers.iso88591(k)
-            if val is None:
-                parts.append(k.replace('_', '-'))
-            else:
-                parts.append(_formatparam(k.replace('_', '-'),
-                                          Headers.iso88591(val)))
+        else:
+            if value is not None:
+                parts.append(Headers.iso88591(value))
+
+            for k, val in kwargs.items():
+                k = Headers.iso88591(k)
+                if val is None:
+                    parts.append(k.replace('_', '-'))
+                else:
+                    parts.append(_formatparam(k.replace('_', '-'),
+                                              Headers.iso88591(val)))
+        if not parts:
+            raise ValueError("Header value must be set.")
         self.__headers.append((Headers.iso88591(name), "; ".join(parts)))
 
     @staticmethod
@@ -203,10 +272,10 @@ class Headers(Mapping):
                 return value.encode('utf-8').decode('iso-8859-1')
 
         except UnicodeError as err:
-            raise AssertionError("Header name/value must be iso-8859-1 "
-                                 "encoded (got {0})".format(value)) from err
-        raise AssertionError("Header name/value must be of type str "
-                             "(got {0})".format(value))
+            raise ValueError("Header name/value must be iso-8859-1 "
+                             "encoded (got {0})".format(value)) from err
+        raise TypeError("Header name/value must be of type str "
+                        "(got {0})".format(value))
 
 
 class SimpleRequest:
@@ -665,22 +734,22 @@ class Request(SimpleRequest):
 
     @property
     def accept_html(self):
-        """Return true if ``text/html`` mime type is in accept neogetions
+        """Return true if ``text/html`` mime type is in accept negotiations
            values.
         """
         return "text/html" in dict(self.accept)
 
     @property
     def accept_xhtml(self):
-        """Return true if ``text/xhtml`` mime type is in accept neogetions
+        """Return true if ``text/xhtml`` mime type is in accept negotiations
            values.
         """
         return "text/xhtml" in dict(self.accept)
 
     @property
     def accept_json(self):
-        """Return true if ``application/json`` mime type is in accept neogetions
-           values.
+        """Return true if ``application/json`` mime type is in accept
+           negotiations values.
         """
         return "application/json" in dict(self.accept)
 

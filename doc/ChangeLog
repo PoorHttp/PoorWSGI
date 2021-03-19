@@ -1,3 +1,7 @@
+==== 2.4.0.dev ====
+    * new render_negotiation function
+    * Headers improvement
+
 ==== 2.3.4 ====
     * new cgi.py interface fix
 

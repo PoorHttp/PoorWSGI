@@ -138,7 +138,6 @@ class Headers(Mapping):
             raise TypeError("headers must be tuple, list or set "
                             "of str pairs, or dict "
                             "(got {0})".format(type(headers)))
-    # enddef
 
     def __len__(self):
         """Return len of header items."""
@@ -182,7 +181,7 @@ class Headers(Mapping):
         return tuple(v for k, v in self.__headers)
 
     def get_all(self, name: str):
-        """Return tuple of all values of header identifed by lower name.
+        """Return tuple of all values of header identified by lower name.
 
         >>> headers = Headers([('Set-Cookie', 'one'), ('Set-Cookie', 'two')])
         >>> headers.get_all('Set-Cookie')

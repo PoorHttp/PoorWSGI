@@ -452,6 +452,36 @@ If your http state (error) handler was crashed with error, internal server
 error was return and right handler is called. If this your handler was crashed
 too, default poor WSGI internal server error handler is called.
 
+Error handlers
+~~~~~~~~~~~~~~
+In most cases, when exception was raised from your handler, *Internal Server
+Error* was returned from server. When you want to handle each type of exception,
+you can define your own error handler, which will be called instead of
+HTTP_INTERNAL_SERVER_ERROR state handler.
+
+.. code:: python
+
+    class MyValueError(ValueError)
+        pass
+
+
+    @app.error_handler(ValueError)
+    def value_error(req, error):
+        """This is called when value error was raised."""
+        return "Value Error: %s" % error, state.HTTP_BAD_REQUEST
+
+
+    @app.route('/value/<value:int>')
+    def value_handler(req, value)
+        if value != 42:
+            raise MyValueError("Not a valid value")
+        return "Yep!"
+
+
+Exception handlers are stored in OrderedDict, so exception type is checked in
+same order as you set error handlers. So you must define handler for base
+exception last.
+
 Before and After request
 ~~~~~~~~~~~~~~~~~~~~~~~~
 

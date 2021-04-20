@@ -14,7 +14,7 @@ from sys import version, exc_info
 from inspect import cleandoc
 from logging import getLogger
 from hashlib import sha256
-from typing import Dict
+from typing import Dict, Callable
 
 import mimetypes
 
@@ -35,7 +35,7 @@ HTML_ESCAPE_TABLE = {'&': "&amp;",
 log = getLogger("poorwsgi")
 
 # http state handlers, which is called if programmer don't defined his own
-default_states: Dict[str, Dict] = {}
+default_states: Dict[int, Dict] = {}
 
 # pylint: disable=invalid-name
 
@@ -674,7 +674,7 @@ def debug_info(req, app):
 # enddef
 
 
-def __fill_default_shandlers(code, handler):
+def __fill_default_shandlers(code: int, handler: Callable):
     default_states[code] = {}
     for val in methods.values():
         default_states[code][val] = handler

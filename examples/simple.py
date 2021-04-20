@@ -34,6 +34,10 @@ app.document_index = True
 app.secret_key = os.urandom(32)     # random key each run
 
 
+class MyValueError(ValueError):
+    """My value error"""
+
+
 class Storage(file):
     def __init__(self, directory, filename):
         log.debug("directory: %s; filename: %s", directory, filename)
@@ -464,6 +468,14 @@ def not_found(req):
     return response
 
 
+@app.error_handler(ValueError)
+def value_error_handler(req, error):
+    """ValueError exception handler example."""
+    assert req
+    print("ValueError: ", error)
+    raise HTTPException(state.HTTP_BAD_REQUEST)
+
+
 @app.route('/test/headers')
 def test_headers(req):
     return dumps(
@@ -538,7 +550,9 @@ def none_error_handler(req):
 
 @app.route('/bad-request')
 def bad_request(req):
-    raise HTTPException(state.HTTP_BAD_REQUEST)
+    """Endpoint raises ValueError exception."""
+    assert req
+    raise MyValueError("ValueError exception test.")
 
 
 @app.route('/forbidden')

@@ -11,17 +11,17 @@ from os import path, access, R_OK, environ
 from collections import OrderedDict
 from logging import getLogger
 from hashlib import md5, sha256
-from typing import List, Union, Callable, Optional
+from typing import List, Union, Callable, Optional, Type
 
 import re
 
-from poorwsgi.state import HTTP_OK, DECLINED, \
+from poorwsgi.state import \
     METHOD_GET, METHOD_POST, METHOD_HEAD, methods, \
     HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN
 from poorwsgi.request import Request, SimpleRequest
 from poorwsgi.results import default_states, not_implemented, \
     internal_server_error, directory_index, debug_info
-from poorwsgi.response import Response, HTTPException, EmptyResponse, \
+from poorwsgi.response import Response, HTTPException, \
     FileResponse, make_response, ResponseError
 
 log = getLogger("poorwsgi")
@@ -97,6 +97,9 @@ class Application():
 
         # http state handlers: {HTTP_NOT_FOUND: {METHOD_GET: my_404_handler}}
         self.__shandlers = {}
+
+        # exception handlers: {ValueError: {METHOD_GET: my_value_handler}}
+        self.__ehandlers = OrderedDict()
 
         # -- Application variable
         self.__config = {
@@ -235,11 +238,19 @@ class Application():
 
     @property
     def states(self):
-        """Copy of table with http state aka error handlers.
+        """Copy of table with http state handlers.
 
         See Application.http_state
         """
         return self.__shandlers.copy()
+
+    @property
+    def errors(self):
+        """Copy of table with exception handlers.
+
+        See Application.error_handler
+        """
+        return self.__ehandlers.copy()
 
     @property
     def auto_args(self):
@@ -820,7 +831,7 @@ class Application():
 
     def http_state(self, status_code: int,
                    method: int = METHOD_HEAD | METHOD_GET | METHOD_POST):
-        """Wrap function to handle http status codes like http errors.
+        """Wrap function to handle http status codes.
 
         .. code:: python
 
@@ -835,24 +846,59 @@ class Application():
 
     def set_http_state(self, status_code: int, fun: Callable,
                        method: int = METHOD_HEAD | METHOD_GET | METHOD_POST):
-        """Set fn as handler for http state code and method."""
+        """Set function as handler for http state code and method."""
         if status_code not in self.__shandlers:
             self.__shandlers[status_code] = {}
         for val in methods.values():
             if method & val:
                 self.__shandlers[status_code][val] = fun
 
-    def pop_http_state(self, status_code, method: int):
-        """Pop handerl for http state and method.
+    def pop_http_state(self, status_code: int, method: int):
+        """Pop handler for http state and method.
 
-        As Application.pop_route, for pop multimethod handler, you must call
+        As Application.pop_route, for pop multi-method handler, you must call
         pop_http_state for each method.
         """
         handlers = self.__shandlers.get(status_code, {})
         return handlers.pop(method)
 
-    def error_from_table(self, req, status_code, **kwargs):
-        """Internal method, which is called if error was accured.
+    def error_handler(
+            self, error: Type[Exception],
+            method: int = METHOD_HEAD | METHOD_GET | METHOD_POST):
+        """Wrap function to handle exceptions.
+
+        .. code:: python
+
+            @app.error_handler(ValueError)
+            def value_error(req):
+                return "Values %s are not correct." % req.args, "text/plain"
+        """
+        def wrapper(fun):
+            self.set_error_handler(error, fun, method)
+            return fun
+        return wrapper
+
+    def set_error_handler(
+            self, error: Type[Exception], fun: Callable,
+            method: int = METHOD_HEAD | METHOD_GET | METHOD_POST):
+        """Set function as handler for exception and method."""
+        if error not in self.__ehandlers:
+            self.__ehandlers[error] = {}
+        for val in methods.values():
+            if method & val:
+                self.__ehandlers[error][val] = fun
+
+    def pop_error_handler(self, error: Type[Exception], method: int):
+        """Pop handler for http state and method.
+
+        As Application.pop_route, for pop multi-method handler, you must call
+        pop_http_state for each method.
+        """
+        handlers = self.__ehandlers.get(error, {})
+        return handlers.pop(method)
+
+    def state_from_table(self, req: SimpleRequest, status_code: int, **kwargs):
+        """Internal method, which is called if another http state has accured.
 
         If status code is in Application.shandlers (fill with http_state
         function), call this handler.
@@ -864,6 +910,11 @@ class Application():
                 req.error_handler = handler
                 self.handler_from_before(req)  # call before handlers now
                 return handler(req, **kwargs)
+            except HTTPException as http_err:
+                response = http_err.make_response()
+                if response:
+                    return response
+                return internal_server_error(req)
             except Exception:  # pylint: disable=broad-except
                 return internal_server_error(req)
         elif status_code in default_states:
@@ -873,7 +924,35 @@ class Application():
         else:
             return not_implemented(req, status_code)
 
-    def handler_from_default(self, req):
+    def error_from_table(self, req: SimpleRequest, error: Exception, **kwargs):
+        """Internal method, which is called when exception was raised."""
+
+        handler = None
+        for error_type, hdls in self.__ehandlers.items():
+            if isinstance(error, error_type) \
+                    and req.method_number in hdls:
+                handler = hdls[req.method_number]
+                break
+
+        if handler:
+            try:
+                req.error_handler = handler
+                return handler(req, error, **kwargs)
+
+            except HTTPException as http_err:
+                response = http_err.make_response()
+                if response:
+                    return response
+                status_code = http_err.args[0]
+                kwargs = http_err.args[1]
+                return to_response(
+                        self.state_from_table(req, status_code, **kwargs))
+
+            except Exception:  # pylint: disable=broad-except
+                return internal_server_error(req)
+        return None
+
+    def handler_from_default(self, req: SimpleRequest):
         """Internal method, which is called if no handler is found."""
         req.uri_rule = '/*'
         if req.method_number in self.__dhandlers:
@@ -885,7 +964,7 @@ class Application():
         log.error("404 Not Found: %s %s", req.method, req.uri)
         raise HTTPException(HTTP_NOT_FOUND)
 
-    def handler_from_before(self, req):
+    def handler_from_before(self, req: SimpleRequest):
         """Internal method, which run all before (pre_proccess) handlers.
 
         This method was call before end-point route handler.
@@ -893,7 +972,7 @@ class Application():
         for fun in self.__before:
             fun(req)
 
-    def handler_from_table(self, req):
+    def handler_from_table(self, req: Request):
         """Call right handler from handlers table (fill with route function).
 
         If no handler is fined, try to find directory or file if Document Root,
@@ -980,7 +1059,7 @@ class Application():
 
         This method create Request object, call handlers from
         Application.before, uri handler (handler_from_table), default handler
-        (Application.defaults) or error handler (Application.error_from_table),
+        (Application.defaults) or error handler (Application.state_from_table),
         and handlers from Application.after.
         """
         # pylint: disable=method-hidden,too-many-branches
@@ -991,18 +1070,12 @@ class Application():
             args = self.handler_from_table(request)
             response = to_response(args)
         except HTTPException as http_err:
-            if isinstance(http_err.args[0], Response):
-                response = http_err.args[0]
-            else:
+            response = http_err.make_response()
+            if not response:
                 status_code = http_err.args[0]
                 kwargs = http_err.args[1]
-                if status_code == DECLINED:
-                    return ()   # decline the connection
-                if status_code == HTTP_OK:
-                    response = EmptyResponse()
-                else:
-                    response = to_response(
-                        self.error_from_table(request, status_code, **kwargs))
+                response = to_response(
+                        self.state_from_table(request, status_code, **kwargs))
         except (ConnectionError, SystemExit) as err:
             log.warning(str(err))
             log.warning('   ***   You should ignore next error   ***')
@@ -1010,7 +1083,7 @@ class Application():
         except ResponseError:
             log.error("Bad returned value from %s", request.uri_handler)
             try:
-                response = to_response(self.error_from_table(request, 500))
+                response = to_response(self.state_from_table(request, 500))
             except Exception:  # pylint: disable=broad-except
                 log.error("Bad returned value from %s", request.error_handler)
                 response = internal_server_error(request)
@@ -1021,7 +1094,9 @@ class Application():
                 request = SimpleRequest(env, self)
 
             try:
-                response = to_response(self.error_from_table(request, 500))
+                response = self.error_from_table(request, err)
+                if not response:
+                    response = to_response(self.state_from_table(request, 500))
             except Exception:  # pylint: disable=broad-except
                 log.error("Bad returned value from %s", request.error_handler)
                 response = internal_server_error(request)
@@ -1031,10 +1106,12 @@ class Application():
             for fun in self.__after:
                 __fn = fun
                 response = to_response(fun(request, response))
-        except BaseException:  # pylint: disable=broad-except
+        except BaseException as err:  # pylint: disable=broad-except
             log.error("Handler %s from %s returns invalid data or crashed",
                       __fn, __fn.__module__)
-            response = to_response(self.error_from_table(request, 500))
+            response = self.error_from_table(request, err)
+            if not response:
+                response = to_response(self.state_from_table(request, 500))
 
         if isinstance(response, FileResponse) and \
                 "wsgi.file_wrapper" in env:     # need working fileno method

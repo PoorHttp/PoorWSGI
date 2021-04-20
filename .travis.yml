@@ -14,6 +14,7 @@ install:
 script:
  - pytest -v poorwsgi --pylint --mypy --doctest-plus --doctest-rst
  - pytest -v tests --mypy
+ - pytest -v examples --mypy
  - pytest -v tests_integrity --mypy --with-uwsgi
 
 before_deploy:

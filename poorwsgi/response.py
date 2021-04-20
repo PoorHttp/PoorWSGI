@@ -22,7 +22,7 @@ try:
 except ImportError:
     JSON_GENERATOR = False
 
-from poorwsgi.state import HTTP_OK, \
+from poorwsgi.state import DECLINED, HTTP_OK, \
     HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_I_AM_A_TEAPOT
 from poorwsgi.request import Headers, HeadersList
 
@@ -343,6 +343,15 @@ class EmptyResponse(GeneratorResponse):
             "%d %s" % (self.status_code, self.reason), [])
 
 
+class Declined(EmptyResponse):
+    """For situation without answer.
+
+    This response is returned, when state.DECLINED was returned.
+    """
+    def __call__(self, start_response: Callable):
+        return ()
+
+
 class RedirectResponse(Response):
     """Redirect the browser to another location.
 
@@ -368,29 +377,6 @@ class RedirectResponse(Response):
 
 class ResponseError(RuntimeError):
     """Exception for bad response values."""
-
-
-def make_response(data: Union[str, bytes],
-                  content_type: str = "text/html; charset=utf-8",
-                  headers: Union[Headers, HeadersList] = None,
-                  status_code: int = HTTP_OK):
-    """Create response from simple values.
-
-    Data could be string, bytes, or bytes returns iterable object like file.
-    """
-    try:
-        if isinstance(data, (str, bytes)):      # "hello world"
-            return Response(data, content_type, headers, status_code)
-
-        iter(data)  # try iter data
-        return GeneratorResponse(data, content_type, headers, status_code)
-    except Exception:  # pylint: disable=broad-except
-        log.exception("Error in processing values: %s, %s, %s, %s",
-                      type(data), type(content_type), type(headers),
-                      type(status_code))
-
-    raise ResponseError(
-        "Returned data must by: <bytes|str>, <str>, <Headers|None>, <int>")
 
 
 class HTTPException(Exception):
@@ -419,6 +405,41 @@ class HTTPException(Exception):
         Application will be call."""
         assert isinstance(arg, (int, Response))
         super().__init__(arg, kwargs)
+
+    def make_response(self):
+        """Return or make a response if is possible."""
+        if isinstance(self.args[0], Response):
+            return self.args[0]
+
+        status_code = self.args[0]
+        if status_code == DECLINED:
+            return Declined()   # decline the connection
+        if status_code == HTTP_OK:
+            return EmptyResponse()
+        return None
+
+
+def make_response(data: Union[str, bytes],
+                  content_type: str = "text/html; charset=utf-8",
+                  headers: Union[Headers, HeadersList] = None,
+                  status_code: int = HTTP_OK):
+    """Create response from values.
+
+    Data could be string, bytes, or bytes returns iterable object like file.
+    """
+    try:
+        if isinstance(data, (str, bytes)):      # "hello world"
+            return Response(data, content_type, headers, status_code)
+
+        iter(data)  # try iter data
+        return GeneratorResponse(data, content_type, headers, status_code)
+    except Exception:  # pylint: disable=broad-except
+        log.exception("Error in processing values: %s, %s, %s, %s",
+                      type(data), type(content_type), type(headers),
+                      type(status_code))
+
+    raise ResponseError(
+        "Returned data must by: <bytes|str>, <str>, <Headers|None>, <int>")
 
 
 def redirect(location: str, permanent: bool = False,

@@ -49,6 +49,9 @@ class Response:
     """HTTP Response object.
 
     This is base Response object which is process with PoorWSGI application.
+
+    Because Response use BytesIO as internal cache, which is closed by WSGI
+    server, **response can be used only once!**.
     """
     __buffer: Union[IBytesIO, BinaryIO]
 
@@ -81,13 +84,12 @@ class Response:
         self.__reason = responses[self.__status_code]
 
         # The content length header was set automatically from buffer length.
-        if isinstance(data, bytes):
-            self.__buffer = IBytesIO(data)
-            self.__content_length = len(data)
-        else:
+        if isinstance(data, str):
             data = data.encode("utf-8")
-            self.__buffer = IBytesIO(data)
-            self.__content_length = len(data)
+
+        self.__buffer = IBytesIO(data)
+        self.__done = False
+        self.__content_length = len(data)
 
     @property
     def status_code(self):
@@ -195,8 +197,13 @@ class Response:
         return self.__buffer
 
     def __call__(self, start_response: Callable):
-        self.__start_response__(start_response)
-        return self.__end_of_response__()
+        if self.__done:
+            raise RuntimeError('Response can be used only once!')
+        try:
+            self.__start_response__(start_response)
+            return self.__end_of_response__()
+        finally:
+            self.__done = True
 
 
 class JSONResponse(Response):
@@ -208,15 +215,20 @@ class JSONResponse(Response):
                  headers: Union[Headers, HeadersList] = None,
                  status_code: int = HTTP_OK,
                  **kwargs):
-        mime_type = "application/json"
+        content_type = "application/json"
         if charset:
-            mime_type += "; charset="+charset
+            content_type += "; charset="+charset
 
-        super().__init__(dumps(kwargs), mime_type, headers, status_code)
+        super().__init__(dumps(kwargs), content_type, headers, status_code)
 
 
 class FileResponse(Response):
-    """Instead of send_file methods."""
+    """Instead of send_file methods.
+
+    Be careful to use FileReponse instance more times! WSGI server close
+    file, which is returned by this response. So just like Response, instance
+    of FileResponse can be used only once!
+    """
     def __init__(self, path: str, content_type: str = None,
                  headers: Union[Headers, HeadersList] = None,
                  status_code: int = HTTP_OK):
@@ -255,7 +267,11 @@ class FileResponse(Response):
 
 
 class GeneratorResponse(Response):
-    """For response, which use generator as returned value."""
+    """For response, which use generator as returned value.
+
+    Even though you can figure out iterating your generator more times, just
+    like Response, instance of GeneratorResponse can be used only once!
+    """
     def __init__(self, generator: Iterable[bytes],
                  content_type: str = "text/html; charset=utf-8",
                  headers: Union[Headers, HeadersList] = None,

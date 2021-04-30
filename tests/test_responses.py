@@ -1,3 +1,4 @@
+"""Test for Response objects and it's functionality."""
 from simplejson import load, loads
 
 import pytest
@@ -6,6 +7,10 @@ from poorwsgi.response import Response, JSONResponse, \
     GeneratorResponse, StrGeneratorResponse, JSONGeneratorResponse
 from poorwsgi.request import Headers
 from poorwsgi.state import HTTP_NOT_FOUND
+
+# pylint: disable=missing-function-docstring
+# pylint: disable=no-self-use
+# pylint: disable=redefined-outer-name
 
 
 args = (
@@ -28,7 +33,7 @@ kwargs = (
 
 
 class Found(Exception):
-    pass
+    """Support exception for tests, just like StopIteration."""
 
 
 @pytest.fixture(params=args)
@@ -53,6 +58,7 @@ def start_response(data, headers):
 
 
 class TestReponse:
+    """Basic tests for Response."""
     def test_args(self, response_args):
         res = response_args(start_response)
         assert isinstance(res.read(), bytes)
@@ -61,8 +67,14 @@ class TestReponse:
         res = response_kwargs(start_response)
         assert isinstance(res.read(), bytes)
 
+    def test_once(self, response_args):
+        response_args(start_response)
+        with pytest.raises(RuntimeError):
+            response_args(start_response)
+
 
 class TestJSONResponse:
+    """Tests for JSONResponse."""
     def test_kwargs(self):
         res = JSONResponse(items=list(range(5)))
         data = load(res(start_response))
@@ -72,6 +84,7 @@ class TestJSONResponse:
         res = JSONResponse(msg="Message")
 
         def start_response(data, headers):
+            assert data
             for key, val in headers:
                 if key == "Content-Type":
                     assert val == "application/json; charset=utf-8"
@@ -83,6 +96,7 @@ class TestJSONResponse:
         res = JSONResponse(msg="Message", charset=None)
 
         def start_response(data, headers):
+            assert data
             for key, val in headers:
                 if key == "Content-Type":
                     assert val == "application/json"
@@ -90,8 +104,15 @@ class TestJSONResponse:
         with pytest.raises(Found):
             res(start_response)
 
+    def test_once(self):
+        response = JSONResponse(msg="Message", charset=None)
+        response(start_response)
+        with pytest.raises(RuntimeError):
+            response(start_response)
+
 
 class TestGeneratorResponse:
+    """Tests for GeneratorResponse classes."""
     def test_generator(self):
         res = GeneratorResponse((str(x).encode("utf-8") for x in range(5)))
         gen = res(start_response)
@@ -102,8 +123,15 @@ class TestGeneratorResponse:
         gen = res(start_response)
         assert b"".join(gen) == b"01234"
 
+    def test_once(self):
+        response = StrGeneratorResponse((str(x) for x in range(5)))
+        response(start_response)
+        with pytest.raises(RuntimeError):
+            response(start_response)
+
 
 class TestJSONGenerarorResponse:
+    """Test. for JSONGeneratorResponse."""
     def test_generator(self):
         res = JSONGeneratorResponse(items=range(5))
         gen = res(start_response)
@@ -114,6 +142,7 @@ class TestJSONGenerarorResponse:
         res = JSONGeneratorResponse(items=range(5))
 
         def start_response(data, headers):
+            assert data
             for key, val in headers:
                 if key == "Content-Type":
                     assert val == "application/json; charset=utf-8"
@@ -125,9 +154,16 @@ class TestJSONGenerarorResponse:
         res = JSONGeneratorResponse(items=range(5), charset=None)
 
         def start_response(data, headers):
+            assert data
             for key, val in headers:
                 if key == "Content-Type":
                     assert val == "application/json"
                     raise Found()
         with pytest.raises(Found):
             res(start_response)
+
+    def test_once(self):
+        response = JSONGeneratorResponse(items=range(5), charset=None)
+        response(start_response)
+        with pytest.raises(RuntimeError):
+            response(start_response)

@@ -50,7 +50,7 @@ class Response:
 
     This is base Response object which is process with PoorWSGI application.
 
-    Because Response use BytesIO as internal cache, which is closed by WSGI
+    As Response uses BytesIO as internal cache, which is closed by WSGI
     server, **response can be used only once!**.
     """
     __buffer: Union[IBytesIO, BinaryIO]
@@ -223,11 +223,13 @@ class JSONResponse(Response):
 
 
 class FileResponse(Response):
-    """Instead of send_file methods.
+    """FileResponse returns opened file direct to WSGI server.
 
-    Be careful to use FileReponse instance more times! WSGI server close
-    file, which is returned by this response. So just like Response, instance
-    of FileResponse can be used only once!
+    This means, that sendfile UNIX system call can be used.
+
+    Be careful not to use a single FileReponse instance multiple times!
+    WSGI server closes file, which is returned by this response. So just
+    like Response, instance of FileResponse can be used only once!
     """
     def __init__(self, path: str, content_type: str = None,
                  headers: Union[Headers, HeadersList] = None,
@@ -242,7 +244,7 @@ class FileResponse(Response):
         super().__init__(content_type=content_type,
                          headers=headers,
                          status_code=status_code)
-        self.__buffer = open(path, 'rb')
+        self.__buffer = open(path, 'rb')  # pylint: disable=consider-using-with
         self.__content_length = fstat(self.__buffer.fileno()).st_size
 
     def write(self, data):
@@ -371,19 +373,25 @@ class Declined(EmptyResponse):
 class RedirectResponse(Response):
     """Redirect the browser to another location.
 
-    When permanent is true, MOVED_PERMANENTLY status code is sent to the
-    client, otherwise it is MOVED_TEMPORARILY. A short text is sent to the
-    browser informing that the document has moved (for those rare browsers that
-    do not support redirection); this text can be overridden by supplying
-    a text string.
+    A short text is sent to the browser informing that the document has moved
+    (for those rare browsers that do not support redirection); this text can
+    be overridden by supplying a text string (``message``).
+
+    When ``permanent`` or ``status_code`` is true, MOVED_PERMANENTLY
+    status code will be sent to the client, otherwise it will be
+    MOVED_TEMPORARILY. **Argument ``permanent`` and ``status_code`` as boolean
+    is deprecated. Use real status_code instead.**
     """
-    def __init__(self, location: str, permanent: bool = False,
+    # pylint: disable=too-many-arguments
+    def __init__(self, location: str,
+                 status_code: Union[int, bool] = HTTP_MOVED_TEMPORARILY,
                  message: Union[str, bytes] = b'',
-                 headers: Union[Headers, HeadersList] = None):
-        if permanent:
+                 headers: Union[Headers, HeadersList] = None,
+                 permanent: bool = False):
+        if status_code is True or permanent:
+            log.warning('Argument `permanent` is deprecated. '
+                        ' Use real status_code instead.')
             status_code = HTTP_MOVED_PERMANENTLY
-        else:
-            status_code = HTTP_MOVED_TEMPORARILY
         super().__init__(message,
                          content_type="text/plain",
                          headers=headers,
@@ -434,6 +442,13 @@ class HTTPException(Exception):
             return EmptyResponse()
         return None
 
+    @property
+    def response(self):
+        """Return response if it was set."""
+        if isinstance(self.args[0], Response):
+            return self.args[0]
+        return None
+
 
 def make_response(data: Union[str, bytes],
                   content_type: str = "text/html; charset=utf-8",
@@ -458,12 +473,18 @@ def make_response(data: Union[str, bytes],
         "Returned data must by: <bytes|str>, <str>, <Headers|None>, <int>")
 
 
-def redirect(location: str, permanent: bool = False,
+def redirect(location: str,
+             status_code: Union[int, bool] = HTTP_MOVED_TEMPORARILY,
              message: Union[str, bytes] = b'',
-             headers: Union[Headers, HeadersList] = None):
-    """Raise HTTPException with RedirectResponse response."""
+             headers: Union[Headers, HeadersList] = None,
+             permanent: bool = False):
+    """Raise HTTPException with RedirectResponse response.
+
+    See RedirectResponse, with same interface for more information about
+    response.
+    """
     raise HTTPException(
-        RedirectResponse(location, permanent, message, headers))
+        RedirectResponse(location, status_code, message, headers, permanent))
 
 
 def abort(arg: Union[int, Response]):

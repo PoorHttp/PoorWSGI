@@ -4,7 +4,8 @@ from simplejson import load, loads
 import pytest
 
 from poorwsgi.response import Response, JSONResponse, \
-    GeneratorResponse, StrGeneratorResponse, JSONGeneratorResponse
+    GeneratorResponse, StrGeneratorResponse, JSONGeneratorResponse, \
+    RedirectResponse, HTTPException, redirect, abort
 from poorwsgi.request import Headers
 from poorwsgi.state import HTTP_NOT_FOUND
 
@@ -167,3 +168,62 @@ class TestJSONGenerarorResponse:
         response(start_response)
         with pytest.raises(RuntimeError):
             response(start_response)
+
+
+class TestRedirectResponse:
+    """Test for RedirectResponse and redirect function."""
+    def test_init(self):
+        res = RedirectResponse('/', 303, message='See Other')
+        assert res.status_code == 303
+        assert res.data == b'See Other'
+        assert res.headers['Location'] == '/'
+
+    def test_init_deprecated(self):
+        res = RedirectResponse('/true', True)
+        assert res.status_code == 301
+        assert res.headers['Location'] == '/true'
+
+        res = RedirectResponse('/permanent', permanent=True)
+        assert res.status_code == 301
+        assert res.headers['Location'] == '/permanent'
+
+    def test_redirect(self):
+        with pytest.raises(HTTPException) as err:
+            redirect('/')
+
+        assert isinstance(err.value.response, RedirectResponse)
+        assert err.value.response.status_code == 302
+
+    def test_redirect_deprecated(self):
+        with pytest.raises(HTTPException) as err:
+            redirect('/', True)
+
+        assert isinstance(err.value.response, RedirectResponse)
+        assert err.value.response.status_code == 301
+
+        with pytest.raises(HTTPException) as err:
+            redirect('/', permanent=True)
+
+        assert isinstance(err.value.response, RedirectResponse)
+        assert err.value.response.status_code == 301
+
+
+class TestHTTPException:
+    """Tests for HTTPException and other functions which raise that."""
+
+    def test_redirect(self):
+        with pytest.raises(HTTPException):
+            redirect('/')
+
+    def test_abort_status_code(self):
+        with pytest.raises(HTTPException) as err:
+            abort(404)
+
+        assert err.value.args[0] == 404
+
+    def test_abort_response(self):
+        with pytest.raises(HTTPException) as err:
+            abort(Response(status_code=400))
+
+        assert isinstance(err.value.response, Response)
+        assert err.value.response.status_code == 400

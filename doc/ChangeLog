@@ -2,6 +2,8 @@
     * new render_negotiation function
     * Headers improvement
     * error handlers support
+    * permanent attribute for redirect and RedirectResponse is deprecated now,
+      but status_code can be used
 
 ==== 2.3.4 ====
     * new cgi.py interface fix

@@ -394,7 +394,9 @@ class SimpleRequest:
         host = self.__environ.get('HTTP_HOST', '')
         if ':' in host:
             return int(host.split(':')[1])
-        return self.server_port
+        if self.server_scheme == 'https':
+            return 443
+        return 80
 
     @property
     def method(self):
@@ -581,6 +583,24 @@ class SimpleRequest:
             if key[:4].lower() == 'app_':
                 options[key[4:].lower()] = val.strip()
         return options
+
+    def construct_url(self, uri: str):
+        """This function returns a fully qualified URI string.
+
+        Url is create from the path specified by uri, using the information
+        stored in the request to determine the scheme, server host name
+        and port. The port number is not included in the string if it is the
+        same as the default port 80."""
+
+        if not RE_HTTPURLPATTERN.match(uri):
+            scheme = self.forwarded_proto or self.server_scheme
+            host = self.forwarded_host or self.hostname
+            port = self.forwarded_port or self.host_port
+            if not ((port == 80 and scheme == 'http') or
+                    (port == 443 and scheme == 'https')):
+                return "%s://%s:%d%s" % (scheme, host, port, uri)
+            return "%s://%s%s" % (scheme, host, uri)
+        return uri
 
 
 class Request(SimpleRequest):
@@ -910,25 +930,6 @@ class Request(SimpleRequest):
             self.read = self.__read
             return self.read(length)
         return self.__file.read(self.__content_length)
-    # enddef
-
-    def construct_url(self, uri: str):
-        """This function returns a fully qualified URI string.
-
-        Url is create from the path specified by uri, using the information
-        stored in the request to determine the scheme, server host name
-        and port. The port number is not included in the string if it is the
-        same as the default port 80."""
-
-        if not RE_HTTPURLPATTERN.match(uri):
-            scheme = self.forwarded_proto or self.server_scheme
-            host = self.forwarded_host or self.hostname
-            port = self.forwarded_port or self.host_port
-            if not ((port == 80 and scheme == 'http') or
-                    (port == 443 and scheme == 'https')):
-                return "%s://%s:%d%s" % (scheme, host, port, uri)
-            return "%s://%s%s" % (scheme, host, uri)
-        return uri
 
     def __del__(self):
         log.debug("Request: Hasta la vista, baby.")

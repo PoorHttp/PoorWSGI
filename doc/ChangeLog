@@ -4,6 +4,8 @@
     * error handlers support
     * permanent attribute for redirect and RedirectResponse is deprecated now,
       but status_code can be used
+    * host port returns port from HOST or scheme
+    * openapi wrapper binds request to Host or Forwarded header
 
 ==== 2.3.4 ====
     * new cgi.py interface fix

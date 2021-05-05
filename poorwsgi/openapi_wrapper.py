@@ -26,10 +26,7 @@ class OpenAPIRequest():
     @property
     def host_url(self):
         """Return host_url for validator."""
-        url = self.request.scheme + "://" + self.request.hostname
-        if self.request.port != 80:
-            url += ":%d" % self.request.port
-        return url
+        return self.request.construct_url('')
 
     @property
     def method(self):

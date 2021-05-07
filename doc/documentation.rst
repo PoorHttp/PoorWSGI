@@ -916,12 +916,11 @@ more times.
 
 Sessions
 ~~~~~~~~
-Like in mod_python, in poor WSGI is session class PoorSession. It is
-self-contained cookie which have data dictionary. Data are sent to client in
-hidden, bzip2ed, base64 encoded format. In read this session, expires value
-are check from data, so client can't change it in simple way. That is
-important to right set poor_SecretKey variable which is used in class by
-hidden function.
+Like in mod_python, PoorSession is session class of PoorWSGI. It's
+self-contained cookie which has data dictionary. Data are sent to client in
+hidden, bzip2, base64 encoded format. PoorSession needs ``secret_key``,
+which can be set by ``poor_SecretKey`` environment variable to
+Application.secret_key property.
 
 .. code:: python
 
@@ -940,7 +939,8 @@ hidden function.
     def check_login(fn):
         @wraps(fn)      # using wraps make right/better /debug-info page
         def handler(req):
-            cookie = PoorSession(req)
+            cookie = PoorSession(app.secret_key)
+            cookie.load()
             if "passwd" not in cookie.data:         # expires or didn't set
                 log.info("Login cookie not found.")
                 redirect("/login", message=b"Login required")
@@ -956,7 +956,7 @@ hidden function.
                 redirect('/login', text='Bad password')
 
             response = RedirectResponse("/private/path")
-            cookie = PoorSession(req)
+            cookie = PoorSession(app.secret_key)
             cookie.data['passwd'] = passwd
             cookie.header(response)
             abort(response)
@@ -973,7 +973,7 @@ hidden function.
     @app.route('/logout')
     def logout(req):
         response = RedirectResponse("/login")
-        cookie = PoorSession(req)
+        cookie = PoorSession(app.secret_key)
         cookie.destroy()
         cookie.header(response)
         return response

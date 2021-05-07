@@ -8,13 +8,13 @@ from pickle import dumps, loads
 from base64 import b64decode, b64encode
 from logging import getLogger
 from time import time
-from typing import Union
+from typing import Union, Dict, Any
 
 import bz2
 
 from http.cookies import SimpleCookie
 
-from poorwsgi.request import Headers
+from poorwsgi.request import Headers, Request
 from poorwsgi.response import Response
 
 log = getLogger("poorwsgi")  # pylint: disable=invalid-name
@@ -124,7 +124,7 @@ class PoorSession:
 
     .. code:: python
 
-        sess = PoorSession(req)
+        sess = PoorSession(app.secret_key)
 
         sess.data['class'] = obj.__class__          # write to cookie
         sess.data['dict'] = obj.__dict__.copy()
@@ -147,7 +147,7 @@ class PoorSession:
                 return d
 
         obj = Obj()
-        sess = PoorSession(req)
+        sess = PoorSession(app.secret_key)
 
         sess.data['class'] = obj.__class__          # write to cookie
         sess.data['dict'] = obj.export()
@@ -156,7 +156,8 @@ class PoorSession:
         obj.import(sess.data['dict'])
     """
 
-    def __init__(self, req, expires: int = 0, max_age: int = None,
+    def __init__(self, secret_key: Union[Request, str, bytes],
+                 expires: int = 0, max_age: int = None,
                  domain: str = '', path: str = '/', secure: bool = False,
                  same_site: bool = False, compress=bz2, SID: str = 'SESSID'):
         """Constructor.
@@ -183,11 +184,38 @@ class PoorSession:
                 ``None`` to not use any compressing method.
             SID : str
                 Cookie key name.
-        """
-        if req.secret_key is None:
-            raise SessionError("poor_SecretKey is not set!")
 
-        self.__secret_key = req.secret_key
+        .. code:: Python
+
+            session_config = {
+                'expires': 3600,  # one hour
+                'max_age': 3600,
+                'domain': 'example.net',
+                'path': '/application',
+                ̈́'secure': True,
+                'same_site': True,
+                'compress': gzip,
+                'SID': 'MYSID'
+            }
+
+            session = PostSession(app.secret_key, **config)
+            try:
+                session.load(req.cookies)
+            except SessionError as err:
+                log.error("Invalid session: %s", str(err))
+
+        *Changed in version 2.4.x*: use app.secret_key in constructor, and than
+        call load method.
+        """
+        if not isinstance(secret_key, (str, bytes)):  # backwards compatibility
+            log.warning('Do not use request in PoorSession constructor, '
+                        'see new api and call load method manually.')
+            if secret_key.secret_key is None:
+                raise SessionError("poor_SecretKey is not set!")
+            self.__secret_key = secret_key.secret_key
+        else:
+            self.__secret_key = secret_key
+
         self.__SID = SID  # pylint: disable=invalid-name
         self.__expires = expires
         self.__max_age = max_age
@@ -198,14 +226,18 @@ class PoorSession:
         self.__cps = compress if compress is not None else NoCompress
 
         # data is session dictionary to store user data in cookie
-        self.data = {}
+        self.data: Dict[Any, Any] = {}
         self.cookie: SimpleCookie = SimpleCookie()
         self.cookie[SID] = ''
 
-        raw = None
+        if not isinstance(secret_key, (str, bytes)):  # backwards compatibility
+            self.load(secret_key.cookies)
 
-        if req.cookies and SID in req.cookies:
-            raw = req.cookies[SID].value
+    def load(self, cookies: Union[SimpleCookie, tuple]):
+        """Load session from request's cookie"""
+        if not isinstance(cookies, SimpleCookie) or self.__SID not in cookies:
+            return
+        raw = cookies[self.__SID].value
 
         if raw:
             try:

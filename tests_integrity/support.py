@@ -6,15 +6,9 @@ from socket import socket, error as SocketError
 
 from requests import Request, Session
 from requests.exceptions import RequestException
-from openapi_core.schema.operations.exceptions import (  # type: ignore
-        InvalidOperation)
-from openapi_core.schema.paths.exceptions import InvalidPath  # type: ignore
-from openapi_core.schema.servers.exceptions import (  # type: ignore
-        InvalidServer)
-from openapi_core.schema.responses.exceptions import (  # type: ignore
-        InvalidResponse)
+from openapi_core.exceptions import OpenAPIResponseError  # type: ignore
 from openapi_core.templating.paths.exceptions import (  # type: ignore
-    PathNotFound, OperationNotFound)
+    PathNotFound, OperationNotFound, ServerNotFound)
 
 from . openapi import OpenAPIRequest, OpenAPIResponse
 
@@ -94,17 +88,17 @@ def check_api(url, method="GET", status_code=200, path_pattern=None,
         if result.errors:
             to_raise = False
             for error in result.errors:
-                if isinstance(error, (InvalidOperation, OperationNotFound,
-                                      InvalidPath, PathNotFound)):
+                if isinstance(error, (PathNotFound, OperationNotFound)):
                     if response.status_code == 404:
                         continue
                     warn(UserWarning("Not API definition for %s!" % url))
                     continue
-                if isinstance(error, InvalidResponse):
-                    warn(UserWarning("Not response %d definition for %s!"
-                                     % (response.status_code, url)))
+                if isinstance(error, OpenAPIResponseError):
+                    warn(UserWarning(
+                        "API response error %d definition for %s: %s"
+                        % (response.status_code, url, error)))
                     continue
-                if isinstance(error, InvalidServer):
+                if isinstance(error, ServerNotFound):
                     continue    # just ignore
                 stderr.write("API output error: %s" % str(error))
                 to_raise = True

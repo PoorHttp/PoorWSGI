@@ -143,8 +143,9 @@ app.set_filter('email', r'[\w\.\-]+@[\w\.\-]+')
 def check_login(fn):
     @wraps(fn)
     def handler(req):
-        cookie = PoorSession(req)
-        if 'login' not in cookie.data:
+        session = PoorSession(app.secret_key)
+        session.load(req.cookies)
+        if 'login' not in session.data:
             log.info('Login cookie not found.')
             redirect("/", message="Login required",)
         return fn(req)
@@ -309,7 +310,7 @@ def test_varargs(req, *args):
 @app.route('/login')
 def login(req):
     log.debug("Input cookies: %s", repr(req.cookies))
-    cookie = PoorSession(req)
+    cookie = PoorSession(app.secret_key)
     cookie.data['login'] = True
     response = RedirectResponse('/')
     cookie.header(response)
@@ -319,7 +320,7 @@ def login(req):
 @app.route('/logout')
 def logout(req):
     log.debug("Input cookies: %s", repr(req.cookies))
-    cookie = PoorSession(req)
+    cookie = PoorSession(app.secret_key)
     cookie.destroy()
     response = RedirectResponse('/')
     cookie.header(response)

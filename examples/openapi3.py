@@ -18,9 +18,6 @@ from openapi_core.validation.request.validators import (  # type: ignore
 from openapi_core.validation.response.validators import (  # type: ignore
         ResponseValidator)
 from openapi_core.validation.exceptions import InvalidSecurity  # type: ignore
-from openapi_core.schema.operations.exceptions import (  # type: ignore
-        InvalidOperation)
-from openapi_core.schema.paths.exceptions import InvalidPath  # type: ignore
 from openapi_core.templating.paths.exceptions import (  # type: ignore
     PathNotFound, OperationNotFound)
 
@@ -83,8 +80,7 @@ def before_each_request(req):
         errors = []
         for error in result.errors:
             log.debug(error)
-            if isinstance(error, (InvalidOperation, OperationNotFound,
-                                  InvalidPath, PathNotFound)):
+            if isinstance(error, (OperationNotFound, PathNotFound)):
                 return  # not found
             if isinstance(error, InvalidSecurity):
                 abort(JSONResponse(error=str(errors), status_code=401,
@@ -102,7 +98,7 @@ def after_each_request(req, res):
         req.api or OpenAPIRequest(req),     # when error in before_request
         OpenAPIResponse(res))
     for error in result.errors:
-        if isinstance(error, InvalidOperation):
+        if isinstance(error, OperationNotFound):
             continue
         log.error("API output error: %s", str(error))
     return res

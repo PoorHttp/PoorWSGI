@@ -908,7 +908,6 @@ class Application():
             try:
                 handler = self.__shandlers[status_code][req.method_number]
                 req.error_handler = handler
-                self.handler_from_before(req)  # call before handlers now
                 return handler(req, **kwargs)
             except HTTPException as http_err:
                 response = http_err.make_response()

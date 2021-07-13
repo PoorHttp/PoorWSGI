@@ -8,7 +8,8 @@
     * openapi wrapper binds request to Host or Forwarded header
     * new PoorSession interface
         * use secret_key instead of Request object in __init__ method
-	* use load method for loading cookie
+        * use load method for loading cookie
+    * handler_from_before is called only once
 
 ==== 2.3.4 ====
     * new cgi.py interface fix

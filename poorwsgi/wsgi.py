@@ -139,6 +139,11 @@ class Application():
         self.__dump = None
         self.__original_request__ = None
 
+        self.__poor_environ = {}
+        for key, val in environ:
+            if key.startswith('poor_'):
+                self.__poor_environ[key] = val
+
     def __regex(self, match):
         groups = match.groups()
         _filter = str(groups[1]).lower()
@@ -337,11 +342,13 @@ class Application():
 
         This setting will be rewrite by poor_Debug environment variable.
         """
-        return self.__config['debug'] == 'On'
+        return self.__poor_environ.get(
+                'Debug',
+                self.__config['debug']).lower() == 'on'
 
     @debug.setter
     def debug(self, value: Union[int, bool]):
-        self.__config['debug'] = 'On' if bool(value) else 'Off'
+        self.__config['debug'] = 'on' if bool(value) else 'off'
 
     @property
     def document_root(self):
@@ -349,7 +356,9 @@ class Application():
 
         This setting will be rewrite by poor_DocumentRoot environ variable.
         """
-        return self.__config['document_root']
+        return self.__poor_environ.get(
+                'DocumentRoot',
+                self.__config['document_root'])
 
     @document_root.setter
     def document_root(self, value: str):
@@ -361,11 +370,13 @@ class Application():
 
         This setting will be rewrite by poor_DocumentRoot environ variable.
         """
-        return self.__config['document_index'] == 'On'
+        return self.__poor_environ.get(
+                'DocumentIndex',
+                self.__config['document_index']).lower() == 'on'
 
     @document_index.setter
     def document_index(self, value: Union[int, bool]):
-        self.__config['document_index'] = 'On' if bool(value) else 'Off'
+        self.__config['document_index'] = 'on' if bool(value) else 'off'
 
     @property
     def secret_key(self):
@@ -374,7 +385,9 @@ class Application():
         Secret key is used by PoorSession class. It is generate from
         some server variables, and the best way is set to your own long
         key."""
-        return self.__config['secret_key']
+        return self.__poor_environ.get(
+                'SecretKey',
+                self.__config['secret_key'])
 
     @secret_key.setter
     def secret_key(self, value: str):
@@ -1197,3 +1210,11 @@ class Application():
             if key[:4].lower() == 'app_':
                 options[key[4:].lower()] = val.strip()
         return options
+
+    @property
+    def poor_environ(self):
+        """Environ with ``poor_`` variables.
+
+        It is environ from request, or os.environ
+        """
+        return self.__poor_environ.copy()

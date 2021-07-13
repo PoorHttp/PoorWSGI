@@ -13,7 +13,6 @@ from io import BytesIO
 from time import time
 from typing import Union, Callable, Any, Iterable, List, Tuple
 
-import os
 import re
 from logging import getLogger
 
@@ -294,23 +293,6 @@ class SimpleRequest:
         # Reference to error handler if exist.
         self.__error_handler = None
 
-        # uwsgi do not sent environ variables to apps environ
-        if 'uwsgi.version' in self.__environ or 'poor.Version' in os.environ:
-            self.__poor_environ = os.environ
-        else:
-            self.__poor_environ = self.__environ
-
-        var = self.__poor_environ.get('poor_Debug')
-        if var:
-            self.__debug = var.lower() == 'on'
-        else:
-            self.__debug = app.debug
-
-    @property
-    def debug(self):
-        """Value of ``poor_Debug`` variable."""
-        return self.__debug
-
     @property
     def app(self):
         """Return Application object which was created Request."""
@@ -323,14 +305,6 @@ class SimpleRequest:
         Information is get from wsgi server.
         """
         return self.__environ.copy()
-
-    @property
-    def poor_environ(self):
-        """Environ with ``poor_`` variables.
-
-        It is environ from request, or os.environ
-        """
-        return self.__poor_environ.copy()
 
     @property
     def uri_rule(self):
@@ -542,28 +516,7 @@ class SimpleRequest:
         some server variables, and the best way is set programmatically
         by Application.secret_key from random data.
         """
-        return self.__poor_environ.get(
-            'poor_SecretKey',
-            self.__app.secret_key)
-
-    @property
-    def document_index(self):
-        """Value of poor_DocumentIndex variable.
-
-        Variable is used to generate index html page, when poor_DocumentRoot
-        is set.
-        """
-        var = self.__poor_environ.get('poor_DocumentIndex')
-        if var:
-            return var.lower() == 'on'
-        return self.__app.document_index
-
-    @property
-    def document_root(self):
-        """Returns DocumentRoot setting."""
-        return self.__poor_environ.get(
-            'poor_DocumentRoot',
-            self.__app.document_root)
+        return self.__app.secret_key
 
     def get_options(self):
         """Returns dictionary with application variables from environment.

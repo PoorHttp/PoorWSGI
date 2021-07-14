@@ -992,7 +992,7 @@ class Application():
             raise HTTPException(HTTP_METHOD_NOT_ALLOWED)
 
         # regular expression
-        for ruri in self.__rhandlers.keys():
+        for ruri in self.__rhandlers:
             match = ruri.match(req.uri)
             if match and req.method_number in self.__rhandlers[ruri]:
                 handler, convertors, rule = \

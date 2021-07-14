@@ -10,6 +10,7 @@ python:
 install:
  - pip3 install -U pytest pytest-doctestplus pytest-pylint pytest-mypy
    requests openapi-core uwsgi simplejson
+ - pip3 install -U types-simplejson types-requests types-PyYAML
 
 script:
  - pytest -v poorwsgi --pylint --mypy --doctest-plus --doctest-rst

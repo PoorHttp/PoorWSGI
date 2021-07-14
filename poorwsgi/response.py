@@ -177,11 +177,10 @@ class Response:
                     and not self.__headers.get('Content-Type'):
                 log.info('Content-type not set!')
 
-            if self.__content_length \
+            if self.content_length \
                     and not self.__headers.get('Content-Length'):
                 self.__headers.add('Content-Length',
-                                   str(self.__content_length))
-        # endif
+                                   str(self.content_length))
 
         start_response(
             "%d %s" % (self.__status_code, self.__reason),
@@ -256,6 +255,14 @@ class FileResponse(Response):
         """Return data content."""
         self.__buffer.seek(0)
         return self.__buffer.read()
+
+    @property
+    def content_length(self):
+        """Return content_length of response.
+
+        That is size of internal buffer.
+        """
+        return self.__content_length
 
     # must be redefined, because self.__buffer is private attribute
     def __end_of_response__(self):

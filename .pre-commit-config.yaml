@@ -1,7 +1,7 @@
 ---
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.5.0
+    rev: v4.0.1
     hooks:
       - id: check-yaml
       - id: end-of-file-fixer
@@ -11,10 +11,10 @@ repos:
   #  hooks:
   #    - id: pylint
   - repo: https://github.com/pycqa/flake8
-    rev: 3.7.9
+    rev: 3.9.2
     hooks:
       - id: flake8
   - repo: https://github.com/Lucas-C/pre-commit-hooks-markup
-    rev: v1.0.0
+    rev: v1.0.1
     hooks:
       - id: rst-linter

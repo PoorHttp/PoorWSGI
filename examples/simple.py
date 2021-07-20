@@ -16,14 +16,14 @@ from functools import wraps
 import os
 import logging as log
 
-EXAMPLES_PATH = os.path.dirname(__file__)           # noqa
-python_path.insert(0, os.path.abspath(              # noqa
+EXAMPLES_PATH = os.path.dirname(__file__)
+python_path.insert(0, os.path.abspath(
     os.path.join(EXAMPLES_PATH, os.path.pardir)))
 
-from poorwsgi import Application, state, request, redirect
-from poorwsgi.session import PoorSession
+from poorwsgi import Application, state, request, redirect  # noqa
+from poorwsgi.session import PoorSession  # noqa
 from poorwsgi.response import Response, RedirectResponse, FileResponse, \
-    JSONResponse, JSONGeneratorResponse, EmptyResponse, HTTPException
+    JSONResponse, JSONGeneratorResponse, EmptyResponse, HTTPException # noqa
 
 logger = log.getLogger()
 logger.setLevel("DEBUG")
@@ -67,7 +67,7 @@ app.auto_form = False
 @app.before_request()
 def log_request(req):
     log.info("Before request")
-    log.info("Data: %s" % req.data)
+    log.info("Data: %s", req.data)
 
 
 @app.before_request()
@@ -82,8 +82,8 @@ def auto_form(req):
                 req, keep_blank_values=app.keep_blank_values,
                 strict_parsing=app.strict_parsing,
                 file_callback=factory.create)
-        except Exception:
-            log.exception()
+        except Exception as err:  # pylint: disable=broad-except
+            log.exception("Exception %s", str(err))
 
 
 def get_crumbnav(req):

@@ -1187,6 +1187,8 @@ class FieldStorage(CgiFieldStorage):
             environ = {}
 
         self.environ = environ
+        # pylint: disable=bad-option-value,unused-private-member
+        self.__file = None
         try:
             # new interface from some 3.6 to 3.9
             super().__init__(req, headers, outerboundary, environ,
@@ -1209,6 +1211,17 @@ class FieldStorage(CgiFieldStorage):
         if 'wsgi.file_callback' in self.environ:
             return self.environ['wsgi.file_callback'](self.filename)
         return CgiFieldStorage.make_file(self)
+
+    def read_lines(self):
+        """Internal: read lines until EOF or outerboundary."""
+        if 'wsgi.file_callback' in self.environ:
+            self.file = self.make_file()
+            if self.outerboundary:
+                self.read_lines_to_outerboundary()
+            else:
+                self.read_lines_to_eof()
+        else:
+            super().read_lines()
 
     def get(self, key: str, default: Any = None):
         """Compatibility methods with dict, alias for getvalue."""

@@ -1,3 +1,6 @@
+==== 2.4.1.dev0 ====
+    * fix file callback on files smaller than 1000B
+
 ==== 2.4.0 ====
     * new render_negotiation function
     * Headers improvement

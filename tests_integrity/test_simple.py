@@ -168,6 +168,16 @@ class TestSession():
         assert __doc__ in res.text
         assert 'anything' in res.text
 
+    def test_form_upload_small(self, url, session):
+        manifest = join(dirname(__file__), pardir, 'MANIFEST.in')
+        files = {'file_0': ('MANIFEST.in', open(manifest, 'rb'),
+                            'text/plain', {'Expires': '0'})}
+        res = check_url(url+"/test/upload", method="POST", session=session,
+                        allow_redirects=False, files=files)
+        assert 'MANIFEST.in' in res.text
+        assert 'graft' in res.text
+        assert 'global-exclude' in res.text
+
 
 class TestErrors():
     """Integrity tests for native http state handlers."""

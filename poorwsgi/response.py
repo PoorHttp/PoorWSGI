@@ -45,22 +45,12 @@ class IBytesIO(BytesIO):
         return iter(self.read_kilo, b'')
 
 
-class Response:
-    """HTTP Response object.
+class BaseResponse:
+    """Base class for response."""
 
-    This is base Response object which is process with PoorWSGI application.
-
-    As Response uses BytesIO as internal cache, which is closed by WSGI
-    server, **response can be used only once!**.
-    """
-    __buffer: BufferedIOBase
-
-    def __init__(self, data: Union[str, bytes] = b'',
-                 content_type: str = "text/html; charset=utf-8",
+    def __init__(self, content_type: str = "text/html; charset=utf-8",
                  headers: Union[Headers, HeadersList] = None,
                  status_code: int = HTTP_OK):
-        assert isinstance(data, (str, bytes)), \
-            "data is not string or bytes but %s" % type(data)
         assert isinstance(content_type, str), \
             "content_type is not string but `%s`" % content_type
         assert isinstance(status_code, int), \
@@ -82,14 +72,7 @@ class Response:
         # Status. One of state.HTTP_* values.
         self.__status_code = status_code
         self.__reason = responses[self.__status_code]
-
-        # The content length header was set automatically from buffer length.
-        if isinstance(data, str):
-            data = data.encode("utf-8")
-
-        self.__buffer = IBytesIO(data)
         self.__done = False
-        self.__content_length = len(data)
 
     @property
     def status_code(self):
@@ -123,7 +106,12 @@ class Response:
 
         That is size of internal buffer.
         """
-        return self.__content_length
+        return 0
+
+    @property
+    def data(self):
+        """Return data content."""
+        return b''
 
     @property
     def headers(self):
@@ -137,22 +125,9 @@ class Response:
         else:
             self.__headers = Headers(value)
 
-    @property
-    def data(self):
-        """Return data content."""
-        self.__buffer.seek(0)
-        return self.__buffer.read()
-
     def add_header(self, name: str, value: str, **kwargs):
         """Call Headers.add_header on headers object."""
         self.__headers.add_header(name, value, **kwargs)
-
-    def write(self, data: Union[str, bytes]):
-        """Write data to internal buffer."""
-        if isinstance(data, str):
-            data = data.encode('utf-8')
-        self.__content_length += len(data)
-        self.__buffer.write(data)
 
     def __start_response__(self, start_response: Callable):
         if self.__status_code == 304:
@@ -192,8 +167,8 @@ class Response:
         This method was called from Application object at the end of request
         for returning right value to wsgi server.
         """
-        self.__buffer.seek(0)
-        return self.__buffer
+        # pylint: disable=no-self-use
+        return b''
 
     def __call__(self, start_response: Callable):
         if self.__done:
@@ -203,6 +178,53 @@ class Response:
             return self.__end_of_response__()
         finally:
             self.__done = True
+
+
+class Response(BaseResponse):
+    """HTTP Response object.
+
+    This is base Response object which is process with PoorWSGI application.
+
+    As Response uses BytesIO as internal cache, which is closed by WSGI
+    server, **response can be used only once!**.
+    """
+    __buffer: BufferedIOBase
+
+    def __init__(self, data: Union[str, bytes] = b'',
+                 content_type: str = "text/html; charset=utf-8",
+                 headers: Union[Headers, HeadersList] = None,
+                 status_code: int = HTTP_OK):
+        assert isinstance(data, (str, bytes)), \
+            "data is not string or bytes but %s" % type(data)
+
+        super().__init__(content_type, headers, status_code)
+
+        # The content length header was set automatically from buffer length.
+        if isinstance(data, str):
+            data = data.encode("utf-8")
+
+        self.__buffer = IBytesIO(data)
+        self.__content_length = len(data)
+
+    @property
+    def content_length(self):
+        return self.__content_length
+
+    @property
+    def data(self):
+        self.__buffer.seek(0)
+        return self.__buffer.read()
+
+    def write(self, data: Union[str, bytes]):
+        """Write data to internal buffer."""
+        if isinstance(data, str):
+            data = data.encode('utf-8')
+        self.__content_length += len(data)
+        self.__buffer.write(data)
+
+    def __end_of_response__(self):
+        self.__buffer.seek(0)
+        return self.__buffer
 
 
 class JSONResponse(Response):
@@ -221,7 +243,7 @@ class JSONResponse(Response):
         super().__init__(dumps(kwargs), content_type, headers, status_code)
 
 
-class FileObjResponse(Response):
+class FileObjResponse(BaseResponse):
     """FileResponse returns file object direct to WSGI server.
 
     This means, that sendfile UNIX system call can be used.
@@ -258,11 +280,6 @@ class FileObjResponse(Response):
                 print(type(file_obj))
                 log.debug('File object has unknown size.')
 
-        print("Content-length:", self.__content_length)
-
-    def write(self, data):
-        raise RuntimeError("File Response can't write data")
-
     # must be redefined, because self.__buffer is private attribute
     @property
     def data(self):
@@ -272,7 +289,7 @@ class FileObjResponse(Response):
         """
         if self.__file.seekable():
             self.__file.seek(self.__pos)
-            return self.__buffer.read()
+            return self.__file.read()
         log.info('File object is not seekable.')
         return b''
 
@@ -321,7 +338,7 @@ class FileResponse(FileObjResponse):
                          status_code=status_code)
 
 
-class GeneratorResponse(Response):
+class GeneratorResponse(BaseResponse):
     """For response, which use generator as returned value.
 
     Even though you can figure out iterating your generator more times, just
@@ -335,10 +352,6 @@ class GeneratorResponse(Response):
                          headers=headers,
                          status_code=status_code)
         self.__generator = generator
-
-    def write(self, data):
-        """Not possible to write data ro GeneratorResponse."""
-        raise RuntimeError("Generator Response can't write data")
 
     def __end_of_response__(self):
         return self.__generator
@@ -383,10 +396,10 @@ class JSONGeneratorResponse(StrGeneratorResponse):
         super().__init__(generator, mime_type, headers, status_code)
 
 
-class EmptyResponse(GeneratorResponse):
+class EmptyResponse(BaseResponse):
     """For situation, where only state is returned."""
     def __init__(self, status_code: int = HTTP_OK):
-        super().__init__((), status_code=status_code)
+        super().__init__(status_code=status_code)
 
     @property
     def headers(self):

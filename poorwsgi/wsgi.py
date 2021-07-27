@@ -21,7 +21,7 @@ from poorwsgi.state import \
 from poorwsgi.request import Request, SimpleRequest
 from poorwsgi.results import default_states, not_implemented, \
     internal_server_error, directory_index, debug_info
-from poorwsgi.response import Response, HTTPException, \
+from poorwsgi.response import BaseResponse, HTTPException, \
     FileObjResponse, FileResponse, make_response, ResponseError
 
 log = getLogger("poorwsgi")
@@ -42,7 +42,7 @@ AUTH_DIGEST_ALGORITHMS = {
 
 def to_response(response):
     """handler response to application response."""
-    if isinstance(response, Response):
+    if isinstance(response, BaseResponse):
         return response
 
     if not isinstance(response, tuple):

@@ -92,12 +92,21 @@ class TestSimple():
 
 
 class TestResponses():
+    """Tests for Responses"""
     def test_yield(self, url):
         """yield function is done by GeneratorResponse."""
         check_url(url+"/yield")
 
+    def test_file_obj_response(self, url):
+        res = check_url(url+"/simple")
+        assert 'Content-Length' in res.headers
+        assert 'StorageFactory' in res.text
+        assert '@app.route' in res.text
+        assert '@app.before_request' in res.text
+
     def test_file_response(self, url):
         res = check_url(url+"/simple.py")
+        assert 'Content-Length' in res.headers
         assert 'StorageFactory' in res.text
         assert '@app.route' in res.text
         assert '@app.before_request' in res.text

@@ -7,7 +7,7 @@ Poor WSGI Response classes.
 :Functions:     make_response, redirect, abort
 """
 from http.client import responses
-from io import BytesIO
+from io import BytesIO, IOBase, BufferedIOBase
 from os import access, R_OK, fstat
 from logging import getLogger
 from json import dumps
@@ -53,7 +53,7 @@ class Response:
     As Response uses BytesIO as internal cache, which is closed by WSGI
     server, **response can be used only once!**.
     """
-    __buffer: Union[IBytesIO, BinaryIO]
+    __buffer: BufferedIOBase
 
     def __init__(self, data: Union[str, bytes] = b'',
                  content_type: str = "text/html; charset=utf-8",
@@ -221,30 +221,44 @@ class JSONResponse(Response):
         super().__init__(dumps(kwargs), content_type, headers, status_code)
 
 
-class FileResponse(Response):
-    """FileResponse returns opened file direct to WSGI server.
+class FileObjResponse(Response):
+    """FileResponse returns file object direct to WSGI server.
 
     This means, that sendfile UNIX system call can be used.
 
     Be careful not to use a single FileReponse instance multiple times!
     WSGI server closes file, which is returned by this response. So just
     like Response, instance of FileResponse can be used only once!
+
+    File content is returned from current position. So Content-Length is set
+    from file system or from buffer, but minus position.
     """
-    def __init__(self, path: str, content_type: str = None,
+    def __init__(self, file_obj: Union[IOBase, BinaryIO],
+                 content_type: str = None,
                  headers: Union[Headers, HeadersList] = None,
                  status_code: int = HTTP_OK):
-        if not access(path, R_OK):
-            raise IOError("Could not stat file for reading")
-        if content_type is None:     # auto mime type select
-            # pylint: disable=unused-variable
-            (content_type, encoding) = mimetypes.guess_type(path)
+        assert file_obj.readable()
         if content_type is None:     # default mime type
             content_type = "application/octet-stream"
         super().__init__(content_type=content_type,
                          headers=headers,
                          status_code=status_code)
-        self.__buffer = open(path, 'rb')  # pylint: disable=consider-using-with
-        self.__content_length = fstat(self.__buffer.fileno()).st_size
+        self.__file = file_obj
+        if file_obj.seekable():
+            self.__pos = file_obj.tell()
+        try:
+            self.__content_length = \
+                    fstat(file_obj.fileno()).st_size - self.__pos
+        except OSError:
+            if isinstance(file_obj, BytesIO):
+                self.__content_length = \
+                        file_obj.getbuffer().nbytes - self.__pos
+            else:
+                self.__content_length = 0
+                print(type(file_obj))
+                log.debug('File object has unknown size.')
+
+        print("Content-length:", self.__content_length)
 
     def write(self, data):
         raise RuntimeError("File Response can't write data")
@@ -252,9 +266,15 @@ class FileResponse(Response):
     # must be redefined, because self.__buffer is private attribute
     @property
     def data(self):
-        """Return data content."""
-        self.__buffer.seek(0)
-        return self.__buffer.read()
+        """Return data content.
+
+        This property works only if file_obj is seekable.
+        """
+        if self.__file.seekable():
+            self.__file.seek(self.__pos)
+            return self.__buffer.read()
+        log.info('File object is not seekable.')
+        return b''
 
     @property
     def content_length(self):
@@ -271,8 +291,34 @@ class FileResponse(Response):
         This method was called from Application object at the end of request
         for returning right value to wsgi server.
         """
-        self.__buffer.seek(0)
-        return self.__buffer
+        if self.__file.seekable():
+            self.__file.seek(self.__pos)
+        return self.__file
+
+
+class FileResponse(FileObjResponse):
+    """FileResponse returns opened file direct to WSGI server.
+
+    This means, that sendfile UNIX system call can be used.
+
+    Be careful not to use a single FileReponse instance multiple times!
+    WSGI server closes file, which is returned by this response. So just
+    like Response, instance of FileResponse can be used only once!
+    """
+    def __init__(self, path: str, content_type: str = None,
+                 headers: Union[Headers, HeadersList] = None,
+                 status_code: int = HTTP_OK):
+        if not access(path, R_OK):
+            raise IOError("Could not stat file for reading")
+        if content_type is None:     # auto mime type select
+            # pylint: disable=unused-variable
+            (content_type, encoding) = mimetypes.guess_type(path)
+
+        # pylint: disable=consider-using-with
+        super().__init__(open(path, 'rb', buffering=0),
+                         content_type=content_type,
+                         headers=headers,
+                         status_code=status_code)
 
 
 class GeneratorResponse(Response):

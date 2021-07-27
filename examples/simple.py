@@ -22,7 +22,8 @@ python_path.insert(0, os.path.abspath(
 
 from poorwsgi import Application, state, request, redirect  # noqa
 from poorwsgi.session import PoorSession  # noqa
-from poorwsgi.response import Response, RedirectResponse, FileResponse, \
+from poorwsgi.response import Response, RedirectResponse, \
+    FileObjResponse, FileResponse, \
     JSONResponse, JSONGeneratorResponse, EmptyResponse, HTTPException # noqa
 
 logger = log.getLogger()
@@ -523,8 +524,18 @@ def yielded(req):
         yield b"line %d\n" % i
 
 
+@app.route('/simple')
+def simple(req):
+    """Return simple.py with FileObjResponse"""
+    assert req
+    file_ = open(__file__, 'rt')  # pylint: disable=consider-using-with
+    return FileObjResponse(file_)
+
+
 @app.route('/simple.py')
 def simple_py(req):
+    """Return simple.py with FileResponse"""
+    assert req
     return FileResponse(__file__)
 
 

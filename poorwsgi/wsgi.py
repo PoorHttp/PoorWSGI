@@ -22,7 +22,7 @@ from poorwsgi.request import Request, SimpleRequest
 from poorwsgi.results import default_states, not_implemented, \
     internal_server_error, directory_index, debug_info
 from poorwsgi.response import Response, HTTPException, \
-    FileResponse, make_response, ResponseError
+    FileObjResponse, FileResponse, make_response, ResponseError
 
 log = getLogger("poorwsgi")
 
@@ -1112,7 +1112,7 @@ class Application():
             if not response:
                 response = to_response(self.state_from_table(request, 500))
 
-        if isinstance(response, FileResponse) and \
+        if isinstance(response, FileObjResponse) and \
                 "wsgi.file_wrapper" in env:     # need working fileno method
             return env['wsgi.file_wrapper'](response(start_response))
         return response(start_response)         # return bytes generator

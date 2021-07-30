@@ -17,6 +17,7 @@ script:
  - pytest -v tests --mypy
  - pytest -v examples --mypy
  - pytest -v tests_integrity --mypy --with-uwsgi
+ - pytest -v tests_integrity --mypy
 
 before_deploy:
  - python3 setup.py sdist

@@ -1,11 +1,13 @@
 """Test for Response objects and it's functionality."""
+from io import BufferedWriter, BytesIO
+
 from simplejson import load, loads
 
 import pytest
 
 from poorwsgi.response import Response, JSONResponse, \
     GeneratorResponse, StrGeneratorResponse, JSONGeneratorResponse, \
-    RedirectResponse, HTTPException, redirect, abort
+    RedirectResponse, FileObjResponse, HTTPException, redirect, abort
 from poorwsgi.request import Headers
 from poorwsgi.state import HTTP_NOT_FOUND
 
@@ -227,3 +229,16 @@ class TestHTTPException:
 
         assert isinstance(err.value.response, Response)
         assert err.value.response.status_code == 400
+
+
+class TestFileResponse():
+    """Tests for file type responses."""
+
+    def test_assert_readable(self):
+        with pytest.raises(AssertionError):
+            FileObjResponse(BufferedWriter(BytesIO()))
+
+    def test_assert_text(self):
+        with pytest.raises(AssertionError):
+            with open(__file__, 'rt') as file_:
+                FileObjResponse(file_)

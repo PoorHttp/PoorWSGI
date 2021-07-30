@@ -7,7 +7,7 @@ Poor WSGI Response classes.
 :Functions:     make_response, redirect, abort
 """
 from http.client import responses
-from io import BytesIO, IOBase, BufferedIOBase
+from io import BytesIO, IOBase, BufferedIOBase, TextIOBase
 from os import access, R_OK, fstat
 from logging import getLogger
 from json import dumps
@@ -260,6 +260,8 @@ class FileObjResponse(BaseResponse):
                  headers: Union[Headers, HeadersList] = None,
                  status_code: int = HTTP_OK):
         assert file_obj.readable()
+        assert not isinstance(file_obj, TextIOBase), \
+            "file_obj must be binary stream"
         if content_type is None:     # default mime type
             content_type = "application/octet-stream"
         super().__init__(content_type=content_type,

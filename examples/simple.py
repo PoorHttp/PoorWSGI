@@ -528,7 +528,7 @@ def yielded(req):
 def simple(req):
     """Return simple.py with FileObjResponse"""
     assert req
-    file_ = open(__file__, 'rt')  # pylint: disable=consider-using-with
+    file_ = open(__file__, 'rb')  # pylint: disable=consider-using-with
     return FileObjResponse(file_)
 
 

@@ -413,12 +413,12 @@ class SimpleRequest:
     @property
     def uri(self):
         """Deprecated alias for path of the URI."""
-        return self.__environ.get('PATH_INFO')
+        return self.path
 
     @property
     def path(self):
         """Path part of url."""
-        return self.__environ.get('PATH_INFO')
+        return self.__environ.get('PATH_INFO').encode('iso-8859-1').decode()
 
     @property
     def query(self):

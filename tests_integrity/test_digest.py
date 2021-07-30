@@ -70,5 +70,11 @@ class TestDigest:
     def test_spaces(self, url, user_auth):
         check_url(url+'/spaces%20in%20url', auth=user_auth)
 
+    def test_diacritics(self, url, user_auth):
+        check_url(url+'/%C4%8De%C5%A1tina%20v%20url', auth=user_auth)
+
+    def test_unicode_smile(self, url, user_auth):
+        check_url(url+'/crazy%20in%20url%20%F0%9F%A4%AA', auth=user_auth)
+
     def test_unknown(self, url, user_auth):
         check_url(url+'/unknown', auth=user_auth, status_code=401)

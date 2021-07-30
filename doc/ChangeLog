@@ -2,6 +2,7 @@
     * fix file callback on files smaller than 1000B
     * add FileObjResponse class
     * add BaseResponse class
+    * unicode support in url path
 
 ==== 2.4.0 ====
     * new render_negotiation function

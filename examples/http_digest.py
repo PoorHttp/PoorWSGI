@@ -7,13 +7,13 @@ from time import time
 
 import logging
 
-python_path.insert(0, path.abspath(              # noqa
+python_path.insert(0, path.abspath(
     path.join(path.dirname(__file__), path.pardir)))
 
 # pylint: disable=wrong-import-position
-from poorwsgi import Application, state
-from poorwsgi.response import EmptyResponse, redirect
-from poorwsgi.digest import check_digest, PasswordMap, hexdigest
+from poorwsgi import Application, state # noqa
+from poorwsgi.response import EmptyResponse, redirect  # noqa
+from poorwsgi.digest import check_digest, PasswordMap, hexdigest  # noqa
 
 FILE = path.join(path.dirname(__file__), 'test.digest')
 
@@ -78,6 +78,8 @@ def root(req):
         '<li>%s - foo (foo/bar)</li>' % get_link('/foo'),
         '<li>%s - unknown</li>' % get_link('/unknown'),
         '<li>%s - spaces in url</li>' % get_link('/spaces in url'),
+        '<li>%s - diacitics in url</li>' % get_link('/čeština v url'),
+        '<li>%s - unicode in url</li>' % get_link('/crazy in url 🤪'),
         '</ul>'
     )
 
@@ -174,21 +176,40 @@ def unknown_endpoint(req):
     return EmptyResponse()
 
 
-@app.route('/spaces in url')
-@check_digest(USER)
-def spaces_in_url(req):
-    """Page for USER realm."""
+def generic_response(url, user):
+    """Return generic response"""
     body = (
         '<h2>%s test for %s algorithm.</h2>' % (USER, app.auth_algorithm),
-        'User: %s' % req.user,
+        'User: %s' % user,
         '<ul>',
         '<li>'+get_link('/', 'Root')+'</li>',
-        '<li>'+get_link('/spaces in url?param=text', 'one more time')+'</li>',
+        '<li>'+get_link(url+'?param=text', 'one more time')+'</li>',
         '</ul>'
     )
 
     for line in get_header("Root") + body + get_footer():
         yield line.encode()+b'\n'
+
+
+@app.route('/spaces in url')
+@check_digest(USER)
+def spaces_in_url(req):
+    """URL with spaces in path."""
+    return generic_response(req.path, req.user)
+
+
+@app.route('/čeština v url')
+@check_digest(USER)
+def diacritics_in_url(req):
+    """URL with diacritics in path."""
+    return generic_response(req.path, req.user)
+
+
+@app.route('/crazy in url 🤪')
+@check_digest(USER)
+def crazy_in_url(req):
+    """URL with unicode in path."""
+    return generic_response(req.path, req.user)
 
 
 if __name__ == '__main__':

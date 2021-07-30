@@ -837,7 +837,7 @@ class Application():
 
             @app.http_state(state.HTTP_NOT_FOUND)
             def page_not_found(req):
-                return "Your request %s not found." % req.uri, "text/plain"
+                return "Your request %s not found." % req.path, "text/plain"
         """
         def wrapper(fun):
             self.set_http_state(status_code, fun, method)
@@ -960,7 +960,7 @@ class Application():
             return self.__dhandlers[req.method_number](req)
 
         self.handler_from_before(req)       # call before handlers now
-        log.error("404 Not Found: %s %s", req.method, req.uri)
+        log.error("404 Not Found: %s %s", req.method, req.path)
         raise HTTPException(HTTP_NOT_FOUND)
 
     def handler_from_before(self, req: SimpleRequest):
@@ -980,10 +980,11 @@ class Application():
         """
         # pylint: disable=too-many-return-statements
         # static routes
-        if req.uri in self.__handlers:
-            if req.method_number in self.__handlers[req.uri]:
-                handler = self.__handlers[req.uri][req.method_number]
-                req.uri_rule = req.uri      # nice variable for before handlers
+
+        if req.path in self.__handlers:
+            if req.method_number in self.__handlers[req.path]:
+                handler = self.__handlers[req.path][req.method_number]
+                req.uri_rule = req.path  # nice variable for before handlers
                 req.uri_handler = handler
                 self.handler_from_before(req)  # call before handlers now
                 return handler(req)       # call right handler now
@@ -993,7 +994,7 @@ class Application():
 
         # regular expression
         for ruri in self.__rhandlers:
-            match = ruri.match(req.uri)
+            match = ruri.match(req.path)
             if match and req.method_number in self.__rhandlers[ruri]:
                 handler, convertors, rule = \
                     self.__rhandlers[ruri][req.method_number]
@@ -1016,10 +1017,10 @@ class Application():
         if req.document_root and \
                 req.method_number & (METHOD_HEAD | METHOD_GET):
             rfile = "%s%s" % (req.document_root,
-                              path.normpath("%s" % req.uri))
+                              path.normpath("%s" % req.path))
 
             if not path.exists(rfile):
-                if req.debug and req.uri == '/debug-info':      # work if debug
+                if req.debug and req.path == '/debug-info':  # work if debug
                     req.uri_rule = '/debug-info'
                     req.uri_handler = debug_info
                     self.handler_from_before(req)  # call before handlers now
@@ -1030,13 +1031,13 @@ class Application():
             if path.isfile(rfile) and access(rfile, R_OK):
                 req.uri_rule = '/*'
                 self.handler_from_before(req)      # call before handlers now
-                log.info("Return file: %s", req.uri)
+                log.info("Return file: %s", req.path)
                 return FileResponse(rfile)
 
             # return directory index
             if req.document_index and path.isdir(rfile) \
                     and access(rfile, R_OK):
-                log.info("Return directory: %s", req.uri)
+                log.info("Return directory: %s", req.path)
                 req.uri_rule = '/*'
                 req.uri_handler = directory_index
                 self.handler_from_before(req)      # call before handlers now
@@ -1045,7 +1046,7 @@ class Application():
             raise HTTPException(HTTP_FORBIDDEN)
         # req.document_root
 
-        if req.debug and req.uri == '/debug-info':
+        if req.debug and req.path == '/debug-info':
             req.uri_rule = '/debug-info'
             req.uri_handler = debug_info
             self.handler_from_before(req)          # call before handlers now

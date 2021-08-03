@@ -21,14 +21,16 @@ from openapi_core.validation.exceptions import InvalidSecurity  # type: ignore
 from openapi_core.templating.paths.exceptions import (  # type: ignore
     PathNotFound, OperationNotFound)
 
-TEST_PATH = path.dirname(__file__)              # noqa
-python_path.insert(0, path.abspath(             # noqa
+TEST_PATH = path.dirname(__file__)
+python_path.insert(0, path.abspath(
     path.join(TEST_PATH, path.pardir)))
 
-from poorwsgi import Application, state
-from poorwsgi.response import Response, abort, HTTPException, JSONResponse
-from poorwsgi.openapi_wrapper import OpenAPIRequest, OpenAPIResponse
-from poorwsgi.session import PoorSession
+from poorwsgi import Application, state  # noqa
+from poorwsgi.response import Response, abort, HTTPException, \
+    JSONResponse  # noqa
+from poorwsgi.openapi_wrapper import OpenAPIRequest, \
+    OpenAPIResponse  # noqa
+from poorwsgi.session import PoorSession  # noqa
 
 app = application = Application("OpenAPI3 Test App")
 app.debug = True

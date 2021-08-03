@@ -10,7 +10,6 @@ from json import dumps
 from collections import OrderedDict
 from io import FileIO as file
 from sys import path as python_path
-from tempfile import TemporaryFile
 from functools import wraps
 
 import os
@@ -21,7 +20,7 @@ python_path.insert(0, os.path.abspath(
     os.path.join(EXAMPLES_PATH, os.path.pardir)))
 
 from poorwsgi import Application, state, request, redirect  # noqa
-from poorwsgi.session import PoorSession  # noqa
+from poorwsgi.session import PoorSession, SessionError  # noqa
 from poorwsgi.response import Response, RedirectResponse, \
     FileObjResponse, FileResponse, \
     JSONResponse, JSONGeneratorResponse, EmptyResponse, HTTPException # noqa
@@ -47,7 +46,7 @@ class Storage(file):
         if os.access(self.path, os.F_OK):
             raise Exception("File %s exist yet" % filename)
 
-        super(Storage, self).__init__(self.path, 'w+b')
+        super().__init__(self.path, 'w+b')
 
 
 class StorageFactory:
@@ -57,9 +56,8 @@ class StorageFactory:
             os.mkdir(directory)
 
     def create(self, filename):
-        if filename:
-            return Storage(self.directory, filename)
-        return TemporaryFile("wb+")
+        """Create file in directory."""
+        return Storage(self.directory, filename)
 
 
 app.auto_form = False
@@ -85,6 +83,7 @@ def auto_form(req):
                 file_callback=factory.create)
         except Exception as err:  # pylint: disable=broad-except
             log.exception("Exception %s", str(err))
+            raise
 
 
 def get_crumbnav(req):
@@ -141,15 +140,19 @@ def get_variables(req):
 app.set_filter('email', r'[\w\.\-]+@[\w\.\-]+')
 
 
-def check_login(fn):
-    @wraps(fn)
+def check_login(fun):
+    """Check session cookie."""
+    @wraps(fun)
     def handler(req):
         session = PoorSession(app.secret_key)
-        session.load(req.cookies)
+        try:
+            session.load(req.cookies)
+        except SessionError:
+            pass
         if 'login' not in session.data:
             log.info('Login cookie not found.')
             redirect("/", message="Login required",)
-        return fn(req)
+        return fun(req)
     return handler
 
 

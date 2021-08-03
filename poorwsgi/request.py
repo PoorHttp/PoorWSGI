@@ -1208,13 +1208,13 @@ class FieldStorage(CgiFieldStorage):
 
     def make_file(self):
         """Return readable and writable temporary file."""
-        if 'wsgi.file_callback' in self.environ:
+        if self._binary_file and 'wsgi.file_callback' in self.environ:
             return self.environ['wsgi.file_callback'](self.filename)
-        return CgiFieldStorage.make_file(self)
+        return super().make_file()
 
     def read_lines(self):
         """Internal: read lines until EOF or outerboundary."""
-        if 'wsgi.file_callback' in self.environ:
+        if self._binary_file and 'wsgi.file_callback' in self.environ:
             self.file = self.make_file()
             if self.outerboundary:
                 self.read_lines_to_outerboundary()

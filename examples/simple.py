@@ -74,7 +74,7 @@ def auto_form(req):
     """ This is own implementation of req.form paring before any POST request
         with own file_callback.
     """
-    if req.method_number == state.METHOD_POST:
+    if req.is_body_request:
         factory = StorageFactory('./upload')
         try:
             req.form = request.FieldStorage(

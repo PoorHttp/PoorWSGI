@@ -11,6 +11,7 @@ from cgi import FieldStorage as CgiFieldStorage, parse_header
 from json import loads as json_loads
 from io import BytesIO
 from time import time
+from tempfile import TemporaryFile
 from typing import Union, Callable, Any, Iterable, List, Tuple
 
 import os
@@ -1201,7 +1202,7 @@ class FieldStorage(CgiFieldStorage):
                                  keep_blank_values, strict_parsing, limit,
                                  encoding, errors, max_num_fields)
             except TypeError:
-                # really old inteface in from some 3.6 to some 3.7
+                # really old interface from some 3.6 to some 3.7
                 super().__init__(req, headers, outerboundary, environ,
                                  keep_blank_values, strict_parsing, limit,
                                  encoding, errors)
@@ -1210,7 +1211,7 @@ class FieldStorage(CgiFieldStorage):
         """Return readable and writable temporary file."""
         if self._binary_file and 'wsgi.file_callback' in self.environ:
             return self.environ['wsgi.file_callback'](self.filename)
-        return super().make_file()
+        return TemporaryFile("wb+")  # pylint: disable=consider-using-with
 
     def read_lines(self):
         """Internal: read lines until EOF or outerboundary."""

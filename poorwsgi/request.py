@@ -120,7 +120,7 @@ class Headers(Mapping):
         If strict is False, headers names and values are not encoded to
         iso-8859-1. This is for input headers using only!
         """
-        headers = headers or list()
+        headers = headers or []
         if isinstance(headers, (list, tuple, set)):
             if strict:
                 self.__headers = list(

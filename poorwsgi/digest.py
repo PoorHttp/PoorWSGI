@@ -223,7 +223,7 @@ class PasswordMap(defaultdict):
         if self.pathname is None:
             raise RuntimeError("No pathname was set.")
 
-        with open(self.pathname) as pwfile:
+        with open(self.pathname, encoding='utf-8') as pwfile:
             for line in pwfile:
                 username, realm, digest = line.strip().split(':')
                 self.set(realm, username, digest)
@@ -233,7 +233,7 @@ class PasswordMap(defaultdict):
         if self.pathname is None:
             raise RuntimeError("No pathname was set.")
 
-        with open(self.pathname, 'w+') as pwfile:
+        with open(self.pathname, 'w+', encoding='utf-8') as pwfile:
             for realm, vals in self.items():
                 for username, digest in vals.items():
                     pwfile.write('%s:%s:%s\n' % (username, realm, digest))

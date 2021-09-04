@@ -84,4 +84,4 @@ class OpenAPIResponse():
     @property
     def mimetype(self):
         """Return response mime_type fro validator."""
-        return self.response.content_type
+        return self.response.content_type.split(';')[0]

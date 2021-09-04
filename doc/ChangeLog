@@ -4,6 +4,7 @@
     * add BaseResponse class
     * unicode support in url path
     * call file_callback only for files entries (with filename)
+    * fix openapi wrapper mime type
 
 ==== 2.4.0 ====
     * new render_negotiation function

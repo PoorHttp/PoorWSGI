@@ -5,6 +5,7 @@
     * unicode support in url path
     * call file_callback only for files entries (with filename)
     * fix openapi wrapper mime type
+    * Session use JSON for secority issue
 
 ==== 2.4.0 ====
     * new render_negotiation function

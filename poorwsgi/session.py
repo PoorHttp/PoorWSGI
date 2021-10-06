@@ -4,7 +4,7 @@
 :Functions: hidden, get_token, check_token
 """
 from hashlib import sha512, sha256
-from pickle import dumps, loads
+from json import dumps, loads
 from base64 import b64decode, b64encode
 from logging import getLogger
 from time import time

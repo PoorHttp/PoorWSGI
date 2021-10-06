@@ -38,6 +38,7 @@ log = getLogger("poorwsgi")
 default_states: Dict[int, Dict] = {}
 
 # pylint: disable=invalid-name
+# pylint: disable=consider-using-f-string
 
 
 def html_escape(s):

@@ -6,6 +6,7 @@
 """
 # pylint: disable=too-many-lines
 # pylint: disable=unsubscriptable-object
+# pylint: disable=consider-using-f-string
 
 from os import path, access, R_OK, environ
 from collections import OrderedDict

@@ -4,6 +4,7 @@
 :Functions: parse_negotiation
 """
 # pylint: disable=too-many-lines
+# pylint: disable=consider-using-f-string
 
 from collections.abc import Mapping
 from wsgiref.headers import _formatparam  # type: ignore

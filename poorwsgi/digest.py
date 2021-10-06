@@ -9,6 +9,8 @@ This file could be used as known ``htdigest`` tool.
     # adding / updating user password
     python3 -m poorwsgi.digest -c auth.digest 'Secret Zone' user
 """
+# pylint: disable=consider-using-f-string
+
 from argparse import ArgumentParser
 from hashlib import md5, sha256
 from traceback import print_exc

@@ -31,6 +31,7 @@ log = getLogger('poorwsgi')
 responses[HTTP_I_AM_A_TEAPOT] = "I'm a teapot"
 
 # pylint: disable=unsubscriptable-object
+# pylint: disable=consider-using-f-string
 
 
 class IBytesIO(BytesIO):

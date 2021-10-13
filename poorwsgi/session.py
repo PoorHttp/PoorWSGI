@@ -14,7 +14,8 @@ import bz2
 
 from http.cookies import SimpleCookie
 
-from poorwsgi.request import Headers, Request
+from poorwsgi.headers import Headers
+from poorwsgi.request import Request
 from poorwsgi.response import Response
 
 log = getLogger("poorwsgi")  # pylint: disable=invalid-name

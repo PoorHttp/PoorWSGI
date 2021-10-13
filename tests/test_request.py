@@ -2,11 +2,12 @@
 from io import BytesIO
 from typing import Dict, Any
 
-from pytest import fixture
+from pytest import fixture, raises
 
 from poorwsgi import Application
 from poorwsgi.request import JsonDict, JsonList, parse_json_request, \
     EmptyForm, Args, FieldStorage, Request
+from poorwsgi.response import HTTPException
 
 # pylint: disable=missing-function-docstring
 # pylint: disable=no-self-use
@@ -91,6 +92,7 @@ class TestForm:
 
 
 class TestParseJson:
+    """Tests for parsing JSON requests."""
     def test_str(self):
         assert isinstance(parse_json_request(BytesIO(b"{}")), JsonDict)
 
@@ -113,23 +115,26 @@ class TestParseJson:
         assert parse_json_request(BytesIO(b"null")) is None
 
     def test_error(self):
-        assert parse_json_request(BytesIO(b"abraka")) is None
+        with raises(HTTPException) as err:
+            parse_json_request(BytesIO(b"abraka"))
+        assert err.value.args[0] == 400
+        assert 'error' in err.value.args[1]
 
     def test_unicode(self):
-        rv = parse_json_request(BytesIO(b'"\\u010de\\u0161tina"'))
-        assert rv == "čeština"
+        rval = parse_json_request(BytesIO(b'"\\u010de\\u0161tina"'))
+        assert rval == "čeština"
 
     def test_utf8(self):
-        rv = parse_json_request(BytesIO(b'"\xc4\x8de\xc5\xa1tina"'))
-        assert rv == "čeština"
+        rval = parse_json_request(BytesIO(b'"\xc4\x8de\xc5\xa1tina"'))
+        assert rval == "čeština"
 
     def test_unicode_struct(self):
-        rv = parse_json_request(BytesIO(b'{"lang":"\\u010de\\u0161tina"}'))
-        assert rv == {"lang": "čeština"}
+        rval = parse_json_request(BytesIO(b'{"lang":"\\u010de\\u0161tina"}'))
+        assert rval == {"lang": "čeština"}
 
     def test_utf_struct(self):
-        rv = parse_json_request(BytesIO(b'{"lang":"\xc4\x8de\xc5\xa1tina"}'))
-        assert rv == {"lang": "čeština"}
+        rval = parse_json_request(BytesIO(b'{"lang":"\xc4\x8de\xc5\xa1tina"}'))
+        assert rval == {"lang": "čeština"}
 
 
 class TestRequest:

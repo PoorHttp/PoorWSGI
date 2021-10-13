@@ -11,6 +11,7 @@ from . support import start_server, check_url
 # pylint: disable=missing-function-docstring
 # pylint: disable=no-self-use
 # pylint: disable=redefined-outer-name
+# pylint: disable=consider-using-f-string
 
 
 @fixture(scope="module")
@@ -142,6 +143,11 @@ class TestResponses():
         res = check_url(url+"/test/json", status_code=418,
                         method="POST", json=data)
         assert res.json()["request"] == data
+
+    def test_bad_json_response(self, url):
+        check_url(url+"/test/json", status_code=400,
+                  method="POST", data=b"abraka crash",
+                  headers={'Content-Type': 'application/json'})
 
     def test_empty_response(self, url):
         check_url("{url}/test/empty".format(url=url))

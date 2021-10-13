@@ -214,6 +214,6 @@ def crazy_in_url(req):
 
 if __name__ == '__main__':
     # pylint: disable=invalid-name
-    httpd = make_server('0.0.0.0', 8080, app)
+    httpd = make_server('127.0.0.1', 8080, app)
     logging.info("Starting to serve on http://127.0.0.1:8080")
     httpd.serve_forever()

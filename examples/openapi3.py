@@ -32,6 +32,7 @@ from poorwsgi.openapi_wrapper import OpenAPIRequest, \
     OpenAPIResponse  # noqa
 from poorwsgi.session import PoorSession  # noqa
 
+XXX = 'xxx'
 app = application = Application("OpenAPI3 Test App")
 app.debug = True
 app.secret_key = urandom(32)     # random key each run
@@ -157,7 +158,7 @@ def check_login(req):
 @app.route('/check/api-key')
 def check_api_key(req):
     api_token = req.headers.get("API-Key", None)
-    if api_token != "xxx":
+    if api_token != XXX:
         raise HTTPException(401)
     return "api-key ok"
 

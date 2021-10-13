@@ -120,7 +120,7 @@ def get_header(title):
 def get_footer():
     return (
         "<hr>",
-        "<small>Copyright (c) 2013 Ondřej Tůma. See ",
+        "<small>Copyright (c) 2013-2021 Ondřej Tůma. See ",
         '<a href="http://poorhttp.zeropage.cz">poorhttp.zeropage.cz</a>'
         '</small>.',
         "</body>",

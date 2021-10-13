@@ -6,8 +6,6 @@
 # pylint: disable=too-many-lines
 # pylint: disable=consider-using-f-string
 
-from collections.abc import Mapping
-from wsgiref.headers import _formatparam  # type: ignore
 from cgi import FieldStorage as CgiFieldStorage, parse_header
 from json import loads as json_loads
 from io import BytesIO
@@ -23,7 +21,9 @@ from urllib.parse import parse_qs
 from http.cookies import SimpleCookie
 
 from poorwsgi.state import methods, \
-    METHOD_POST, METHOD_PUT, METHOD_PATCH
+    METHOD_POST, METHOD_PUT, METHOD_PATCH, HTTP_BAD_REQUEST
+from poorwsgi.headers import Headers, parse_negotiation
+from poorwsgi.response import HTTPException
 
 log = getLogger("poorwsgi")
 
@@ -32,251 +32,6 @@ RE_HTTPURLPATTERN = re.compile(r"^(http|https):\/\/")
 RE_AUTHORIZATION = re.compile(r'(\w+)[=] ?("[^"]+"|[\w-]+)')
 
 # pylint: disable=unsubscriptable-object
-
-
-def parse_negotiation(value: str):
-    """Parse content negotiation headers to list of value, quality tuples.
-
-    >>> parse_negotiation('gzip;q=1.0, identity;q=0.5, *;q=0')
-    [('gzip', 1.0), ('identity', 0.5), ('*', 0.0)]
-    >>> parse_negotiation('text/html;level=1, text/html;level=2;q=0.5')
-    [('text/html;level=1', 1.0), ('text/html;level=2', 0.5)]
-    """
-    values = []
-    for item in value.split(','):
-        pair = item.split(';q=')
-        if pair[0] == item:
-            values.append((item.strip(), 1.0))
-            continue
-        try:
-            quality = float(pair[1])
-        except (IndexError, ValueError):
-            quality = 1.0
-        values.append((pair[0].strip(), quality))
-    return values
-
-
-def render_negotiation(negotation: List[Tuple]):
-    """Render negotiation header value from tuples.
-
-    >>> render_negotiation([('gzip',1.0), ('*',0)])
-    'gzip;q=1.0, *;q=0'
-    >>> render_negotiation((('gzip',1.0), ('compress',)))
-    'gzip;q=1.0, compress'
-    >>> render_negotiation((('text/html;level=1',),
-    ...                     ('text/html;level=2', 0.5)))
-    'text/html;level=1, text/html;level=2;q=0.5'
-    """
-    values = []
-    for nego in negotation:
-        values.append(';q='.join(map(str, nego)))
-    return ', '.join(values)
-
-
-HeadersList = Union[list, tuple, set, dict]
-
-
-class Headers(Mapping):
-    """Class inherited from collections.Mapping.
-
-    As PEP 0333, resp. RFC 2616 says, all headers names must be only US-ASCII
-    character except control characters or separators. And headers values must
-    be store in string encoded in ISO-8859-1. This class methods Headers.add
-    and Headers.add_header do auto convert values from UTF-8 to ISO-8859-1
-    encoding if it is possible. So on every modification methods must be use
-    UTF-8 string.
-
-    Some headers can be set twice. At this moment, response can contain only
-    more ``Set-Cookie`` headers, but you can use add_header method to add more
-    headers with same name. Or you can create headers from tuples, which is
-    used in Request.
-
-    When more same named header is set in HTTP request, server join it's value
-    to one.
-
-    Empty header is not allowed.
-
-    >>> headers = Headers({'X-Powered-By': 'Test'})
-    >>> headers['X-Powered-By']
-    'Test'
-    >>> headers['x-powered-by']
-    'Test'
-    >>> headers.get('X-Powered-By')
-    'Test'
-    >>> headers.get('x-powered-by')
-    'Test'
-    >>> 'X-Powered-By' in headers
-    True
-    >>> 'x-powered-by' in headers
-    True
-    """
-
-    def __init__(self, headers: HeadersList = None, strict: bool = True):
-        """Headers constructor.
-
-        Headers object could be create from list, set or tuple of pairs
-        name, value. Or from dictionary. All names or values must be
-        iso-8859-1 encodable. If not, AssertionError will be raised.
-
-        If strict is False, headers names and values are not encoded to
-        iso-8859-1. This is for input headers using only!
-        """
-        headers = headers or []
-        if isinstance(headers, (list, tuple, set)):
-            if strict:
-                self.__headers = list(
-                    (Headers.iso88591(k), Headers.iso88591(v))
-                    for k, v in headers)
-            else:
-                self.__headers = list((k, v) for k, v in headers)
-        elif isinstance(headers, dict):
-            if strict:
-                self.__headers = list(
-                    (Headers.iso88591(k), Headers.iso88591(v))
-                    for k, v in headers.items())
-            else:
-                self.__headers = list((k, v) for k, v in headers.items())
-        else:
-            raise TypeError("headers must be tuple, list or set "
-                            "of str pairs, or dict "
-                            "(got {0})".format(type(headers)))
-
-    def __len__(self):
-        """Return len of header items."""
-        return len(self.__headers)
-
-    def __getitem__(self, name: str):
-        """Return header item identified by lower name."""
-        name = Headers.iso88591(name.lower())
-        for k, val in self.__headers:
-            if k.lower() == name:
-                return val
-        raise KeyError("{0!r} is not registered".format(name))
-
-    def __delitem__(self, name: str):
-        """Delete item identied by lower name."""
-        name = Headers.iso88591(name.lower())
-        self.__headers = list(kv for kv in self.__headers
-                              if kv[0].lower() != name)
-
-    def __setitem__(self, name: str, value: str):
-        """Delete item if exist and set it's new value."""
-        del self[name]
-        self.add_header(name, value)
-
-    def __iter__(self):
-        return iter(self.__headers)
-
-    def __repr__(self):
-        return "Headers(%r)" % repr(tuple(self.__headers))
-
-    def names(self):
-        """Return tuple of headers names."""
-        return tuple(k for k, v in self.__headers)
-
-    def keys(self):
-        """Alias for names method."""
-        return self.names()
-
-    def values(self):
-        """Return tuple of headers values."""
-        return tuple(v for k, v in self.__headers)
-
-    def get_all(self, name: str):
-        """Return tuple of all values of header identified by lower name.
-
-        >>> headers = Headers([('Set-Cookie', 'one'), ('Set-Cookie', 'two')])
-        >>> headers.get_all('Set-Cookie')
-        ('one', 'two')
-        >>> headers.get_all('X-Test')
-        ()
-        """
-        name = Headers.iso88591(name.lower())
-        return tuple(kv[1] for kv in self.__headers if kv[0].lower() == name)
-
-    def items(self):
-        """Return tuple of headers pairs."""
-        return tuple(self.__headers)
-
-    def setdefault(self, name: str, value: str):
-        """Set header value if not exist, and return it's value."""
-        res = self.get(name)
-        if res is None:
-            self.add_header(name, value)
-            return value
-        return res
-
-    def add(self, name: str, value: str):
-        """Set header name to value.
-
-        Duplicate names are not allowed instead of ``Set-Cookie``.
-        """
-        if name != "Set-Cookie" and name in self:
-            raise KeyError("Key %s exist." % name)
-        self.add_header(name, value)
-
-    def add_header(self, name: str, value: Union[str, List[Tuple]] = None,
-                   **kwargs):
-        """Extended header setting.
-
-        name : str
-            Header field to add.
-
-        value : str or list of tuples
-            If value is list of tuples, render_negogation will be used.
-
-        kwargs : dict
-            arguments can be used to set additional value parameters for the
-            header field, with underscores converted to dashes. Normally the
-            parameter will be added as name="value".
-
-        .. code:: python
-
-            h.add_header('X-Header', 'value')
-            h.add_header('Content-Disposition', 'attachment',
-                         filename='image.png')
-            h.add_header('Accept-Encodding', [('gzip',1.0), ('*',0)])
-
-        All names must be US-ASCII string except control characters
-        or separators.
-        """
-
-        parts = []
-
-        if isinstance(value, (list, tuple)):
-            parts.append(Headers.iso88591(render_negotiation(value)))
-
-        else:
-            if value is not None:
-                parts.append(Headers.iso88591(value))
-
-            for k, val in kwargs.items():
-                k = Headers.iso88591(k)
-                if val is None:
-                    parts.append(k.replace('_', '-'))
-                else:
-                    parts.append(_formatparam(k.replace('_', '-'),
-                                              Headers.iso88591(val)))
-        if not parts:
-            raise ValueError("Header value must be set.")
-        self.__headers.append((Headers.iso88591(name), "; ".join(parts)))
-
-    @staticmethod
-    def iso88591(value: str) -> str:
-        """Doing automatic conversion to iso-8859-1 strings.
-
-        Converts from utf-8 to iso-8859-1 string. That means, all input value
-        of Headers class must be UTF-8 stings.
-        """
-        try:
-            if isinstance(value, str):
-                return value.encode('utf-8').decode('iso-8859-1')
-
-        except UnicodeError as err:
-            raise ValueError("Header name/value must be iso-8859-1 "
-                             "encoded (got {0})".format(value)) from err
-        raise TypeError("Header name/value must be of type str "
-                        "(got {0})".format(value))
 
 
 class SimpleRequest:
@@ -1122,7 +877,8 @@ def parse_json_request(req, charset: str = "utf-8"):
             return JsonList(data)
         return data
     except BaseException as err:  # pylint: disable=broad-except
-        log.warning("Invalid request json: %s", str(err))
+        log.error("Invalid request json: %s", str(err))
+        raise HTTPException(HTTP_BAD_REQUEST, error=err) from err
 
 
 class FieldStorage(CgiFieldStorage):

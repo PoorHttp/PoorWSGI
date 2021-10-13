@@ -24,7 +24,7 @@ except ImportError:
 
 from poorwsgi.state import DECLINED, HTTP_OK, \
     HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_I_AM_A_TEAPOT
-from poorwsgi.request import Headers, HeadersList
+from poorwsgi.headers import Headers, HeadersList
 
 log = getLogger('poorwsgi')
 # not in http.client.responses
@@ -436,6 +436,7 @@ class Declined(EmptyResponse):
     This response is returned, when state.DECLINED was returned.
     """
     def __call__(self, start_response: Callable):
+        log.debug("DECLINED")
         return ()
 
 

@@ -1071,6 +1071,9 @@ class Application():
             args = self.handler_from_table(request)
             response = to_response(args)
         except HTTPException as http_err:
+            if request is None:
+                request = SimpleRequest(env, self)
+
             response = http_err.make_response()
             if not response:
                 status_code = http_err.args[0]

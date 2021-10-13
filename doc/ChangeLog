@@ -1,4 +1,4 @@
-==== 2.4.1.dev0 ====
+==== 2.5.0.dev0 ====
     * fix file callback on files smaller than 1000B
     * add FileObjResponse class
     * add BaseResponse class
@@ -6,6 +6,8 @@
     * call file_callback only for files entries (with filename)
     * fix openapi wrapper mime type
     * Session use JSON for secority issue
+    * Bad JSON request generate HTTP Bad Request response
+      * All error handlers has error named argument
 
 ==== 2.4.0 ====
     * new render_negotiation function

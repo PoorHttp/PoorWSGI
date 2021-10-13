@@ -90,13 +90,14 @@ def not_modified(req):
     return EmptyResponse(HTTP_NOT_MODIFIED)
 
 
-def internal_server_error(req):
+def internal_server_error(req, **kwargs):
     """ More debug 500 Internal Server Error server handler.
 
     It was be called automatically when no handlers are not defined
     in dispatch_table.errors. If poor_Debug variable is to On, Tracaback
     will be generated.
     """
+    assert kwargs is not None
     exc_type, exc_value, exc_traceback = exc_info()
     traceback = format_exception(exc_type,
                                  exc_value,
@@ -163,8 +164,10 @@ def internal_server_error(req):
 # enddef
 
 
-def bad_request(req):
+def bad_request(req, error=None):
     """ 400 Bad Request server error handler. """
+    if error:
+        log.error(error)
     content = (
         "<!DOCTYPE html>\n"
         "<html>\n"
@@ -188,8 +191,10 @@ def bad_request(req):
     return Response(content, status_code=HTTP_BAD_REQUEST)
 
 
-def unauthorized(req, realm=None, stale=''):
+def unauthorized(req, realm=None, stale='', error=None):
     """Return 401 Unauthorized response."""
+    if error:
+        log.error(error)
     headers = None
     if req.app.auth_type == 'Digest':
         if not realm:
@@ -239,8 +244,11 @@ def unauthorized(req, realm=None, stale=''):
     return Response(content, headers=headers, status_code=HTTP_UNAUTHORIZED)
 
 
-def forbidden(req):
+def forbidden(req, error=None):
     """ 403 - Forbidden Access server error handler. """
+    if error:
+        log.error(error)
+
     content = (
         "<!DOCTYPE html>\n"
         "<html>\n"
@@ -266,8 +274,11 @@ def forbidden(req):
 # enddef
 
 
-def not_found(req):
+def not_found(req, error=None):
     """ 404 - Page Not Found server error handler. """
+    if error:
+        log.error(error)
+
     content = (
         "<!DOCTYPE html>\n"
         "<html>\n"
@@ -292,8 +303,11 @@ def not_found(req):
 # enddef
 
 
-def method_not_allowed(req):
+def method_not_allowed(req, error=None):
     """ 405 Method Not Allowed server error handler. """
+    if error:
+        log.error(error)
+
     content = (
         "<!DOCTYPE html>\n"
         "<html>\n"
@@ -319,8 +333,11 @@ def method_not_allowed(req):
 # enddef
 
 
-def not_implemented(req, code=None):
+def not_implemented(req, code=None, error=None):
     """ 501 Not Implemented server error handler. """
+    if error:
+        log.error(error)
+
     content = (
         "<!DOCTYPE html>\n"
         "<html>\n"

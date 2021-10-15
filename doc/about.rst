@@ -87,13 +87,19 @@ Examples
 It is published application test files. You can download it, study it,
 test or use it as you can. See:
 
-**simple.py**
-    https://github.com/PoorHttp/PoorWSGI/blob/master/examples/simple.py
+**http_digest.py**
+    https://github.com/PoorHttp/PoorWSGI/blob/master/examples/http_digest.py
+    https://github.com/PoorHttp/PoorWSGI/blob/master/examples/test.digest
+
+**large_file.py**
+    https://github.com/PoorHttp/PoorWSGI/blob/master/examples/large_file.py
 
 **openapi3.py**
     https://github.com/PoorHttp/PoorWSGI/blob/master/examples/openapi3.py
     https://github.com/PoorHttp/PoorWSGI/blob/master/examples/openapi.json
 
-**http_digest.py**
-    https://github.com/PoorHttp/PoorWSGI/blob/master/examples/http_digest.py
-    https://github.com/PoorHttp/PoorWSGI/blob/master/examples/test.digest
+**simple.py**
+    https://github.com/PoorHttp/PoorWSGI/blob/master/examples/simple.py
+
+**websocket.py**
+    https://github.com/PoorHttp/PoorWSGI/blob/master/examples/websocket.py

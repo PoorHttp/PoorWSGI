@@ -8,6 +8,9 @@
     * Session use JSON for secority issue
     * Bad JSON request generate HTTP Bad Request response
       * All error handlers has error named argument
+    * new examples
+      * large_file.py - own file_callback for uploading larga data
+      * websocket.py - websocket simple chat example
 
 ==== 2.4.0 ====
     * new render_negotiation function

@@ -522,6 +522,15 @@ Filtering
 
 TODO: How to write output filter, gzip for example....
 
+WebSockets
+~~~~~~~~~~
+
+WebSockets are not directly supported in PoorWSGI, but upgrade requests can be
+handled like other HTTP requests. See
+`websocket.py <https://github.com/PoorHttp/PoorWSGI/blob/master/examples/websocket.py>`_
+example which use uWsgi implementation or WSocket implementation.
+
+
 Request variables
 -----------------
 PoorWSGI has two extra classes for get arguments. From request path, typical

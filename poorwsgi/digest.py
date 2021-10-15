@@ -2,7 +2,7 @@
 
 This file could be used as known ``htdigest`` tool.
 
-.. code ::sh
+.. code:: sh
 
     python3 -m poorwsgi.digest --help
 

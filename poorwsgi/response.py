@@ -244,6 +244,18 @@ class JSONResponse(Response):
         super().__init__(dumps(kwargs), content_type, headers, status_code)
 
 
+class TextResponse(Response):
+    """Simple text/plain response."""
+    def __init__(self, text: str, charset: str = "utf-8",
+                 headers: Union[Headers, HeadersList] = None,
+                 status_code: int = HTTP_OK):
+        content_type = "text/plain"
+        if charset:
+            content_type += "; charset="+charset
+
+        super().__init__(text, content_type, headers, status_code)
+
+
 class FileObjResponse(BaseResponse):
     """FileResponse returns file object direct to WSGI server.
 

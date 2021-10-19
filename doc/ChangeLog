@@ -11,6 +11,7 @@
     * new examples
       * large_file.py - own file_callback for uploading larga data
       * websocket.py - websocket simple chat example
+    * new TextResponse class
 
 ==== 2.4.0 ====
     * new render_negotiation function

@@ -5,7 +5,7 @@ from simplejson import load, loads
 
 import pytest
 
-from poorwsgi.response import Response, JSONResponse, \
+from poorwsgi.response import Response, JSONResponse, TextResponse, \
     GeneratorResponse, StrGeneratorResponse, JSONGeneratorResponse, \
     RedirectResponse, FileObjResponse, HTTPException, redirect, abort
 from poorwsgi.request import Headers
@@ -112,6 +112,19 @@ class TestJSONResponse:
         response(start_response)
         with pytest.raises(RuntimeError):
             response(start_response)
+
+
+class TestTextResponse:
+    """Test for TextResponse."""
+    def test_simple(self):
+        res = TextResponse("Simple text")
+        res.content_type = "text/plain; charset=utf-8"
+        assert res.data == b"Simple text"
+
+    def test_no_charset(self):
+        res = TextResponse("Simple text", charset=None)
+        res.content_type = "text/plain"
+        assert res.data == b"Simple text"
 
 
 class TestGeneratorResponse:

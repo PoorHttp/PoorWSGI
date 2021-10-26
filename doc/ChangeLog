@@ -12,6 +12,8 @@
       * large_file.py - own file_callback for uploading larga data
       * websocket.py - websocket simple chat example
     * new TextResponse class
+    * CachedInput for faster upload
+    * Default Output data buffer is 65365 now
 
 ==== 2.4.0 ====
     * new render_negotiation function

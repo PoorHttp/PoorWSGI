@@ -8,7 +8,7 @@ from wsgiref.simple_server import make_server
 from base64 import decodebytes, encodebytes
 from json import dumps
 from collections import OrderedDict
-from io import FileIO as file
+from io import FileIO as file, BytesIO
 from sys import path as python_path
 from functools import wraps
 
@@ -57,6 +57,8 @@ class StorageFactory:
 
     def create(self, filename):
         """Create file in directory."""
+        if not filename:
+            return BytesIO()
         return Storage(self.directory, filename)
 
 

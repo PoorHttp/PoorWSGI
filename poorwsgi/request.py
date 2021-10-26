@@ -417,6 +417,8 @@ class Request(SimpleRequest):
             self.__file = BytesIO(self.__file.read(self.__content_length))
             self.__file.seek(0)
 
+        self.__cached_input = app.cached_input
+
         # path args are set via wsgi.handler_from_table
         self.__path_args = None
 
@@ -650,7 +652,10 @@ class Request(SimpleRequest):
     @property
     def input(self):
         """Return input file, for internal use in FieldStorage"""
-        return self.__file
+        if not self.__cached_input or isinstance(self.__file, BytesIO):
+            return self.__file
+        return CachedInput(self.__file, self.content_length,
+                           self.__cached_input)
 
     @property
     def user(self):
@@ -879,6 +884,71 @@ def parse_json_request(req, charset: str = "utf-8"):
     except BaseException as err:  # pylint: disable=broad-except
         log.error("Invalid request json: %s", str(err))
         raise HTTPException(HTTP_BAD_REQUEST, error=err) from err
+
+
+class CachedInput:
+    """Wrapper around wsgi.input file, which reads data block by block."""
+    def __init__(self, file, size, block_size=32768):
+        self.__file = file
+        self.__buffer = b''
+        self.__todo = size
+        self.block_size = block_size
+
+    def read(self, size=-1):
+        """Compatible file read which works with internal buffer."""
+        if size < 0:
+            size = self.block_size
+
+        b_size = len(self.__buffer)
+        size = min(self.__todo, size)
+
+        if self.__buffer:
+            if b_size >= size:
+                retval = self.__buffer[:size]
+                self.__buffer = self.__buffer[size:]
+                return retval
+            size = size - b_size
+            self.__todo -= size
+            retval = self.__buffer + self.__file.read(size)
+            self.__buffer = b''
+            return retval
+
+        size = min(self.__todo, size)
+        self.__todo -= size
+        return self.__file.read(size)
+
+    def readline(self, size=-1):
+        """Compatible file read which works with internal buffer."""
+        if size < 0:
+            size = self.block_size
+
+        if not self.__buffer:
+            size = min(self.__todo, size)
+            self.__todo -= size
+            self.__buffer = self.__file.read(size)
+
+        line = b''
+        l_size = 0
+
+        while l_size < size:
+            max_size = size-l_size
+            pos = self.__buffer.find(b'\r\n', 0, max_size)
+            if pos >= 0:
+                line += self.__buffer[:pos + 2]
+                self.__buffer = self.__buffer[pos + 2:]
+                return line
+
+            line += self.__buffer[:max_size]
+            self.__buffer = self.__buffer[max_size:]
+            l_size = len(line)
+
+            if l_size < size:
+                n_size = min(self.__todo, max_size)
+                self.__todo -= n_size
+                self.__buffer = self.__file.read(n_size)
+
+        # no end-of-line found
+        return line
 
 
 class FieldStorage(CgiFieldStorage):

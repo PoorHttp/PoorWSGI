@@ -19,11 +19,12 @@ from poorwsgi.state import __version__
 environ.update({'PYTHONPATH': 'poorwsgi'})
 
 
-def find_data_files(directory, targetFolder=""):
+def find_data_files(directory, target_folder=""):
+    """Find files in directory, and prepare tuple for setup."""
     rv = []
     for root, dirs, files in walk(directory):
-        if targetFolder:
-            rv.append((targetFolder,
+        if target_folder:
+            rv.append((target_folder,
                        list(root+'/'+f
                             for f in files if f[0] != '.' and f[-1] != '~')))
         else:

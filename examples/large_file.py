@@ -1,6 +1,7 @@
 """Large file upload test."""
 
-from wsgiref.simple_server import make_server
+from wsgiref.simple_server import make_server, WSGIServer
+from socketserver import ThreadingMixIn
 from time import time
 from tempfile import TemporaryFile
 from hashlib import sha256
@@ -58,12 +59,14 @@ class Temporary:
     def __init__(self, filename):
         log.debug("Start uploading file: %s", filename)
         self.uploaded = 0
+        self.__hash = sha256()
         # pylint: disable=consider-using-with
         self.__file = TemporaryFile('wb+')
 
     def write(self, data):
         """Only count uploaded data size."""
         size = self.__file.write(data)
+        self.__hash.update(data)
         self.uploaded += size
         return size
 
@@ -78,6 +81,10 @@ class Temporary:
     def close(self):
         """Proxy to internal file object close method."""
         return self.__file.close()
+
+    def hexdigest(self):
+        """Return sha256 hexdigest of file."""
+        return self.__hash.hexdigest()
 
 
 def blackhole_factory(req):
@@ -221,8 +228,18 @@ def root(req):
     """
 
 
+class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
+    """This class is identical to WSGIServer but uses threads to handle
+    requests by using the ThreadingMixIn. This is useful to handle weg
+    browsers pre-opening sockets, on which Server would wait indefinitely.
+    """
+
+    multithread = True
+    daemon_threads = True
+
+
 if __name__ == '__main__':
     ADDRESS = sys.argv[1] if len(sys.argv) > 1 else '127.0.0.1'
-    httpd = make_server(ADDRESS, 8080, app)
+    httpd = make_server(ADDRESS, 8080, app, ThreadingWSGIServer)
     print("Starting to serve on http://%s:8080" % ADDRESS)
     httpd.serve_forever()

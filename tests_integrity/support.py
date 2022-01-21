@@ -60,7 +60,8 @@ def check_url(url, method="GET", status_code=200, allow_redirects=True,
                                 allow_redirects=allow_redirects)
         if isinstance(status_code, int):
             status_code = [status_code]
-        assert response.status_code in status_code
+        assert response.status_code in status_code, \
+               response.text or response.reason
         return response
     except RequestException:
         pass

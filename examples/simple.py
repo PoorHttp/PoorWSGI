@@ -65,15 +65,15 @@ class StorageFactory:
 app.auto_form = False
 
 
-@app.before_request()
+@app.before_response()
 def log_request(req):
-    log.info("Before request")
+    log.info("Before response")
     log.info("Data: %s", req.data)
 
 
-@app.before_request()
+@app.before_response()
 def auto_form(req):
-    """ This is own implementation of req.form paring before any POST request
+    """ This is own implementation of req.form paring before any POST response
         with own file_callback.
     """
     if req.is_body_request:
@@ -544,15 +544,15 @@ def simple_py(req):
     return FileResponse(__file__)
 
 
-@app.after_request()
+@app.after_response()
 def log_response(req, res):
-    log.info("After request")
+    log.info("After response")
     return res
 
 
 @app.route('/timestamp')
 def get_timestamp(req):
-    return JSONResponse(timestamp=req.timestamp)
+    return JSONResponse(timestamp=req.start_time)
 
 
 @app.route('/internal-server-error')

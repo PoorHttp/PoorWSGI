@@ -103,14 +103,14 @@ class TestResponses():
         assert 'Content-Length' in res.headers
         assert 'StorageFactory' in res.text
         assert '@app.route' in res.text
-        assert '@app.before_request' in res.text
+        assert '@app.before_response' in res.text
 
     def test_file_response(self, url):
         res = check_url(url+"/simple.py")
         assert 'Content-Length' in res.headers
         assert 'StorageFactory' in res.text
         assert '@app.route' in res.text
-        assert '@app.before_request' in res.text
+        assert '@app.before_response' in res.text
 
     def test_json_response(self, url):
         res = check_url(url+"/test/json", status_code=418)

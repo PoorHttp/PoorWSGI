@@ -56,8 +56,8 @@ with open(path.join(path.dirname(__file__), "openapi.json"), "r") as openapi:
     response_validator = ResponseValidator(spec)
 
 
-@app.before_request()
-def corse_request(req):
+@app.before_response()
+def cors_request(req):
     if req.uri.startswith("/p/"):
         return      # enndpoints for printers does not need CORS
     if req.method_number == state.METHOD_OPTIONS:
@@ -67,16 +67,16 @@ def corse_request(req):
         raise HTTPException(res)
 
 
-@app.after_request()
-def corse_response(req, res):
+@app.after_response()
+def cors_response(req, res):
     res.add_header("Access-Control-Allow-Origin",
                    req.headers.get("Origin", "*"))
     res.add_header("Access-Control-Allow-Credentials", "true")
     return res
 
 
-@app.before_request()
-def before_each_request(req):
+@app.before_response()
+def before_each_response(req):
     req.api = OpenAPIRequest(req)
     result = request_validator.validate(req.api)
     if result.errors:
@@ -94,8 +94,8 @@ def before_each_request(req):
                            charset=None))
 
 
-@app.after_request()
-def after_each_request(req, res):
+@app.after_response()
+def after_each_response(req, res):
     """Check if ansewer is valid by OpenAPI."""
     result = response_validator.validate(
         req.api or OpenAPIRequest(req),     # when error in before_request

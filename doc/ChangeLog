@@ -9,11 +9,15 @@
     * Bad JSON request generate HTTP Bad Request response
       * All error handlers has error named argument
     * new examples
-      * large_file.py - own file_callback for uploading larga data
+      * large_file.py - own file_callback for uploading large data
       * websocket.py - websocket simple chat example
     * new TextResponse class
     * CachedInput for faster upload
     * Default Output data buffer is 65365 now
+    * rename before_request to before_response
+    * rename after_request to after_response
+    * new start_time and end_time Request properties
+    * new metrics example
 
 ==== 2.4.0 ====
     * new render_negotiation function

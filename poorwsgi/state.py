@@ -1,6 +1,11 @@
 """Constants like http status code and method types."""
 
+# pylint: disable=consider-using-f-string
+
 from operator import itemgetter
+from functools import wraps
+
+import warnings
 
 __author__ = "Ondrej Tuma (McBig) <mcbig@zeropage.cz>"
 __date__ = "14 Jul 2021"
@@ -107,3 +112,18 @@ methods = {'HEAD': METHOD_HEAD,
            'PATCH': METHOD_PATCH}
 
 sorted_methods = sorted(methods.items(), key=itemgetter(1))
+
+
+def deprecated(reason=""):
+    """Deprecated decorator."""
+    def wrapper(fun):
+        @wraps(fun)
+        def wrapped(*args, **kwargs):
+            warnings.warn(
+                "Call to deprecated {name} {reason}".format(
+                    name=fun.__name__, reason=reason),
+                category=DeprecationWarning,
+                stacklevel=2)
+            return fun(*args, **kwargs)
+        return wrapped
+    return wrapper

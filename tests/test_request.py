@@ -1,5 +1,6 @@
 """Test for request module fuctionality."""
 from io import BytesIO
+from time import time
 from typing import Dict, Any
 
 from pytest import fixture, raises
@@ -12,6 +13,7 @@ from poorwsgi.response import HTTPException
 # pylint: disable=missing-function-docstring
 # pylint: disable=no-self-use
 # pylint: disable=redefined-outer-name
+# pylint: disable=too-few-public-methods
 
 
 @fixture(scope='session')
@@ -20,6 +22,7 @@ def app():
 
 
 class TestEmpty:
+    """Test for Empty class"""
     def test_emptry_form(self):
         form = EmptyForm()
         assert form.getvalue("name") is None
@@ -27,10 +30,11 @@ class TestEmpty:
         assert form.getfirst("name") is None
         assert form.getfirst("age", "23", int) == 23
         assert tuple(form.getlist("values", ("3", "4"), int)) == (3, 4)
-        assert tuple(form.getlist("values")) == ()
+        assert not tuple(form.getlist("values"))
 
 
 class TestJSON:
+    """Test for JSON input class"""
     def test_json_dict(self):
         json = JsonDict(age=23, items=[1, 2], size="25")
         assert json.getvalue("no") is None
@@ -41,7 +45,7 @@ class TestJSON:
         assert json.getfirst("items") == "1"
         assert tuple(json.getlist("items", fce=str)) == ("1", "2")
         assert tuple(json.getlist("values", ("3", "4"), int)) == (3, 4)
-        assert tuple(json.getlist("values")) == ()
+        assert not tuple(json.getlist("values"))
 
     def test_json_list_empty(self):
         json = JsonList()
@@ -52,7 +56,7 @@ class TestJSON:
         assert json.getfirst("age", 23) == "23"
         assert json.getfirst("name", "2", int) == 2
         assert tuple(json.getlist("ages", ["1", "2"], int)) == (1, 2)
-        assert tuple(json.getlist("ages")) == ()
+        assert not tuple(json.getlist("ages"))
 
     def test_json_list(self):
         json = JsonList([1, 2])
@@ -62,7 +66,9 @@ class TestJSON:
 
 
 class TestArgs:
+    """Tests for Args class"""
     class Req:
+        """Request class mock"""
         app = None
         query = ''
         environ: Dict[str, Any] = {}
@@ -74,11 +80,13 @@ class TestArgs:
         assert args.getfirst("no") is None
         assert args.getfirst("age", "23", int) == 23
         assert tuple(args.getlist("values", ("3", "4"), int)) == (3, 4)
-        assert tuple(args.getlist("values")) == ()
+        assert not tuple(args.getlist("values"))
 
 
 class TestForm:
+    """Tests for FieldStorage"""
     class Req:
+        """Request class mock"""
         environ: Dict[str, Any] = {}
 
     def test_empty(self):
@@ -88,7 +96,7 @@ class TestForm:
         assert form.getfirst("no") is None
         assert form.getfirst("age", "23", int) == 23
         assert tuple(form.getlist("values", ("3", "4"), int)) == (3, 4)
-        assert tuple(form.getlist("values")) == ()
+        assert not tuple(form.getlist("values"))
 
 
 class TestParseJson:
@@ -144,7 +152,8 @@ class TestRequest:
              'PATH_INFO': '/path',
              'wsgi.url_scheme': 'http',
              'SERVER_NAME': 'example.org',
-             'SERVER_PORT': '80'
+             'SERVER_PORT': '80',
+             'REQUEST_STARTTIME': time()
         }
         req = Request(env, app)
         assert req.server_scheme == 'http'
@@ -158,6 +167,7 @@ class TestRequest:
              'wsgi.url_scheme': 'http',
              'SERVER_NAME': 'example.org',
              'SERVER_PORT': '80',
+             'REQUEST_STARTTIME': time(),
              'HTTP_HOST': 'example.net:8080'
         }
         req = Request(env, app)
@@ -172,6 +182,7 @@ class TestRequest:
              'wsgi.url_scheme': 'http',
              'SERVER_NAME': 'example.org',
              'SERVER_PORT': '80',
+             'REQUEST_STARTTIME': time(),
              'HTTP_HOST': 'example.net:8080',
              'HTTP_X_FORWARDED_PROTO': 'https',
              'HTTP_X_FORWARDED_HOST': 'example.com'
@@ -187,6 +198,7 @@ class TestRequest:
             'PATH_INFO': '/path',
             'SERVER_PROTOCOL': 'HTTP/1.0',
             'REQUEST_METHOD': 'POST',
+            'REQUEST_STARTTIME': time(),
             'HTTP_CONTENT_TYPE': 'multipart/form-data',
             'wsgi.input': BytesIO()
             }

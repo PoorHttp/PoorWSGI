@@ -13,12 +13,14 @@ from collections import OrderedDict
 from logging import getLogger
 from hashlib import md5, sha256
 from typing import List, Union, Callable, Optional, Type
+from time import time
 
 import re
 
 from poorwsgi.state import \
     METHOD_GET, METHOD_POST, METHOD_HEAD, methods, \
-    HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN
+    HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN, \
+    deprecated
 from poorwsgi.request import Request, SimpleRequest
 from poorwsgi.results import default_states, not_implemented, \
     internal_server_error, directory_index, debug_info
@@ -158,7 +160,7 @@ class Application():
 
         return "(?P<%s>%s)" % (groups[0], regex)
 
-    def __convertor(self, _filter):
+    def __converter(self, _filter):
         _filter = str(_filter).lower()
         _filter = ':re:' if _filter[:4] == ':re:' else _filter
         try:
@@ -200,17 +202,17 @@ class Application():
 
     @property
     def before(self):
-        """Tuple of table with before-request handlers.
+        """Tuple of table with before-response handlers.
 
-        See Application.before_request.
+        See Application.before_response.
         """
         return tuple(self.__before)
 
     @property
     def after(self):
-        """Tuple of table with after-request handlers.
+        """Tuple of table with after-response handlers.
 
-        See Application.after_request.
+        See Application.after_response.
         """
         return tuple(self.__after)
 
@@ -337,7 +339,7 @@ class Application():
         """Automatic parsing cookies from request headers.
 
         If it is True (default) and Cookie request header was set,
-        SimpleCookie object was paresed to Request property cookies.
+        SimpleCookie object was parsed to Request property cookies.
         """
         return self.__config['auto_cookies']
 
@@ -424,8 +426,8 @@ class Application():
     def file_callback(self):
         """File callback use as parameter when parsing request body.
 
-        Default is None. Values could be a class or factory which got's
-        filename from request body and have file compatibile interface.
+        Default is None. Values could be a class or factory which got
+        filename from request body and have file compatible interface.
         """
         return self.__config['file_callback']
 
@@ -437,7 +439,7 @@ class Application():
     def json_mime_types(self):
         """Copy of json mime type list.
 
-        Containt list of strings as json mime types, which is use for
+        Contains list of strings as json mime types, which is use for
         testing, when automatics Json object is create from request body.
         """
         return self.__config['json_mime_types']
@@ -531,20 +533,20 @@ class Application():
     def form_mime_types(self):
         """Copy of form mime type list.
 
-        Containt list of strings as form mime types, which is use for
+        Contains list of strings as form mime types, which is use for
         testing, when automatics Form object is create from request body.
         """
         return self.__config['form_mime_types']
 
-    def set_filter(self, name: str, regex: str, convertor: Callable = str):
-        r"""Create new filter or overwrite builtins.
+    def set_filter(self, name: str, regex: str, converter: Callable = str):
+        r"""Create new filter or overwrite built-ins.
 
         name : str
             Name of filter which is used in route or set_route method.
         regex : str
             Regular expression which used for filter.
-        convertor : function
-            Convertor function or class, which gets string in input. Default is
+        converter : function
+            Converter function or class, which gets string in input. Default is
             str function, which call __str__ method on input object.
 
         .. code:: python
@@ -552,85 +554,122 @@ class Application():
             app.set_filter('uint', r'\d+', int)
         """
         name = ':'+name if name[0] != ':' else name
-        self.__filters[name] = (regex, convertor)
+        self.__filters[name] = (regex, converter)
 
+    @deprecated("use before_response instead")
     def before_request(self):
-        """Append hendler to call before each request.
+        """Deprecated, use before_request instead."""
 
-        This is decorator for function to call before each request.
-
-        .. code:: python
-
-            @app.before_request()
-            def before_each_request(req):
-                print("Request coming")
-        """
         def wrapper(fun):
-            self.add_before_request(fun)
+            self.add_before_response(fun)
             return fun
         return wrapper
 
-    def add_before_request(self, fun: Callable):
-        """Append handler to call before each request.
+    def before_response(self):
+        """Append handler to call before each response.
 
-        Method adds function to list functions which is call before each
-        request.
+        This is decorator for function to call before each response.
 
         .. code:: python
 
-            def before_each_request(req):
-                print("Request coming")
+            @app.before_response()
+            def before_each_response(req):
+                print("Response coming")
+        """
+        def wrapper(fun):
+            self.add_before_response(fun)
+            return fun
+        return wrapper
 
-            app.add_before(before_each_request)
+    @deprecated("use add_before_response instead")
+    def add_before_request(self, fun: Callable):
+        """Deprecated, use add_before_response instead."""
+        self.add_before_response(fun)
+
+    def add_before_response(self, fun: Callable):
+        """Append handler to call before each response.
+
+        Method adds function to list functions which is call before each
+        response.
+
+        .. code:: python
+
+            def before_each_response(req):
+                print("Response coming")
+
+            app.add_before_response(before_each_response)
         """
         if self.__before.count(fun):
             raise ValueError("%s is in list yet" % str(fun))
         self.__before.append(fun)
 
+    @deprecated("use pop_before_response instead")
     def pop_before_request(self, fun: Callable):
-        """Remove handler added by add_before_request or before_request."""
+        """Deprecated, use pop_before_response instead."""
+        self.pop_before_response(fun)
+
+    def pop_before_response(self, fun: Callable):
+        """Remove handler added by add_before_response or before_response."""
         if not self.__before.count(fun):
             raise ValueError("%s is not in list" % str(fun))
         self.__before.remove(fun)
 
+    @deprecated("use after_response instead")
     def after_request(self):
-        """Append handler to call after each request.
+        """Deprecated, use after_response instead."""
+        def wrapper(fun):
+            self.add_after_response(fun)
+            return fun
+        return wrapper
 
-        This decorator append function to be called after each request,
+    def after_response(self):
+        """Append handler to call after each response.
+
+        This decorator append function to be called after each response,
         if you want to use it redefined all outputs.
 
         .. code:: python
 
-            @app.after_each_request()
-            def after_each_request(request, response):
-                print("Request out")
+            @app.after_response()
+            def after_each_response(request, response):
+                print("Response out")
                 return response
         """
         def wrapper(fun):
-            self.add_after_request(fun)
+            self.add_after_response(fun)
             return fun
         return wrapper
 
+    @deprecated("use add_after_response instead")
     def add_after_request(self, fun: Callable):
-        """Append handler to call after each request.
+        """Deprecated, use add_after_response instead."""
+        self.add_after_response(fun)
+
+    def add_after_response(self, fun: Callable):
+        """Append handler to call after each response.
 
         Method for direct append function to list functions which are called
-        after each request.
+        after each response.
 
         .. code:: python
 
-            def after_each_request(request, response):
-                print("Request out")
+            def after_each_response(request, response):
+                print("Response out")
                 return response
 
-            app.add_after_request(after_each_request)
+            app.add_after_response(after_each_response)
         """
         if self.__after.count(fun):
             raise ValueError("%s is in list yet" % str(fun))
         self.__after.append(fun)
 
+    @deprecated("use pop_after_response instead")
     def pop_after_request(self, fun: Callable):
-        """Remove handler added by add_before_request or before_request."""
+        """Deprecated, use pop_after_response instead."""
+        self.pop_after_response(fun)
+
+    def pop_after_response(self, fun: Callable):
+        """Remove handler added by add_after_response or after_response."""
         if not self.__before.count(fun):
             raise ValueError("%s is not in list" % str(fun))
         self.__after.remove(fun)
@@ -660,7 +699,7 @@ class Application():
                     method: int = METHOD_HEAD | METHOD_GET):
         """Set default handler.
 
-        Set fun default handler for http method called befor error_not_found.
+        Set fun default handler for http method called before error_not_found.
 
         .. code:: python
 
@@ -739,10 +778,10 @@ class Application():
         """
         if re_filter.search(uri):
             r_uri = re_filter.sub(self.__regex, uri) + '$'
-            convertors = tuple((g[0], self.__convertor(g[1]))
+            converters = tuple((g[0], self.__converter(g[1]))
                                for g in (m.groups()
                                          for m in re_filter.finditer(uri)))
-            self.set_regular_route(r_uri, fun, method, convertors, uri)
+            self.set_regular_route(r_uri, fun, method, converters, uri)
         else:
             if uri not in self.__handlers:
                 self.__handlers[uri] = {}
@@ -804,8 +843,8 @@ class Application():
 
     def set_regular_route(self, uri: str, fun: Callable,
                           method: int = METHOD_HEAD | METHOD_GET,
-                          convertors=(), rule: str = None):
-        r"""Set hanlder for uri defined by regular expression.
+                          converters=(), rule: str = None):
+        r"""Set handler for uri defined by regular expression.
 
         Another way to add fn as handler for uri defined by regular expression.
         See Application.regular_route documentation for details.
@@ -824,12 +863,12 @@ class Application():
             self.__rhandlers[r_uri] = {}
         for val in methods.values():
             if method & val:
-                self.__rhandlers[r_uri][val] = (fun, convertors, rule)
+                self.__rhandlers[r_uri][val] = (fun, converters, rule)
 
     def pop_regular_route(self, uri: str, method: int):
-        """Pop handler and convertors for uri and method from handlers table.
+        """Pop handler and converters for uri and method from handlers table.
 
-        For mor details see Application.pop_route.
+        For more details see Application.pop_route.
         """
         r_uri = re.compile(uri, re.U)
         handlers = self.__rhandlers.get(r_uri, {})
@@ -851,7 +890,7 @@ class Application():
 
             @app.http_state(state.HTTP_NOT_FOUND)
             def page_not_found(req):
-                return "Your request %s not found." % req.path, "text/plain"
+                return "Your page %s was not found." % req.path, "text/plain"
         """
         def wrapper(fun):
             self.set_http_state(status_code, fun, method)
@@ -912,7 +951,7 @@ class Application():
         return handlers.pop(method)
 
     def state_from_table(self, req: SimpleRequest, status_code: int, **kwargs):
-        """Internal method, which is called if another http state has accured.
+        """Internal method, which is called if another http state has occurred.
 
         If status code is in Application.shandlers (fill with http_state
         function), call this handler.
@@ -1010,15 +1049,15 @@ class Application():
         for ruri in self.__rhandlers:
             match = ruri.match(req.path)
             if match and req.method_number in self.__rhandlers[ruri]:
-                handler, convertors, rule = \
+                handler, converters, rule = \
                     self.__rhandlers[ruri][req.method_number]
                 req.uri_rule = rule or ruri.pattern
                 req.uri_handler = handler
-                if convertors:
-                    # create OrderedDict from match insead of dict for
-                    # convertors applying
+                if converters:
+                    # create OrderedDict from match inside of dict for
+                    # converters applying
                     req.path_args = OrderedDict(
-                        (g, c(v))for ((g, c), v) in zip(convertors,
+                        (g, c(v))for ((g, c), v) in zip(converters,
                                                         match.groups()))
                     self.handler_from_before(req)   # call before handlers now
                     return handler(req, *req.path_args.values())
@@ -1077,6 +1116,7 @@ class Application():
         and handlers from Application.after.
         """
         # pylint: disable=method-hidden,too-many-branches
+        env['REQUEST_STARTTIME'] = time()
         request = None
 
         try:

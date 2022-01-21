@@ -37,6 +37,7 @@ RE_AUTHORIZATION = re.compile(r'(\w+)[=] ?("[^"]+"|[\w-]+)')
 class SimpleRequest:
     """Request proxy properties implementation - for internal use only."""
     # pylint: disable=too-many-public-methods
+    # pylint: disable=too-many-instance-attributes
     def __init__(self, environ, app):
         self.__environ = environ
         self.__app = app
@@ -62,6 +63,9 @@ class SimpleRequest:
             self.__debug = var.lower() == 'on'
         else:
             self.__debug = app.debug
+
+        self.__start_time = environ['REQUEST_STARTTIME']
+        self.__end_time = time()
 
     @property
     def debug(self):
@@ -322,6 +326,16 @@ class SimpleRequest:
             'poor_DocumentRoot',
             self.__app.document_root)
 
+    @property
+    def start_time(self):
+        """Return timestamp when http request starts."""
+        return self.__start_time
+
+    @property
+    def end_time(self):
+        """Return timestamp when Request was created (end of __init__)."""
+        return self.__end_time
+
     def get_options(self):
         """Returns dictionary with application variables from environment.
 
@@ -376,7 +390,6 @@ class Request(SimpleRequest):
         WSGI server plus file callback for auto request body parsing.
         """
         # pylint: disable=too-many-branches, too-many-statements
-        self.__timestamp = time()
         super().__init__(environ, app)
 
         if environ.get('PATH_INFO') is None:
@@ -455,6 +468,10 @@ class Request(SimpleRequest):
         # variables for user use
         self.__user = None
         self.__api = None
+
+        # ugly hack
+        # pylint: disable=invalid-name
+        self._SimpleRequest__end_time = time()
     # enddef
 
     # -------------------------- Properties --------------------------- #
@@ -628,11 +645,6 @@ class Request(SimpleRequest):
         which is default. Otherwise cookies was empty tuple.
         """
         return self.__cookies
-
-    @property
-    def timestamp(self):
-        """Return timestamp of request."""
-        return self.__timestamp
 
     @property
     def data(self):  # pylint: disable=inconsistent-return-statements

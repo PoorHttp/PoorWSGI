@@ -482,38 +482,39 @@ Exception handlers are stored in OrderedDict, so exception type is checked in
 same order as you set error handlers. So you must define handler for base
 exception last.
 
-Before and After request
-~~~~~~~~~~~~~~~~~~~~~~~~
+Before and After response
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-PoorWSGI have too special list of handlers. First is iter and call before each
-request. You can add function with Application.before_request and
-Application.after_request decorators or Application.add_after_request and
-Application.add_after_request methods. And there are
-Application.pop_before_request and Application.pop_after_request methods
+PoorWSGI have too special list of handlers. First is iterate and call before
+each response. You can add function with Application.before_response and
+Application.after_response decorators or Application.add_before_response and
+Application.add_after_response methods. And there are
+Application.pop_before_response and Application.pop_after_response methods
 to remove handlers.
 
-Before request handlers are called in order how was added to list. They don't
+Before response handlers are called in order how was added to list. They don't
 return anything, resp. their return values are ignored. If they crash with
 error, internal_server_error was return and http state handler was called.
 
-After request handlers are called in order how was added to list. If they
+After response handlers are called in order how was added to list. If they
 crash with error, internal_server_error was return and http state handler is
-called, but all code from before request list and from route handler was called.
+called, but all code from before response list and from route handler was
+called.
 
-After request handler is call even if error handler, internal_server_error for
+After response handler is call even if error handler, internal_server_error for
 example was called.
 
-Before request handler must have request argument, but after request handler
+Before response handler must have request argument, but after response handler
 must have request and response argument.
 
 .. code:: python
 
-    @app.before_request()
-    def before_each_request(request):
+    @app.before_response()
+    def before_each_response(request):
         ...
 
-    @app.after_request()
-    def after_each_request(request, response):
+    @app.after_response()
+    def after_each_response(request, response):
         ...
 
 
@@ -710,9 +711,9 @@ property.
     # disable automatic request body parsing - IMPORTANT !
     app.auto_form = False
 
-    @app.before_request()
+    @app.before_response()
     def auto_form(req):
-        """ Own implementation of req.form paring before any POST request
+        """ Own implementation of req.form paring before any POST response
             with own file_callback.
         """
         if req.method_number == state.METHOD_POST:
@@ -795,7 +796,7 @@ variable to ``1``. If so, use it in your own parsing.
     app.auto_args = False
     app.strict_parsing = 1
 
-    @app.before_request()
+    @app.before_response()
     def auto_form_and_args(req):
         """ This is own implementation of req.form and req.args paring """
         try:
@@ -841,7 +842,7 @@ And you can get these variables with get_options method:
 
     config = None
 
-    @app.before_request()
+    @app.before_response()
     def load_options(req):
         global config
         if config is None:
@@ -1179,9 +1180,10 @@ Example code of usage:
         response_validator = ResponseValidator(spec)
 
 
-    @app.before_request()
-    def before_each_request(req):
-        result = request_validator.validate(OpenAPIRequest(req))
+    @app.before_response()
+    def before_each_response(req):
+        req.api = OpenAPIRequest(req)
+        result = request_validator.validate(req.api)
         if result.errors:
             errors = []
             for error in result.errors:
@@ -1195,11 +1197,11 @@ Example code of usage:
                            content_type="application/json"))
 
 
-    @app.after_request()
-    def after_each_request(req, res):
+    @app.after_response()
+    def after_each_response(req, res):
         """Check answer by OpenAPI specification."""
         result = response_validator.validate(
-            OpenAPIRequest(req),
+            req.api or OpenAPIRequest(req),
             OpenAPIResponse(res))
         for error in result.errors:
             if isinstance(error, InvalidOperation):

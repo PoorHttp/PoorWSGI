@@ -161,7 +161,7 @@ class PoorSession:
     def __init__(self, secret_key: Union[Request, str, bytes],
                  expires: int = 0, max_age: int = None,
                  domain: str = '', path: str = '/', secure: bool = False,
-                 same_site: bool = False, compress=bz2, SID: str = 'SESSID'):
+                 same_site: bool = False, compress=bz2, sid: str = 'SESSID'):
         """Constructor.
 
         Arguments:
@@ -184,7 +184,7 @@ class PoorSession:
                 Could be ``bz2``, ``gzip.zlib``, or any other, which have
                 standard compress and decompress methods. Or it could be
                 ``None`` to not use any compressing method.
-            SID : str
+            sid : str
                 Cookie key name.
 
         .. code:: Python
@@ -197,7 +197,7 @@ class PoorSession:
                 ̈́'secure': True,
                 'same_site': True,
                 'compress': gzip,
-                'SID': 'MYSID'
+                'sid': 'MYSID'
             }
 
             session = PostSession(app.secret_key, **config)
@@ -218,7 +218,7 @@ class PoorSession:
         else:
             self.__secret_key = secret_key
 
-        self.__SID = SID  # pylint: disable=invalid-name
+        self.__sid = sid
         self.__expires = expires
         self.__max_age = max_age
         self.__domain = domain
@@ -230,16 +230,16 @@ class PoorSession:
         # data is session dictionary to store user data in cookie
         self.data: Dict[Any, Any] = {}
         self.cookie: SimpleCookie = SimpleCookie()
-        self.cookie[SID] = ''
+        self.cookie[sid] = ''
 
         if not isinstance(secret_key, (str, bytes)):  # backwards compatibility
             self.load(secret_key.cookies)
 
     def load(self, cookies: Union[SimpleCookie, tuple]):
         """Load session from request's cookie"""
-        if not isinstance(cookies, SimpleCookie) or self.__SID not in cookies:
+        if not isinstance(cookies, SimpleCookie) or self.__sid not in cookies:
             return
-        raw = cookies[self.__SID].value
+        raw = cookies[self.__sid].value
 
         if raw:
             try:
@@ -261,21 +261,21 @@ class PoorSession:
         raw = b64encode(self.__cps.compress(hidden(dumps(self.data),
                                                    self.__secret_key), 9))
         raw = raw if isinstance(raw, str) else raw.decode()
-        self.cookie[self.__SID] = raw
-        self.cookie[self.__SID]['HttpOnly'] = True
+        self.cookie[self.__sid] = raw
+        self.cookie[self.__sid]['HttpOnly'] = True
 
         if self.__domain:
-            self.cookie[self.__SID]['Domain'] = self.__domain
+            self.cookie[self.__sid]['Domain'] = self.__domain
         if self.__path:
-            self.cookie[self.__SID]['path'] = self.__path
+            self.cookie[self.__sid]['path'] = self.__path
         if self.__secure:
-            self.cookie[self.__SID]['Secure'] = True
+            self.cookie[self.__sid]['Secure'] = True
         if self.__same_site:
-            self.cookie[self.__SID]['SameSite'] = self.__same_site
+            self.cookie[self.__sid]['SameSite'] = self.__same_site
         if self.__expires:
-            self.cookie[self.__SID]['expires'] = self.__expires
+            self.cookie[self.__sid]['expires'] = self.__expires
         if self.__max_age is not None:
-            self.cookie[self.__SID]['Max-Age'] = self.__max_age
+            self.cookie[self.__sid]['Max-Age'] = self.__max_age
 
         return raw
 
@@ -285,12 +285,12 @@ class PoorSession:
         Be sure, that data can't be changed:
         https://stackoverflow.com/a/5285982/8379994
         """
-        self.cookie[self.__SID]['expires'] = -1
+        self.cookie[self.__sid]['expires'] = -1
         if self.__max_age is not None:
-            self.cookie[self.__SID]['Max-Age'] = -1
-        self.cookie[self.__SID]['HttpOnly'] = True
+            self.cookie[self.__sid]['Max-Age'] = -1
+        self.cookie[self.__sid]['HttpOnly'] = True
         if self.__secure:
-            self.cookie[self.__SID]['Secure'] = True
+            self.cookie[self.__sid]['Secure'] = True
 
     def header(self, headers: Union[Headers, Response] = None):
         """Generate cookie headers and append it to headers if it set.

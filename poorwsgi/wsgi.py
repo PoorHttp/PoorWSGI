@@ -110,7 +110,7 @@ class Application():
             'auto_form': True,
             'auto_json': True,
             'auto_data': True,
-            'cached_input': 65365,
+            'cached_size': 65365,
             'data_size': 65365,
             'keep_blank_values': 0,
             'strict_parsing': 0,
@@ -310,16 +310,16 @@ class Application():
         self.__config['auto_data'] = bool(value)
 
     @property
-    def cached_input(self):
-        """Enabling cached_input for faster POST request.
+    def cached_size(self):
+        """Enabling cached_size for faster POST request.
 
         Default value is 65365.
         """
-        return self.__config['cached_input']
+        return self.__config['cached_size']
 
-    @cached_input.setter
-    def cached_input(self, value: int):
-        self.__config['cached_input'] = value
+    @cached_size.setter
+    def cached_size(self, value: int):
+        self.__config['cached_size'] = value
 
     @property
     def data_size(self):

@@ -430,7 +430,8 @@ class Request(SimpleRequest):
             self.__file = BytesIO(self.__file.read(self.__content_length))
             self.__file.seek(0)
 
-        self.__cached_input = app.cached_input
+        self.__cached_size = app.cached_size
+        self.__cached_input = None
 
         # path args are set via wsgi.handler_from_table
         self.__path_args = None
@@ -664,10 +665,13 @@ class Request(SimpleRequest):
     @property
     def input(self):
         """Return input file, for internal use in FieldStorage"""
-        if not self.__cached_input or isinstance(self.__file, BytesIO):
+        if self.__cached_input:
+            return self.__cached_input
+        if not self.__cached_size or isinstance(self.__file, BytesIO):
             return self.__file
-        return CachedInput(self.__file, self.content_length,
-                           self.__cached_input)
+        self.__cached_input = CachedInput(self.__file, self.content_length,
+                                          self.__cached_size)
+        return self.__cached_input
 
     @property
     def user(self):

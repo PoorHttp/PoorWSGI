@@ -27,6 +27,7 @@ def start_server(request, example):
                          "--http-socket", "localhost:8080", "--wsgi-file",
                          example])
     else:
+        # pylint: disable=consider-using-with
         process = Popen([executable, example])
 
     assert process is not None

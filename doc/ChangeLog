@@ -18,6 +18,9 @@
     * rename after_request to after_response
     * new start_time and end_time Request properties
     * new metrics example
+    * input chunked encoding support
+    * parse_json_request need bytes on input
+
 
 ==== 2.4.0 ====
     * new render_negotiation function

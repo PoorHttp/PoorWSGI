@@ -1,7 +1,6 @@
 """Base integrity test"""
 from os import environ
 from os.path import dirname, join, pardir
-from time import time
 
 from requests import Session
 from pytest import fixture
@@ -39,16 +38,6 @@ def session(url):
     return session
 
 
-class TestRequest():
-    def test_timestamp(self, url):
-        now = time()
-        res = check_url(url+"/timestamp")
-        timestamp = res.json()["timestamp"]
-        assert isinstance(timestamp, float)
-        # uwsgi have more then 0.01, internal Python's server about 0.001
-        assert abs(now - timestamp) < 0.1
-
-
 class TestSimple():
     def test_root(self, url):
         check_url(url)
@@ -68,28 +57,16 @@ class TestSimple():
     def test_debug_info(self, url):
         check_url(url+"/debug-info")
 
-    def test_headers_empty(self, url):
-        res = check_url(url+"/test/headers")
-        assert "X-Powered-By" in res.headers
-        assert res.headers["Content-Type"] == "application/json"
-        data = res.json()
-        assert data["XMLHttpRequest"] is False
-        assert data["Accept-MimeType"]["html"] is False
-        assert data["Accept-MimeType"]["xhtml"] is False
-        assert data["Accept-MimeType"]["json"] is False
 
-    def test_headers_ajax(self, url):
-        res = check_url(
-            url+"/test/headers",
-            headers={'X-Requested-With': 'XMLHttpRequest',
-                     'Accept': "text/html,text/xhtml,application/json"})
-        assert "X-Powered-By" in res.headers
-        assert res.headers["Content-Type"] == "application/json"
-        data = res.json()
-        assert data["XMLHttpRequest"] is True
-        assert data["Accept-MimeType"]["html"] is True
-        assert data["Accept-MimeType"]["xhtml"] is True
-        assert data["Accept-MimeType"]["json"] is True
+class TestRequest:
+    """Test for requests."""
+    # pylint: disable=too-few-public-methods
+    def test_stream_request(self, url):
+        def generator():
+            for i in range(5):
+                yield b'%i' % i
+
+        check_url(url+"/yield", method="POST", data=generator())
 
 
 class TestResponses():
@@ -111,43 +88,6 @@ class TestResponses():
         assert 'StorageFactory' in res.text
         assert '@app.route' in res.text
         assert '@app.before_response' in res.text
-
-    def test_json_response(self, url):
-        res = check_url(url+"/test/json", status_code=418)
-        assert res.json() == {"message": "I\'m teapot :-)",
-                              "numbers": [0, 1, 2, 3, 4],
-                              "request": {}}
-
-    def test_json_generator_response(self, url):
-        res = check_url(url+"/test/json-generator", status_code=418)
-        assert res.json() == {"message": "I\'m teapot :-)",
-                              "numbers": [0, 1, 2, 3, 4],
-                              "request": {}}
-
-    def test_json_request(self, url):
-        data = [{"x": 124.2, "y": 100.1}]
-        res = check_url(url+"/test/json", status_code=418,
-                        method="POST", json=data)
-        assert res.json() == {"message": "I\'m teapot :-)",
-                              "numbers": [0, 1, 2, 3, 4],
-                              "request": data}
-
-    def test_json_unicode(self, url):
-        data = "čeština"
-        res = check_url(url+"/test/json", status_code=418,
-                        method="POST", json=data)
-        assert res.json()["request"] == data
-
-    def test_json_unicode_struct(self, url):
-        data = {"lang": "čeština"}
-        res = check_url(url+"/test/json", status_code=418,
-                        method="POST", json=data)
-        assert res.json()["request"] == data
-
-    def test_bad_json_response(self, url):
-        check_url(url+"/test/json", status_code=400,
-                  method="POST", data=b"abraka crash",
-                  headers={'Content-Type': 'application/json'})
 
     def test_empty_response(self, url):
         check_url("{url}/test/empty".format(url=url))

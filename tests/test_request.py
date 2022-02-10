@@ -102,25 +102,25 @@ class TestForm:
 class TestParseJson:
     """Tests for parsing JSON requests."""
     def test_str(self):
-        assert isinstance(parse_json_request(BytesIO(b"{}")), JsonDict)
+        assert isinstance(parse_json_request(b"{}"), JsonDict)
 
     def test_list(self):
-        assert isinstance(parse_json_request(BytesIO(b"[]")), JsonList)
+        assert isinstance(parse_json_request(b"[]"), JsonList)
 
     def test_text(self):
-        assert isinstance(parse_json_request(BytesIO(b'"text"')), str)
+        assert isinstance(parse_json_request(b'"text"'), str)
 
     def test_int(self):
-        assert isinstance(parse_json_request(BytesIO(b"23")), int)
+        assert isinstance(parse_json_request(b"23"), int)
 
     def test_float(self):
-        assert isinstance(parse_json_request(BytesIO(b"3.14")), float)
+        assert isinstance(parse_json_request(b"3.14"), float)
 
     def test_bool(self):
-        assert isinstance(parse_json_request(BytesIO(b"true")), bool)
+        assert isinstance(parse_json_request(b"true"), bool)
 
     def test_null(self):
-        assert parse_json_request(BytesIO(b"null")) is None
+        assert parse_json_request(b"null") is None
 
     def test_error(self):
         with raises(HTTPException) as err:
@@ -129,19 +129,19 @@ class TestParseJson:
         assert 'error' in err.value.args[1]
 
     def test_unicode(self):
-        rval = parse_json_request(BytesIO(b'"\\u010de\\u0161tina"'))
+        rval = parse_json_request(b'"\\u010de\\u0161tina"')
         assert rval == "čeština"
 
     def test_utf8(self):
-        rval = parse_json_request(BytesIO(b'"\xc4\x8de\xc5\xa1tina"'))
+        rval = parse_json_request(b'"\xc4\x8de\xc5\xa1tina"')
         assert rval == "čeština"
 
     def test_unicode_struct(self):
-        rval = parse_json_request(BytesIO(b'{"lang":"\\u010de\\u0161tina"}'))
+        rval = parse_json_request(b'{"lang":"\\u010de\\u0161tina"}')
         assert rval == {"lang": "čeština"}
 
     def test_utf_struct(self):
-        rval = parse_json_request(BytesIO(b'{"lang":"\xc4\x8de\xc5\xa1tina"}'))
+        rval = parse_json_request(b'{"lang":"\xc4\x8de\xc5\xa1tina"}')
         assert rval == {"lang": "čeština"}
 
 
@@ -193,7 +193,7 @@ class TestRequest:
         assert req.host_port == 8080
         assert req.construct_url('/x') == 'https://example.com/x'
 
-    def test_emoty_form(self, app):
+    def test_empty_form(self, app):
         env = {
             'PATH_INFO': '/path',
             'SERVER_PROTOCOL': 'HTTP/1.0',
@@ -204,6 +204,6 @@ class TestRequest:
             }
         req = Request(env, app)
         assert app.auto_form is True
-        assert req.is_body_request is True
+        assert req.is_body_request is False
         assert req.mime_type in app.form_mime_types
         assert isinstance(req.form, EmptyForm)

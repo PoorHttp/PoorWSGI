@@ -6,7 +6,6 @@ licence as PoorWSGI. So enjoy it ;)
 
 from wsgiref.simple_server import make_server
 from base64 import decodebytes, encodebytes
-from json import dumps
 from collections import OrderedDict
 from io import FileIO as file, BytesIO
 from sys import path as python_path
@@ -19,11 +18,19 @@ EXAMPLES_PATH = os.path.dirname(__file__)
 python_path.insert(0, os.path.abspath(
     os.path.join(EXAMPLES_PATH, os.path.pardir)))
 
+# pylint: disable=import-error, wrong-import-position
 from poorwsgi import Application, state, request, redirect  # noqa
 from poorwsgi.session import PoorSession, SessionError  # noqa
 from poorwsgi.response import Response, RedirectResponse, \
-    FileObjResponse, FileResponse, \
-    JSONResponse, JSONGeneratorResponse, EmptyResponse, HTTPException # noqa
+    FileObjResponse, FileResponse, GeneratorResponse, \
+    EmptyResponse, HTTPException # noqa
+
+try:
+    import uwsgi  # type: ignore
+
+except ModuleNotFoundError:
+    uwsgi = None  # pylint: disable=invalid-name
+
 
 logger = log.getLogger()
 logger.setLevel("DEBUG")
@@ -76,7 +83,7 @@ def auto_form(req):
     """ This is own implementation of req.form paring before any POST response
         with own file_callback.
     """
-    if req.is_body_request:
+    if req.is_body_request or req.server_protocol == "HTTP/0.9":
         factory = StorageFactory('./upload')
         try:
             req.form = request.FieldStorage(
@@ -483,39 +490,6 @@ def value_error_handler(req, error):
     raise HTTPException(state.HTTP_BAD_REQUEST)
 
 
-@app.route('/test/headers')
-def test_headers(req):
-    return dumps(
-        {"Content-Type": (req.mime_type, req.charset),
-         "Content-Length": req.content_length,
-         "Host": req.hostname,
-         "Accept": req.accept,
-         "Accept-Charset": req.accept_charset,
-         "Accept-Encoding": req.accept_encoding,
-         "Accept-Language": req.accept_language,
-         "Accept-MimeType": {
-            "html": req.accept_html,
-            "xhtml": req.accept_xhtml,
-            "json": req.accept_json
-         },
-         "XMLHttpRequest": req.is_xhr}
-    ), "application/json"
-
-
-@app.route('/test/json', method=state.METHOD_GET_POST)
-def test_json(req):
-    return JSONResponse(status_code=418, message="I'm teapot :-)",
-                        numbers=list(range(5)),
-                        request=req.json)
-
-
-@app.route('/test/json-generator', method=state.METHOD_GET)
-def test_json_generator(req):
-    return JSONGeneratorResponse(status_code=418, message="I'm teapot :-)",
-                                 numbers=range(5),
-                                 request=req.json)
-
-
 @app.route('/test/empty')
 def test_empty(req):
     res = EmptyResponse(state.HTTP_OK)
@@ -525,8 +499,35 @@ def test_empty(req):
 
 @app.route('/yield')
 def yielded(req):
+    """Simple response generator by yield."""
     for i in range(10):
         yield b"line %d\n" % i
+
+
+@app.route('/chunked')
+def chunked(req):
+    """Generator response with Response class."""
+    def gen():
+        for i in range(10):
+            yield b"line %d\n" % i
+    return GeneratorResponse(gen(), headers={'Transfer-Encoding': 'chanked'})
+
+
+@app.route('/yield', state.METHOD_POST)
+def input_stream(req):
+    """Stream request handler"""
+    i = 0
+
+    # chunk must be read with extra method, uwsgi has own
+    chunk = uwsgi.chunked_read() if uwsgi else req.read_chunk()
+    while chunk:
+        log.info("chunk: %s", chunk)
+        if chunk != b'%d' % i:
+            raise HTTPException(state.HTTP_BAD_REQUEST)
+
+        chunk = uwsgi.chunked_read() if uwsgi else req.read_chunk()
+        i += 1
+    return EmptyResponse(state.HTTP_OK)
 
 
 @app.route('/simple')
@@ -548,11 +549,6 @@ def simple_py(req):
 def log_response(req, res):
     log.info("After response")
     return res
-
-
-@app.route('/timestamp')
-def get_timestamp(req):
-    return JSONResponse(timestamp=req.start_time)
 
 
 @app.route('/internal-server-error')

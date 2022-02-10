@@ -20,8 +20,7 @@ from logging import getLogger
 from urllib.parse import parse_qs
 from http.cookies import SimpleCookie
 
-from poorwsgi.state import methods, \
-    METHOD_POST, METHOD_PUT, METHOD_PATCH, HTTP_BAD_REQUEST
+from poorwsgi.state import methods, HTTP_BAD_REQUEST
 from poorwsgi.headers import Headers, parse_negotiation
 from poorwsgi.response import HTTPException
 
@@ -444,12 +443,14 @@ class Request(SimpleRequest):
             self.__args = EmptyForm()
 
         # test auto json parsing
-        if app.auto_json and self.is_body_request and self.has_body \
+        if app.auto_json and \
+                (self.is_body_request or self.server_protocol == "HTTP/0.9") \
                 and self.__mime_type in app.json_mime_types:
-            self.__json = parse_json_request(self, self.__charset)
+            self.__json = parse_json_request(self.read(), self.__charset)
             self.__form = EmptyForm()
         # test auto form parsing
-        elif app.auto_form and self.is_body_request and self.has_body \
+        elif app.auto_form and \
+                (self.is_body_request or self.server_protocol == "HTTP/0.9") \
                 and self.__mime_type in app.form_mime_types:
             self.__form = FieldStorage(
                 self, keep_blank_values=app.keep_blank_values,
@@ -568,16 +569,13 @@ class Request(SimpleRequest):
 
     @property
     def is_body_request(self):
-        """True if request is body request type, so it is PATCH, POST or PUT.
-        """
-        return bool(self.method_number
-                    & (METHOD_PATCH | METHOD_POST | METHOD_PUT))
+        """True if has set Content-Length more than zero."""
+        return self.__content_length > 0
 
     @property
-    def has_body(self):
-        """True if request can have body."""
-        return (self.__content_length > 0
-                or self.server_protocol == "HTTP/0.9")
+    def is_chunked_request(self):
+        """True if has set Transfer-Encoding is chunked."""
+        return self.__headers.get('Transfer-Encoding') == 'chunked'
 
     @property
     def path_args(self):
@@ -701,13 +699,29 @@ class Request(SimpleRequest):
         If length is not set, or if is lower then zero, Content-Length was
         be use.
         """
-        if not self.has_body:
+        if not self.is_body_request and self.server_protocol != "HTTP/0.9":
             log.error("No Content-Length found, read was failed!")
             return b''
         if -1 < length < self.__content_length:
             self.read = self.__read
             return self.read(length)
         return self.__file.read(self.__content_length)
+
+    def read_chunk(self):
+        """Read chunk when Transfer-Encoding is `chunked`.
+
+        Method read line with chunk size first, then read chunk and return it,
+        or raise ValueError when chunk size is in bad format.
+
+        Be sure that wsgi server allow readline from wsgi.input. For examples
+        uWSGI has extra API
+        https://uwsgi-docs.readthedocs.io/en/latest/Chunked.html
+        """
+        size = int(self.__file.readline(), base=16)
+        try:
+            return self.__file.read(size)
+        finally:
+            self.__file.readline()  # skip new line after chunk
 
     def __del__(self):
         log.debug("Request: Hasta la vista, baby.")
@@ -878,7 +892,7 @@ class JsonList(list):
 
 
 # pylint: disable=inconsistent-return-statements
-def parse_json_request(req, charset: str = "utf-8"):
+def parse_json_request(raw: bytes, charset: str = "utf-8"):
     """Try to parse request data.
 
     Returned type could be:
@@ -891,7 +905,7 @@ def parse_json_request(req, charset: str = "utf-8"):
     """
     # pylint: disable=inconsistent-return-statements
     try:
-        data = json_loads(req.read().decode(charset))
+        data = json_loads(raw.decode(charset))
         if isinstance(data, dict):
             return JsonDict(data.items())
         if isinstance(data, list):

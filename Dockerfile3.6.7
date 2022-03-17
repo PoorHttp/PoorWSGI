@@ -1,0 +1,35 @@
+# vim: ft=dockerfile
+FROM python:3.6.7-stretch
+# docker build -t poorwsgi3.6.7 -f Dockerfile3.6.7 .
+# docker run -ti --rm -w "$PWD" -v "$PWD:$PWD" poorwsgi3.6.7 bash
+
+
+# instalace behovych a cast testovych zavislosti
+RUN \
+    apt-get update && \
+    apt-get install --yes --no-install-recommends \
+        curl \
+        vim \
+        sudo
+
+ARG USER
+
+RUN echo "#${USER} ALL=(ALL) ALL" > /etc/sudoers.d/docker-owner
+
+
+ARG PKG_DIR
+
+RUN pip3 install \
+        simplejson \
+        pytest \
+        pytest-pylint \
+        pytest-mypy \
+        pytest-doctestplus \
+        mock-import \
+        openapi_core \
+        requests \
+        uwsgi
+
+EXPOSE 8000
+
+ENV LC_ALL C.UTF-8

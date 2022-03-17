@@ -1,0 +1,39 @@
+# vim: ft=dockerfile
+FROM buildpack-deps:buster
+# docker build -t poorwsgi-buster -f Dockerfile-buster .
+# docker run -ti --rm -w "$PWD" -v "$PWD:$PWD" poorwsgi-buster bash
+
+
+# instalace behovych a cast testovych zavislosti
+RUN \
+    apt-get update && \
+    apt-get install --yes --no-install-recommends \
+        python3-dev \
+        python3-pip \
+        python3-setuptools \
+        python3-wheel \
+        curl \
+        vim \
+        sudo
+
+ARG USER
+
+RUN echo "#${USER} ALL=(ALL) ALL" > /etc/sudoers.d/docker-owner
+
+
+ARG PKG_DIR
+
+RUN pip3 install \
+        simplejson \
+        pytest \
+        pytest-pylint \
+        pytest-mypy \
+        pytest-doctestplus \
+        mock-import \
+        openapi_core \
+        requests \
+        uwsgi
+
+EXPOSE 8000
+
+ENV LC_ALL C.UTF-8

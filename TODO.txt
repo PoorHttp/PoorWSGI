@@ -1,0 +1,97 @@
+app by mohl mít i:
+    cs - cache server, případně jiné "předdefinované / rezervované" property
+
+dekorátor změní fce v debug-info, asi by bylo dobré definovat pattern pro
+dekorátor, nebo tak něco.
+
+http.HTTPStatus enum místo definovaného state, tzn bud to, nebo číslo ;)
+
+PoorSession:
+    * kontrolovat zápis do data po write / header metodě -> logovat varování po
+      tom co byl proveden přístup na data (asi přes property)
+    * SameSite attribute nejde nasadit, ale asi by to bylo dobré (zjistit k
+      čemu je a jak ho nastavit)
+
+OpenAPI
+    * Application property pro request_validator a response_validator
+    * configurační propetry pro enable/disable validace pokud jsou validatory
+      nastaveny
+    * implicitní handlery pro obsluhu chyb (Validator Exception:
+      InvalidOperation, InvalidServer, InvalidArgument ...)
+    * možnost nastavit (přetížit) implicitní handlery stejně jako http status
+      handlery
+
+    * důležité je, aby se nejprve kontrolovaly interní checky (přítomnost
+      hlaviček atd.. a pak teprve celá struktura. Proto je nutné aby se
+      nejrpve provedl dekorátor validující přihlášení, a pak teprve validní
+      dotaz (mime-type, struktura vstupních dat, atd...) !!
+
+ErrorHandlery na exceptions
+ - Internal Server Error by mohl dostat i error - jako chybu pokud to jde !
+
+Testy k FileResponse
+
+check s verzi (Changelog odpovídá poorwsgi/state.py)
+build stránek při tagování
+
+
+Forwarded http header definovaným dle RFC 7239
+    - https://tools.ietf.org/html/rfc7239#section-5.1
+    - chování dle RFC, tuším že je to primárně hlavička Forward a pak až
+      X-Forwarded...
+
+HOW-TO: vytvorit check_login pokud ma metoda parametry :) + test ??
+
+Zajimave v Request:
+        values -> forms + args ....
+
+files[source]
+File uploads parsed from multipart/form-data encoded POST or PUT request body. The values are instances of FileUpload.
+
+parse_date(ims)[source]
+Parse rfc1123, rfc850 and asctime timestamps and return UTC epoch.
+
+parse_auth(header)[source]
+Parse rfc2617 HTTP authentication header string (basic) and return (user,pass) tuple or None
+
+get(path=None, method='GET', **options)[source]
+Equals route().
+
+post(path=None, method='POST', **options)[source]
+Equals route() with a POST method parameter.
+
+put(path=None, method='PUT', **options)[source]
+Equals route() with a PUT method parameter.
+
+delete(path=None, method='DELETE', **options)[source]
+Equals route() with a DELETE method parameter.
+
+ROUTING STATIC FILES
+Static files such as images or CSS files are not served automatically. You have to add a route and a callback to control which files get served and where to find them:
+
+from bottle import static_file
+@route('/static/<filename>')
+def server_static(filename):
+    return static_file(filename, root='/path/to/your/static/files')
+The static_file() function is a helper to serve files in a safe and convenient way (see Static Files). This example is limited to files directly within the /path/to/your/static/files directory because the <filename> wildcard won’t match a path with a slash in it. To serve files in subdirectories, change the wildcard to use the path filter:
+
+@route('/static/<filepath:path>')
+def server_static(filepath):
+    return static_file(filepath, root='/path/to/your/static/files')
+
+AUTO RELOADING
+During development, you have to restart the server a lot to test your recent changes. The auto reloader can do this for you. Every time you edit a module file, the reloader restarts the server process and loads the newest version of your code.
+
+from bottle import run
+run(reloader=True)
+
+http://bottlepy.org/docs/dev/tutorial.html#auto-reloading
+
+
+yield, nebo vraceni generatora z obsluzneho handleru...
+
+handler(req):
+    return content, status_code
+
+K zamyšlení:
+    methods jako string / přidání nové metody (co webdav)

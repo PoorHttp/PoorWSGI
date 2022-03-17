@@ -20,6 +20,7 @@
     * new metrics example
     * input chunked encoding support
     * parse_json_request need bytes on input
+    * add stalled file download timeout
 
 
 ==== 2.4.0 ====

@@ -112,6 +112,7 @@ class Application():
             'auto_data': True,
             'cached_size': 65365,
             'data_size': 65365,
+            'fread_timeout': 10,
             'keep_blank_values': 0,
             'strict_parsing': 0,
             'file_callback': None,
@@ -434,6 +435,16 @@ class Application():
     @file_callback.setter
     def file_callback(self, value: Callable):
         self.__config['file_callback'] = value
+
+    @property
+    def fread_timeout(self):
+        """Gets a timeout (in seconds) used for file receiving"""
+        return self.__config["fread_timeout"]
+
+    @fread_timeout.setter
+    def fread_timeout(self, timeout: float):
+        """Sets a timeout (in seconds) used for file receiving"""
+        self.__config["fread_timeout"] = timeout
 
     @property
     def json_mime_types(self):

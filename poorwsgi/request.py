@@ -11,7 +11,7 @@ from json import loads as json_loads
 from io import BytesIO
 from time import time
 from tempfile import TemporaryFile
-from typing import Union, Callable, Any, Iterable, List, Tuple
+from typing import Union, Callable, Any, Iterable, List, Tuple, Optional
 
 import os
 import re
@@ -431,6 +431,7 @@ class Request(SimpleRequest):
 
         self.__cached_size = app.cached_size
         self.__cached_input = None
+        self.__read_timeout = app.read_timeout
 
         # path args are set via wsgi.handler_from_table
         self.__path_args = None
@@ -667,8 +668,10 @@ class Request(SimpleRequest):
             return self.__cached_input
         if not self.__cached_size or isinstance(self.__file, BytesIO):
             return self.__file
-        self.__cached_input = CachedInput(self.__file, self.content_length,
-                                          self.__cached_size)
+        self.__cached_input = CachedInput(self.__file,
+                                          self.content_length,
+                                          self.__cached_size,
+                                          self.__read_timeout)
         return self.__cached_input
 
     @property
@@ -917,11 +920,18 @@ def parse_json_request(raw: bytes, charset: str = "utf-8"):
 
 
 class CachedInput:
-    """Wrapper around wsgi.input file, which reads data block by block."""
-    def __init__(self, file, size, block_size=32768):
+    """
+    Wrapper around wsgi.input file, which reads data block by block.
+
+    timeout : float
+        how long to wait for new bytes in seconds
+    """
+    def __init__(self, file, size, block_size=32768,
+                 timeout: Optional[float] = 10.):
         self.__file = file
         self.__buffer = b''
         self.__todo = size
+        self.__timeout = timeout
         self.block_size = block_size
 
     def read(self, size=-1):
@@ -959,6 +969,9 @@ class CachedInput:
 
         line = b''
         l_size = 0
+        if self.__timeout is not None:
+            times_out_at = time() + self.__timeout
+            seen_data = False
 
         while l_size < size:
             max_size = size-l_size
@@ -967,6 +980,15 @@ class CachedInput:
                 line += self.__buffer[:pos + 2]
                 self.__buffer = self.__buffer[pos + 2:]
                 return line
+
+            if self.__timeout is not None:
+                if self.__buffer:
+                    seen_data = True
+                elif seen_data:
+                    seen_data = False
+                    times_out_at = time() + self.__timeout
+                elif time() > times_out_at:
+                    raise TimeoutError("Timed out while receiving data")
 
             line += self.__buffer[:max_size]
             self.__buffer = self.__buffer[max_size:]

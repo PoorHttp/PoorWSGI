@@ -8,8 +8,8 @@ from functools import wraps
 import warnings
 
 __author__ = "Ondrej Tuma (McBig) <mcbig@zeropage.cz>"
-__date__ = "14 Jul 2021"
-__version__ = "2.5.0.dev0"       # https://www.python.org/dev/peps/pep-0386/
+__date__ = "22 Mar 2022"
+__version__ = "2.5.0"       # https://www.python.org/dev/peps/pep-0386/
 
 DECLINED = 0
 

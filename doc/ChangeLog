@@ -1,4 +1,4 @@
-==== 2.5.0.dev0 ====
+==== 2.5.0 ====
     * fix file callback on files smaller than 1000B
     * add FileObjResponse class
     * add BaseResponse class
@@ -21,7 +21,6 @@
     * input chunked encoding support
     * parse_json_request need bytes on input
     * add stalled file download timeout
-
 
 ==== 2.4.0 ====
     * new render_negotiation function

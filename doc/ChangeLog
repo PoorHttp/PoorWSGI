@@ -1,3 +1,6 @@
+==== 2.5.1.dev0 ====
+    * Running on MS Windows fix
+
 ==== 2.5.0 ====
     * fix file callback on files smaller than 1000B
     * add FileObjResponse class

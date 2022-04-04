@@ -7,7 +7,6 @@
 
 from traceback import format_exception
 from time import strftime, gmtime
-from os import access, listdir, R_OK, getegid, geteuid, getuid, getgid
 from os.path import isfile, isdir, getsize, getctime
 from operator import itemgetter
 from sys import version, exc_info
@@ -16,6 +15,7 @@ from logging import getLogger
 from hashlib import sha256
 from typing import Dict, Callable
 
+import os
 import mimetypes
 
 from poorwsgi.response import Response, EmptyResponse, HTTPException
@@ -385,7 +385,7 @@ def directory_index(req, path):
             path)
         raise HTTPException(HTTP_INTERNAL_SERVER_ERROR)
 
-    index = listdir(path)
+    index = os.listdir(path)
     if req.document_root != path[:-1]:
         index.append("..")  # parent directory
 
@@ -422,7 +422,7 @@ def directory_index(req, path):
             continue
 
         fpath = "%s/%s" % (path, item)
-        if not access(fpath, R_OK):
+        if not os.access(fpath, os.R_OK):
             continue
 
         fname = item + ('/' if isdir(fpath) else '')
@@ -580,10 +580,11 @@ def debug_info(req, app):
         (key, val) for key, val in req.get_options().items()))
 
     environ = req.environ.copy()
-    environ['os.pgid'] = getgid()
-    environ['os.puid'] = getuid()
-    environ['os.egid'] = getegid()
-    environ['os.euid'] = geteuid()
+    if hasattr(os, 'getgid'):
+        environ['os.pgid'] = os.getgid()
+        environ['os.puid'] = os.getuid()
+        environ['os.egid'] = os.getegid()
+        environ['os.euid'] = os.geteuid()
 
     # transfotm enviroment variables to html
     environ_html = "\n".join((

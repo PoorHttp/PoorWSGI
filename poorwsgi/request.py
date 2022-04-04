@@ -17,7 +17,7 @@ import os
 import re
 from logging import getLogger
 
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, unquote
 from http.cookies import SimpleCookie
 
 from poorwsgi.state import methods, HTTP_BAD_REQUEST
@@ -28,7 +28,7 @@ log = getLogger("poorwsgi")
 
 # simple regular expression for construct_url method
 RE_HTTPURLPATTERN = re.compile(r"^(http|https):\/\/")
-RE_AUTHORIZATION = re.compile(r'(\w+)[=] ?("[^"]+"|[\w-]+)')
+RE_AUTHORIZATION = re.compile(r'(\w+\*?)[=] ?("[^"]+"|[\w\-\'%]+)')
 
 # pylint: disable=unsubscriptable-object
 
@@ -557,9 +557,12 @@ class Request(SimpleRequest):
         if self.__authorization is None:
             auth = self.__headers.get('Authorization', '').strip()
             self.__authorization = dict(
-                (key, val.strip('"')) for key, val in
+                (key, Headers.utf8(val.strip('"'))) for key, val in
                 RE_AUTHORIZATION.findall(auth))
             self.__authorization['type'] = auth[:auth.find(' ')].capitalize()
+            username_ = self.__authorization.get('username*')
+            if username_ and username_.startswith("UTF-8''"):
+                self.__authorization['username'] = unquote(username_[7:])
         return self.__authorization.copy()
 
     @property

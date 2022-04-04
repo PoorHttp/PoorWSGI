@@ -3,7 +3,7 @@ from os import environ
 from os.path import dirname, join, pardir
 
 from requests.auth import HTTPDigestAuth
-from pytest import fixture
+from pytest import fixture, mark
 
 from . support import start_server, check_url
 
@@ -38,6 +38,11 @@ def user_auth():
     return HTTPDigestAuth('user', 'looser')
 
 
+@fixture
+def utf8_auth():
+    return HTTPDigestAuth('Ondřej', 'heslíčko')
+
+
 class TestDigest:
     """Test http_digest example."""
     def test_unauthorized(self, url):
@@ -54,6 +59,12 @@ class TestDigest:
         check_url(url+'/user_zone', auth=user_auth)
         check_url(url+'/user_zone', params=dict(param='text'), auth=user_auth)
         check_url(url+'/user', auth=user_auth)
+
+    @mark.skip("https://github.com/psf/requests/issues/6102")
+    def test_utf8(self, url, utf8_auth):
+        """Check UTF-8 characters in username."""
+        check_url(url+'/user/utf-8', auth=utf8_auth)
+        check_url(url+'/user/utf-8', params=dict(param='text'), auth=utf8_auth)
 
     def test_foo(self, url):
         auth = HTTPDigestAuth('foo', 'bar')

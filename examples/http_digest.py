@@ -28,7 +28,7 @@ app.auth_timeout = 60
 
 ADMIN = 'Admin Zone'
 USER = 'User Zone'
-# user/looser, foo/bar, admin/admin
+# user/looser, foo/bar, admin/admin, Ondřej/heslíčko
 app.auth_map = PasswordMap(FILE)
 app.auth_map.load()
 
@@ -75,6 +75,7 @@ def root(req):
         '<li>%s - admin zone (admin/admin)</li>' % get_link('/admin_zone'),
         '<li>%s - user zone (user/looser)</li>' % get_link('/user_zone'),
         '<li>%s - user (user/looser)</li>' % get_link('/user'),
+        '<li>%s - utf-8 (Ondřej/heslíčko)</li>' % get_link('/user/utf-8'),
         '<li>%s - foo (foo/bar)</li>' % get_link('/foo'),
         '<li>%s - unknown</li>' % get_link('/unknown'),
         '<li>%s - spaces in url</li>' % get_link('/spaces in url'),
@@ -129,7 +130,7 @@ def user_only(req):
         'User: %s' % req.user,
         '<ul>',
         '<li>'+get_link('/', 'Root')+'</li>',
-        '<li>'+get_link('/admin?param=1234', 'one more time')+'</li>',
+        '<li>'+get_link('/user?param=1234', 'one more time')+'</li>',
         '</ul>'
     )
 
@@ -153,6 +154,23 @@ def foo_only(req):
         '</label>',
         '<button type="submit">Change Password</button>',
         '</form>'
+    )
+
+    for line in get_header("Root") + body + get_footer():
+        yield line.encode()+b'\n'
+
+
+@app.route('/user/utf-8')
+@check_digest(USER, 'Ondřej')
+def utf8_chars(req):
+    """Page for user only."""
+    body = (
+        '<h2>User test for %s algorithm.</h2>' % app.auth_algorithm,
+        'User: %s' % req.user,
+        '<ul>',
+        '<li>'+get_link('/', 'Root')+'</li>',
+        '<li>'+get_link('/user/utf-8?param=1234', 'one more time')+'</li>',
+        '</ul>'
     )
 
     for line in get_header("Root") + body + get_footer():

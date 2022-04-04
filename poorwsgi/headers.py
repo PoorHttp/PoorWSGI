@@ -254,3 +254,11 @@ class Headers(Mapping):
                              "encoded (got {0})".format(value)) from err
         raise TypeError("Header name/value must be of type str "
                         "(got {0})".format(value))
+
+    @staticmethod
+    def utf8(value: str) -> str:
+        """Doing automatic conversion to utf-8 strings."""
+        try:
+            return value.encode('iso-8859-1').decode('utf-8')
+        except UnicodeError:
+            return value  # probably utf-8 yet

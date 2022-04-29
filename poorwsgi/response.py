@@ -242,7 +242,7 @@ class JSONResponse(Response):
             content_type += "; charset="+charset
         if kwargs and data is not None:
             raise RuntimeError("Only one of data and kwargs is allowed.")
-        elif kwargs and data is None:
+        if kwargs and data is None:
             data = kwargs
         super().__init__(dumps(data), content_type, headers, status_code)
 

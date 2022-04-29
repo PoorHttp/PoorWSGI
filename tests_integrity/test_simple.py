@@ -25,6 +25,7 @@ def url(request):
 
     yield "http://localhost:8080"  # server is running
     process.kill()
+    process.wait()
 
 
 @fixture

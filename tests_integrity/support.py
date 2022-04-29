@@ -44,6 +44,7 @@ def start_server(request, example):
             sck.close()
     if not connect:
         process.kill()
+        process.wait()
         raise RuntimeError("Server not started in 10 seconds")
 
     return process

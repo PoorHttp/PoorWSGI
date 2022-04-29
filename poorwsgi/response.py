@@ -233,15 +233,18 @@ class JSONResponse(Response):
 
     ** kwargs from constructor are serialized to json structure.
     """
-    def __init__(self, charset: str = "utf-8",
+    def __init__(self, data=None, charset: str = "utf-8",
                  headers: Union[Headers, HeadersList] = None,
                  status_code: int = HTTP_OK,
                  **kwargs):
         content_type = "application/json"
         if charset:
             content_type += "; charset="+charset
-
-        super().__init__(dumps(kwargs), content_type, headers, status_code)
+        if kwargs and data is not None:
+            raise RuntimeError("Only one of data and kwargs is allowed.")
+        elif kwargs and data is None:
+            data = kwargs
+        super().__init__(dumps(data), content_type, headers, status_code)
 
 
 class TextResponse(Response):

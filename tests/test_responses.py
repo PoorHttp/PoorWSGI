@@ -113,6 +113,20 @@ class TestJSONResponse:
         with pytest.raises(RuntimeError):
             response(start_response)
 
+    def test_null(self):
+        response = JSONResponse()
+        data = load(response(start_response))
+        assert data == None
+
+    def test_list_of_objects(self):
+        response = JSONResponse([{'x': 1}, {'x': 2}])
+        data = load(response(start_response))
+        assert data == [{'x': 1}, {'x': 2}]
+
+    def test_data_or_kwargs(self):
+        with pytest.raises(RuntimeError):
+            JSONResponse([], msg="Messgae")
+
 
 class TestTextResponse:
     """Test for TextResponse."""

@@ -91,6 +91,8 @@ class Application():
             ':float': (r'-?\d+(\.\d+)?', float),
             ':word': (r'\w+', str),
             ':hex': (r'[0-9a-fA-F]+', str),
+            ':uuid':(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]'
+                      '{4}-[0-9a-f]{4}-[0-9a-f]{12}', str),
             ':re:': (None, str),
             'none': (r'[^/]+', str)
         }

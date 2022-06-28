@@ -94,6 +94,12 @@ test or use it as you can. See:
 **large_file.py**
     https://github.com/PoorHttp/PoorWSGI/blob/master/examples/large_file.py
 
+**put_file.py**
+
+    Example of uploading file via PUT method like in WebDAV
+
+    https://github.com/PoorHttp/PoorWSGI/blob/master/examples/put_file.py
+
 **openapi3.py**
     https://github.com/PoorHttp/PoorWSGI/blob/master/examples/openapi3.py
     https://github.com/PoorHttp/PoorWSGI/blob/master/examples/openapi.json

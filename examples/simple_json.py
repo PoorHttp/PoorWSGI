@@ -9,6 +9,7 @@ from sys import path as python_path
 from json import dumps
 
 import os
+import sys
 
 EXAMPLES_PATH = os.path.dirname(__file__)
 python_path.insert(0, os.path.abspath(
@@ -84,6 +85,7 @@ def test_headers(req):
 
 
 if __name__ == '__main__':
-    httpd = make_server('127.0.0.1', 8080, app)
-    print("Starting to serve on http://127.0.0.1:8080")
+    ADDRESS = sys.argv[1] if len(sys.argv) > 1 else '127.0.0.1'
+    httpd = make_server(ADDRESS, 8080, app)
+    print("Starting to serve on http://%s:8080" % ADDRESS)
     httpd.serve_forever()

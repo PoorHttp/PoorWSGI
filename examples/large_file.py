@@ -14,7 +14,7 @@ EXAMPLES_PATH = os.path.dirname(__file__)
 sys.path.insert(0, os.path.abspath(
     os.path.join(EXAMPLES_PATH, os.path.pardir)))
 
-# pylint: disable=wrong-import-position
+# pylint: disable=import-error, disable=wrong-import-position
 from poorwsgi import Application, state  # noqa
 from poorwsgi.request import FieldStorage  # noqa
 from poorwsgi.response import HTTPException  # noqa
@@ -119,6 +119,10 @@ def no_factory():
     """No factory callback"""
 
 
+def original_factory():
+    """Original factory callback"""
+
+
 def html_form(req, file_callback):
     """Generate upload page for specified callback."""
     stats = ""
@@ -135,6 +139,10 @@ def html_form(req, file_callback):
                 bytes_read += len(data)
                 to_download = min(req.content_length-bytes_read, 65365)
                 data = req.read(to_download)
+        elif file_callback == original_factory:
+            form = FieldStorage(
+                    req, keep_blank_values=app.keep_blank_values,
+                    strict_parsing=app.strict_parsing)
         else:
             form = FieldStorage(
                     req, keep_blank_values=app.keep_blank_values,
@@ -196,7 +204,7 @@ def temporary_form(req):
 @app.route('/no-factory', method=state.METHOD_GET_POST)
 def no_form(req):
     """Return form for no Formfield."""
-    return html_form(req, no_factory)
+    return html_form(req, original_factory)
 
 
 @app.route('/')

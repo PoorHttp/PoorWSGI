@@ -70,7 +70,7 @@ class TestRequest:
     def test_json_request(self, server):
         data = [{"x": 124.2, "y": 100.1}]
         res = check_url(server+"/test/json", status_code=418,
-                        method="POST", json=data)
+                        method="POST", json=data, timeout=1)
         assert res.json() == {"message": "I\'m teapot :-)",
                               "numbers": [0, 1, 2, 3, 4],
                               "request": data}
@@ -95,7 +95,7 @@ class TestRequest:
 class TestResponse:
     """Test right responses."""
     def test_json_response(self, server):
-        res = check_url(server+"/test/json", status_code=418)
+        res = check_url(server+"/test/json", status_code=418, timeout=1)
         assert res.json() == {"message": "I\'m teapot :-)",
                               "numbers": [0, 1, 2, 3, 4],
                               "request": {}}

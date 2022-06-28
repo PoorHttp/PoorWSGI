@@ -20,7 +20,7 @@ from logging import getLogger
 from urllib.parse import parse_qs, unquote
 from http.cookies import SimpleCookie
 
-from poorwsgi.state import methods, HTTP_BAD_REQUEST
+from poorwsgi.state import methods, HTTP_BAD_REQUEST, deprecated
 from poorwsgi.headers import Headers, parse_negotiation
 from poorwsgi.response import HTTPException
 
@@ -577,9 +577,15 @@ class Request(SimpleRequest):
         return self.__content_length > 0
 
     @property
-    def is_chunked_request(self):
+    def is_chunked(self):
         """True if has set Transfer-Encoding is chunked."""
         return self.__headers.get('Transfer-Encoding') == 'chunked'
+
+    @property
+    @deprecated("use is_chunked instead")
+    def is_chunked_request(self):
+        """Compatibility alias for is_chunked."""
+        return self.is_chunked
 
     @property
     def path_args(self):

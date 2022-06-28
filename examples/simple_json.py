@@ -10,6 +10,7 @@ from json import dumps
 
 import os
 import sys
+import logging as log
 
 EXAMPLES_PATH = os.path.dirname(__file__)
 python_path.insert(0, os.path.abspath(
@@ -26,6 +27,8 @@ try:
 except ModuleNotFoundError:
     uwsgi = None  # pylint: disable=invalid-name
 
+logger = log.getLogger()
+logger.setLevel("DEBUG")
 app = application = Application("JSON")
 app.debug = True
 

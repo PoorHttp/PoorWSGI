@@ -168,7 +168,6 @@ class BaseResponse:
         This method was called from Application object at the end of request
         for returning right value to wsgi server.
         """
-        # pylint: disable=no-self-use
         return b''
 
     def __call__(self, start_response: Callable):

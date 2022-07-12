@@ -746,7 +746,6 @@ class Request(SimpleRequest):
 class EmptyForm(dict):
     """Compatibility class as fallback."""
     # pylint: disable=unused-argument
-    # pylint: disable=no-self-use
     def getvalue(self, key: str, default: Any = None):
         """Just return default."""
         return default

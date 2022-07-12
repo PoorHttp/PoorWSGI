@@ -15,12 +15,13 @@ from typing import Union, Callable, Any, Iterable, List, Tuple, Optional
 
 import os
 import re
+import warnings
 from logging import getLogger
 
 from urllib.parse import parse_qs, unquote
 from http.cookies import SimpleCookie
 
-from poorwsgi.state import methods, HTTP_BAD_REQUEST, deprecated
+from poorwsgi.state import methods, HTTP_BAD_REQUEST
 from poorwsgi.headers import Headers, parse_negotiation
 from poorwsgi.response import HTTPException
 
@@ -479,17 +480,17 @@ class Request(SimpleRequest):
 
     # -------------------------- Properties --------------------------- #
     @property
-    def mime_type(self):
-        """Request ``Content-Type`` header string."""
+    def mime_type(self) -> str:
+        """Request ``Content-Type`` header or empty string if not set."""
         return self.__mime_type
 
     @property
-    def charset(self):
+    def charset(self) -> str:
         """Request ``Content-Type`` charset header string, utf-8 if not set."""
         return self.__charset
 
     @property
-    def content_length(self):
+    def content_length(self) -> int:
         """Request ``Content-Length`` header value, -1 if not set."""
         return self.__content_length
 
@@ -499,7 +500,7 @@ class Request(SimpleRequest):
         return self.__headers
 
     @property
-    def accept(self):
+    def accept(self) -> tuple:
         """Tuple of client supported mime types from Accept header."""
         if self.__accept is None:
             self.__accept = tuple(parse_negotiation(
@@ -507,7 +508,7 @@ class Request(SimpleRequest):
         return self.__accept
 
     @property
-    def accept_charset(self):
+    def accept_charset(self) -> tuple:
         """Tuple of client supported charset from Accept-Charset header."""
         if self.__accept_charset is None:
             self.__accept_charset = tuple(parse_negotiation(
@@ -515,7 +516,7 @@ class Request(SimpleRequest):
         return self.__accept_charset
 
     @property
-    def accept_encoding(self):
+    def accept_encoding(self) -> tuple:
         """Tuple of client supported charset from Accept-Encoding header."""
         if self.__accept_encoding is None:
             self.__accept_encoding = tuple(parse_negotiation(
@@ -523,7 +524,7 @@ class Request(SimpleRequest):
         return self.__accept_encoding
 
     @property
-    def accept_language(self):
+    def accept_language(self) -> tuple:
         """List of client supported languages from Accept-Language header."""
         if self.__accept_language is None:
             self.__accept_language = tuple(parse_negotiation(
@@ -531,28 +532,28 @@ class Request(SimpleRequest):
         return self.__accept_language
 
     @property
-    def accept_html(self):
+    def accept_html(self) -> bool:
         """Return true if ``text/html`` mime type is in accept negotiations
            values.
         """
         return "text/html" in dict(self.accept)
 
     @property
-    def accept_xhtml(self):
+    def accept_xhtml(self) -> bool:
         """Return true if ``text/xhtml`` mime type is in accept negotiations
            values.
         """
         return "text/xhtml" in dict(self.accept)
 
     @property
-    def accept_json(self):
+    def accept_json(self) -> bool:
         """Return true if ``application/json`` mime type is in accept
            negotiations values.
         """
         return "application/json" in dict(self.accept)
 
     @property
-    def authorization(self):
+    def authorization(self) -> dict:
         """Return Authorization header parsed to dictionary."""
         if self.__authorization is None:
             auth = self.__headers.get('Authorization', '').strip()
@@ -566,29 +567,32 @@ class Request(SimpleRequest):
         return self.__authorization.copy()
 
     @property
-    def is_xhr(self):
+    def is_xhr(self) -> bool:
         """If ``X-Requested-With`` header is set with ``XMLHttpRequest`` value.
         """
         return self.__headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     @property
-    def is_body_request(self):
+    def is_body_request(self) -> bool:
         """True if has set Content-Length more than zero."""
         return self.__content_length > 0
 
     @property
-    def is_chunked(self):
+    def is_chunked(self) -> bool:
         """True if has set Transfer-Encoding is chunked."""
         return self.__headers.get('Transfer-Encoding') == 'chunked'
 
     @property
-    @deprecated("use is_chunked instead")
     def is_chunked_request(self):
         """Compatibility alias for is_chunked."""
+        warnings.warn("Call to deprecated is_chunked_request, "
+                      "use is_chunked instead",
+                      category=DeprecationWarning,
+                      stacklevel=1)
         return self.is_chunked
 
     @property
-    def path_args(self):
+    def path_args(self) -> dict:
         """Dictionary arguments from path of regual expression rule."""
         return (self.__path_args or {}).copy()
 

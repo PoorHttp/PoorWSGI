@@ -556,12 +556,13 @@ poor_AutoArgs is set to On, which is default.
 If no arguments are parsed, or if poor_AutoArgs is set to Off, req.args is
 EmptyForm instance, which is dict base class too with both of methods.
 
-Body arguments
+Form arguments
 ~~~~~~~~~~~~~~
-Request body areguments are stored to FieldStorage class, define in
+Request form areguments are stored to FieldStorage class, define in
 poorwsgi.request module. This class is based on FieldStorage from standard
 cgi module. And variables are parsed every time, when poor_AutoForm is set to
-On, which is default and request method is POST, PUT or PATCH. You can call it
+On, which is default, request method is POST, PUT or PATCH and request
+mime type is one of `Application.form_mime_types`. You can call it
 on any other methods of course, but it must exist wsgi.input in request
 environment from wsgi server.
 
@@ -581,11 +582,7 @@ variable, which is configurable by Application.file_callback property.
         return "Post arguments for id are %s" % (id, str(req.args))
 
 As like Args class, if poor_AutoForm is set to Off, or if method is no POST,
-PUT or PATCH, req.form is EmptyForm is instance instead of FieldStorage.
-
-In fact, body arguments are parsed only when right type of request is set,
-you can configure types via Application.form_mime_types property, which
-is list of request mime types.
+PUT or PATCH, req.form is EmptyForm instance instead of FieldStorage.
 
 JSON request
 ~~~~~~~~~~~~
@@ -726,6 +723,12 @@ property.
                     file_callback=factory.create)
             except Exception as e:
                 req.log_error(e)
+
+CachedInput
+~~~~~~~~~~~
+
+When HTTP Forms are base64 encoded, FieldStorage use readline on request input
+file. This is not so optimal. So there is CachedInput class, which is returned 
 
 Proccess variables
 ~~~~~~~~~~~~~~~~~~

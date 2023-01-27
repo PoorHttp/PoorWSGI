@@ -1,16 +1,16 @@
 """PoorWSGI setup.py"""
-from distutils.core import Command
 from distutils.command.install_data import install_data  # type: ignore
 from distutils.dir_util import remove_tree
-from distutils.errors import DistutilsError
-from distutils import log
 
 from os import path, makedirs, walk, environ
 from shutil import copyfile
 from subprocess import call
 from io import FileIO as file
 
-from setuptools import setup  # type: ignore
+import logging
+
+from setuptools import Command, setup  # type: ignore
+from setuptools.errors import DistutilsError
 from setuptools.command.test import test  # type: ignore
 
 from poorwsgi.state import __version__
@@ -64,9 +64,9 @@ class build_doc(Command):
             raise IOError(1, 'jinja24doc failed')
 
     def run(self):
-        log.info("building html documentation")
+        logging.info("building html documentation")
         if self.public:
-            log.info("building as public part of poorhttp web")
+            logging.info("building as public part of poorhttp web")
         if self.dry_run:
             return
 
@@ -104,7 +104,7 @@ class clean_doc(Command):
         if path.exists(self.html_temp):
             remove_tree(self.html_temp, dry_run=self.dry_run)
         else:
-            log.warn("'%s' does not exist -- can't clean it", self.html_temp)
+            logging.warn("'%s' does not exist -- can't clean it", self.html_temp)
 
 
 class install_doc(install_data):
@@ -180,6 +180,11 @@ setup(
     maintainer="Ondrej Tuma",
     maintainer_email="mcbig@zeropage.cz",
     url="http://poorhttp.zeropage.cz/poorwsgi",
+    project_urls = {
+        'Documentation': 'http://poorhttp.zeropage.cz/poorwsgi',
+        'Funding': 'https://github.com/sponsors/ondratu',
+        'Source': 'https://github.com/poorHttp/PoorWSGI',
+        'Tracker': 'https://github.com/PoorHttp/PoorWSGI/issues'},
     packages=['poorwsgi'],
     package_data={'': ['py.typed']},
     data_files=[
@@ -188,8 +193,10 @@ setup(
           'CONTRIBUTION.rst'])] +
         find_data_files("examples", "share/poorwsgi/examples"),
     license="BSD",
+    license_files='doc/licence.txt',
     long_description=doc(),
     long_description_content_type="text/x-rst",
+    keywords='web wsgi development',
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Environment :: Web Environment",

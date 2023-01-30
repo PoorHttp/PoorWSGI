@@ -1,3 +1,4 @@
+"""Tests for opanapi implementation"""
 from os import environ
 from os.path import dirname, join, pardir
 
@@ -5,10 +6,13 @@ from pytest import fixture
 from requests import Session
 
 from . support import start_server, check_url, check_api
-from . openapi import response_validator_json
+from . openapi import response_spec_json
 
-VALIDATOR = response_validator_json(
+SPEC = response_spec_json(
     join(dirname(__file__), pardir, "examples/openapi.json"))
+
+# pylint: disable=missing-function-docstring
+# pylint: disable=redefined-outer-name
 
 
 @fixture(scope="module")
@@ -35,16 +39,23 @@ def session(url):
 
 
 class TestOpenAPI():
+    """OpenAPI tests"""
     def test_plain_text(self, url):
         res = check_api(url+"/plain_text",
                         headers={'Accept': 'text/plain'},
-                        response_validator=VALIDATOR)
+                        response_spec=SPEC)
         assert res.headers["Content-Type"] == "text/plain"
+
+    def test_content_header(self, url):
+        res = check_api(url+"/response",
+                        headers={'Accept': 'application/json'},
+                        response_spec=SPEC)
+        assert res.headers["Content-Type"] == "application/json"
 
     def test_json_arg_integer(self, url):
         res = check_api(url+"/json/42",
                         headers={'Accept': 'application/json'},
-                        response_validator=VALIDATOR,
+                        response_spec=SPEC,
                         path_pattern=url+"/json/{arg}")
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
@@ -53,7 +64,7 @@ class TestOpenAPI():
     def test_json_arg_float(self, url):
         res = check_api(url+"/json/3.14",
                         headers={'Accept': 'application/json'},
-                        response_validator=VALIDATOR,
+                        response_spec=SPEC,
                         path_pattern=url+"/json/{arg}")
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
@@ -63,7 +74,7 @@ class TestOpenAPI():
         res = check_api(url+"/json/ok",
                         status_code=400,
                         headers={'Accept': 'application/json'},
-                        response_validator=VALIDATOR,
+                        response_spec=SPEC,
                         path_pattern=url+"/json/{arg}")
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
@@ -73,20 +84,20 @@ class TestOpenAPI():
         data = "Česká Lípa"
         res = check_api(url+"/json", status_code=418,
                         method="POST", json=data,
-                        response_validator=VALIDATOR)
+                        response_spec=SPEC)
         assert res.json()["request"] == data
 
     def test_json_post_unicode_struct(self, url):
         data = dict(city="Česká Lípa")
         res = check_api(url+"/json", status_code=418,
                         method="PUT", json=data,
-                        response_validator=VALIDATOR)
+                        response_spec=SPEC)
         assert res.json()["request"] == data
 
     def test_arg_integer(self, url):
         res = check_api(url+"/arg/42",
                         headers={'Accept': 'application/json'},
-                        response_validator=VALIDATOR)
+                        response_spec=SPEC)
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
         assert data.get("integer_arg") == 42
@@ -94,7 +105,7 @@ class TestOpenAPI():
     def test_arg_float(self, url):
         res = check_api(url+"/arg/3.14",
                         headers={'Accept': 'application/json'},
-                        response_validator=VALIDATOR)
+                        response_spec=SPEC)
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
         assert data.get("float_arg") == 3.14
@@ -103,7 +114,7 @@ class TestOpenAPI():
         res = check_api(url+"/arg/ok",
                         status_code=404,
                         headers={'Accept': 'application/json'},
-                        response_validator=VALIDATOR)
+                        response_spec=SPEC)
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
         assert data.get("error") is not None
@@ -116,14 +127,14 @@ class TestOpenAPI():
 
     def test_secrets_cookie(self, url, session):
         check_api(url+"/check/login", method="GET", session=session,
-                  response_validator=VALIDATOR)
+                  response_spec=SPEC)
 
     def test_secrets_api_key(self, url):
         check_api(url+"/check/api-key", method="GET",
                   headers={"API-Key": "xxx"},
-                  response_validator=VALIDATOR)
+                  response_spec=SPEC)
 
     def test_secrets_no_api_key(self, url):
         check_api(url+"/check/api-key", method="GET",
                   status_code=401,
-                  response_validator=VALIDATOR)
+                  response_spec=SPEC)

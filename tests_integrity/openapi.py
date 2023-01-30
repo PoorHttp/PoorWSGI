@@ -4,14 +4,9 @@ from cgi import parse_header
 
 import json
 
-from openapi_core import create_spec  # type: ignore
+from openapi_core import Spec  # type: ignore
 from openapi_core.validation.request.datatypes import (  # type: ignore
     RequestParameters)
-from openapi_core.validation.response.validators import (  # type: ignore
-    ResponseValidator)
-from openapi_spec_validator.loaders import ExtendedSafeLoader  # type: ignore
-
-import yaml
 
 
 class OpenAPIRequest():
@@ -21,12 +16,13 @@ class OpenAPIRequest():
         self.full_url_pattern = path_pattern or request.url
 
         self.method = request.method.lower()
-        url = urlparse(request.url)
-        query = parse_qs(url.query) if url.query else {}
+        self._url = urlparse(request.url)
+        query = parse_qs(self._url.query) if self._url.query else {}
         # when args have one value, that is the value
         args = tuple((key, val[0] if len(val) < 2 else val)
                      for key, val in query.items())
 
+        self.request = request
         self.data = request.data
 
         ctype = parse_header(request.headers.get('Content-Type', ''))
@@ -39,8 +35,20 @@ class OpenAPIRequest():
             cookie=request.cookies,
         )
 
+    @property
+    def host_url(self) -> str:
+        """Return request host url."""
+        return f"{self._url.scheme}://{self._url.netloc}"
+
+    @property
+    def path(self) -> str:
+        """Return request path."""
+        assert isinstance(self._url.path, str)
+        return self._url.path
+
 
 class OpenAPIResponse():
+    """requests.Response wrapper for openapi_core."""
 
     def __init__(self, response):
         self.response = response
@@ -48,30 +56,29 @@ class OpenAPIResponse():
 
     @property
     def data(self):
+        """Response body"""
         return self.response.text
 
     @property
     def status_code(self):
+        """Response status_code"""
         return self.response.status_code
 
     @property
     def mimetype(self):
+        """Response Content-Type"""
         return self.ctype[0]
 
+    @property
+    def headers(self):
+        """Response Headers"""
+        return self.response.headers
 
-def response_validator_json(filename):
+
+def response_spec_json(filename):
     """Initialization response_validator for openapi.json."""
-    with open(filename, "r") as openapi:
-        spec = create_spec(json.load(openapi))
-        return ResponseValidator(spec)
+    with open(filename, "r", encoding="utf-8") as openapi:
+        return Spec.create(json.load(openapi))
 
 
-def response_validator_yaml(filename):
-    """Initialization response_validator for openapi.yaml."""
-    with open(filename, "r") as openapi:
-        spec = create_spec(yaml.load(openapi, ExtendedSafeLoader))
-        print("spec:", spec)
-        return ResponseValidator(spec)
-
-
-__all__ = ["response_validator_json", "OpenAPIRequest", "OpenAPIResponse"]
+__all__ = ["response_spec_json", "OpenAPIRequest", "OpenAPIResponse"]

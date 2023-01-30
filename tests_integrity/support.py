@@ -1,3 +1,4 @@
+"""Support library for integrity tests."""
 from sys import stderr, executable
 from warnings import warn
 from time import sleep
@@ -6,9 +7,8 @@ from socket import socket, error as SocketError
 
 from requests import Request, Session
 from requests.exceptions import RequestException
-from openapi_core.exceptions import OpenAPIResponseError  # type: ignore
-from openapi_core.templating.paths.exceptions import (  # type: ignore
-    PathNotFound, OperationNotFound, ServerNotFound)
+from openapi_core import openapi_response_validator
+from openapi_core.templating.paths.exceptions import PathNotFound
 
 from . openapi import OpenAPIRequest, OpenAPIResponse
 
@@ -72,9 +72,9 @@ def check_url(url, method="GET", status_code=200, allow_redirects=True,
 
 
 def check_api(url, method="GET", status_code=200, path_pattern=None,
-              response_validator=None, **kwargs):
+              response_spec=None, **kwargs):
     """Do HTTP API request and check status_code."""
-    assert response_validator, "response_validator must be set"
+    assert response_spec, "response_validator must be set"
     session = kwargs.pop("session", None)
     if not session:
         session = Session()
@@ -87,27 +87,20 @@ def check_api(url, method="GET", status_code=200, path_pattern=None,
             status_code = [status_code]
         assert response.status_code in status_code
         api_request = OpenAPIRequest(request, path_pattern)
-        result = response_validator.validate(api_request,
-                                             OpenAPIResponse(response))
+        result = openapi_response_validator.validate(response_spec,
+                api_request, OpenAPIResponse(response))
         if result.errors:
             to_raise = False
             for error in result.errors:
-                if isinstance(error, (PathNotFound, OperationNotFound)):
+                if isinstance(error, PathNotFound):
                     if response.status_code == 404:
                         continue
-                    warn(UserWarning("Not API definition for %s!" % url))
+                    warn(UserWarning(f"Not API definition for {url}!"))
                     continue
-                if isinstance(error, OpenAPIResponseError):
-                    warn(UserWarning(
-                        "API response error %d definition for %s: %s"
-                        % (response.status_code, url, error)))
-                    continue
-                if isinstance(error, ServerNotFound):
-                    continue    # just ignore
-                stderr.write("API output error: %s" % str(error))
+                stderr.write("API output error: {str(error)}")
                 to_raise = True
             if to_raise:
-                raise TestError("API errors not zero: %d" % len(result.errors))
+                raise TestError("API errors not zero: {len(result.errors)}")
         return response
     except RequestException as err:
         print(err)

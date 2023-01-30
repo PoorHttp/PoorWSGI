@@ -29,6 +29,11 @@ class OpenAPIRequest():
         return self.request.construct_url('')
 
     @property
+    def path(self):
+        """Return method path"""
+        return self.request.path
+
+    @property
     def method(self):
         """Return method in lower case for validator."""
         return self.request.method.lower()
@@ -78,10 +83,16 @@ class OpenAPIResponse():
 
     @property
     def status_code(self):
-        """Return response status_code fro validator."""
+        """Return response status_code for validator."""
         return self.response.status_code
 
     @property
     def mimetype(self):
-        """Return response mime_type fro validator."""
-        return self.response.content_type.split(';')[0]
+        """Return response mime_type for validator."""
+        return self.response.headers.get('Content-Type',
+                self.response.content_type).split(';')[0]
+
+    @property
+    def headers(self):
+        """Return response headers for validator."""
+        return self.response.headers

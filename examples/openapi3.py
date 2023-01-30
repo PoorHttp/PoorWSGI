@@ -12,18 +12,17 @@ from sys import path as python_path
 import logging as log
 import json
 
-from openapi_core import create_spec  # type: ignore
-from openapi_core.validation.request.validators import (  # type: ignore
-        RequestValidator)
-from openapi_core.validation.response.validators import (  # type: ignore
-        ResponseValidator)
-from openapi_core.validation.exceptions import InvalidSecurity  # type: ignore
-from openapi_core.templating.paths.exceptions import (  # type: ignore
-    PathNotFound, OperationNotFound)
+from openapi_core import Spec, \
+    openapi_request_validator, openapi_response_validator
+from openapi_core.templating.paths.exceptions import PathNotFound, \
+    OperationNotFound
+from openapi_core.validation.exceptions import InvalidSecurity
 
 TEST_PATH = path.dirname(__file__)
 python_path.insert(0, path.abspath(
     path.join(TEST_PATH, path.pardir)))
+
+# pylint: disable = wrong-import-position
 
 from poorwsgi import Application, state  # noqa
 from poorwsgi.response import Response, abort, HTTPException, \
@@ -37,8 +36,6 @@ app = application = Application("OpenAPI3 Test App")
 app.debug = True
 app.secret_key = urandom(32)     # random key each run
 
-request_validator = None
-response_validator = None
 
 options_headers = {
     "Access-Control-Allow-Origin": "*",
@@ -50,16 +47,16 @@ options_headers = {
 }
 
 
-with open(path.join(path.dirname(__file__), "openapi.json"), "r") as openapi:
-    spec = create_spec(json.load(openapi))
-    request_validator = RequestValidator(spec)
-    response_validator = ResponseValidator(spec)
+with open(path.join(path.dirname(__file__), "openapi.json"),
+        "r", encoding="utf-8") as openapi:
+    spec = Spec.create(json.load(openapi))
 
 
 @app.before_response()
 def cors_request(req):
+    """CORS additional response for method OPTIONS."""
     if req.uri.startswith("/p/"):
-        return      # enndpoints for printers does not need CORS
+        return      # endpoints for printers does not need CORS
     if req.method_number == state.METHOD_OPTIONS:
         res = Response(content_type="text/plain; charset=UTF-8",
                        headers=options_headers,
@@ -69,6 +66,7 @@ def cors_request(req):
 
 @app.after_response()
 def cors_response(req, res):
+    """CORS additional headers in response."""
     res.add_header("Access-Control-Allow-Origin",
                    req.headers.get("Origin", "*"))
     res.add_header("Access-Control-Allow-Credentials", "true")
@@ -77,8 +75,9 @@ def cors_response(req, res):
 
 @app.before_response()
 def before_each_response(req):
+    """Check API before process each response."""
     req.api = OpenAPIRequest(req)
-    result = request_validator.validate(req.api)
+    result = openapi_request_validator.validate(spec, req.api)
     if result.errors:
         errors = []
         for error in result.errors:
@@ -97,49 +96,72 @@ def before_each_response(req):
 @app.after_response()
 def after_each_response(req, res):
     """Check if ansewer is valid by OpenAPI."""
-    result = response_validator.validate(
+    result = openapi_response_validator.validate(spec,
         req.api or OpenAPIRequest(req),     # when error in before_request
         OpenAPIResponse(res))
     for error in result.errors:
-        if isinstance(error, OperationNotFound):
+        if isinstance(error, (OperationNotFound, PathNotFound)):
             continue
         log.error("API output error: %s", str(error))
+        assert False, f"OpenAPI Error {str(error)}"
     return res
 
 
 @app.route("/plain_text")
 def plain_text(req):
+    """Simple hello world example."""
+    assert req
     return "Hello world", "text/plain"
+
+
+@app.route("/response")
+def response_handler(req):
+    """Override content-type via header value."""
+    assert req
+    return Response(status_code=200,
+        headers={'Content-Type':'application/json'},
+        data=b"{}")
 
 
 @app.route("/json/<arg>")
 def ajax_arg(req, arg):
+    """Ajax JSON example."""
+    assert req
     return json.dumps({"arg": arg}), "application/json"
 
 
 @app.route('/json', method=state.METHOD_POST | state.METHOD_PUT)
 def test_json(req):
+    """JSONResponse example"""
+    assert req
     return JSONResponse(status_code=418, message="I'm teapot :-)",
                         request=req.json)
 
 
 @app.route("/arg/<int_arg:int>")
 def ajax_integer(req, arg):
+    """Simple JSON response with integer argument in path."""
+    assert req
     return json.dumps({"integer_arg": arg}), "application/json"
 
 
 @app.route("/arg/<float_arg:float>")
 def ajax_float(req, arg):
+    """Simple JSON response with float argument in path."""
+    assert req
     return json.dumps({"float_arg": arg}), "application/json"
 
 
 @app.route('/internal-server-error')
 def method_raises_errror(req):
+    """Internal server error test."""
+    assert req
     raise RuntimeError('Test of internal server error')
 
 
 @app.route('/login')
 def login(req):
+    """Set login cookie test."""
     cookie = PoorSession(req)
     cookie.data['login'] = True
     response = Response(status_code=204)
@@ -149,6 +171,7 @@ def login(req):
 
 @app.route('/check/login')
 def check_login(req):
+    """Clear login cookie - logout test."""
     cookie = PoorSession(req)
     if 'login' not in cookie.data:
         raise HTTPException(401)
@@ -157,6 +180,7 @@ def check_login(req):
 
 @app.route('/check/api-key')
 def check_api_key(req):
+    """API-Key secrets test."""
     api_token = req.headers.get("API-Key", None)
     if api_token != XXX:
         raise HTTPException(401)
@@ -165,8 +189,9 @@ def check_api_key(req):
 
 @app.http_state(state.HTTP_NOT_FOUND)
 def not_found(req):
+    """404 NotFound test."""
     return (json.dumps(
-        {"error": "Url %s, you are request not found" % req.uri}),
+        {"error": f"Url {req.uri}, you are request not found"}),
         "application/json", None, 404)
 
 

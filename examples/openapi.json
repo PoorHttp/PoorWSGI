@@ -32,9 +32,36 @@
                 }
               }
             }
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/accept"
+        }
+      ]
+    },
+    "/response": {
+      "get": {
+        "summary": "Response test page",
+        "responses": {
+          "200" : {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "default": "application/json"
+                }
+              }
+            }
           }
         }
       },

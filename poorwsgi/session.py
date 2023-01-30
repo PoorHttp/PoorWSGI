@@ -8,7 +8,7 @@ from json import dumps, loads
 from base64 import b64decode, b64encode
 from logging import getLogger
 from time import time
-from typing import Union, Dict, Any
+from typing import Union, Dict, Any, Optional
 
 import bz2
 
@@ -57,7 +57,8 @@ def hidden(text: Union[str, bytes], passwd: Union[str, bytes]) -> bytes:
     return retval
 
 
-def get_token(secret: str, client: str, timeout: int = None, expired: int = 0):
+def get_token(secret: str, client: str, timeout: Optional[int] = None,
+              expired: int = 0):
     """Create token from secret, and client string.
 
     If timeout is set, token contains time align with twice of this value.
@@ -74,7 +75,8 @@ def get_token(secret: str, client: str, timeout: int = None, expired: int = 0):
     return sha256(text.encode()).hexdigest()
 
 
-def check_token(token: str, secret: str, client: str, timeout: int = None):
+def check_token(token: str, secret: str, client: str,
+                timeout: Optional[int] = None):
     """Check token, if it is right.
 
     Arguments secret, client and expired must be same, when token was
@@ -159,7 +161,7 @@ class PoorSession:
     """
 
     def __init__(self, secret_key: Union[Request, str, bytes],
-                 expires: int = 0, max_age: int = None,
+                 expires: int = 0, max_age: Optional[int] = None,
                  domain: str = '', path: str = '/', secure: bool = False,
                  same_site: bool = False, compress=bz2, sid: str = 'SESSID'):
         """Constructor.
@@ -292,7 +294,7 @@ class PoorSession:
         if self.__secure:
             self.cookie[self.__sid]['Secure'] = True
 
-    def header(self, headers: Union[Headers, Response] = None):
+    def header(self, headers: Optional[Union[Headers, Response]] = None):
         """Generate cookie headers and append it to headers if it set.
 
         Returns list of cookie header pairs.

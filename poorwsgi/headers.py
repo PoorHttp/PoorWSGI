@@ -6,7 +6,7 @@
 from collections.abc import Mapping
 from wsgiref.headers import _formatparam  # type: ignore
 
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Optional
 
 # pylint: disable=consider-using-f-string
 
@@ -88,7 +88,8 @@ class Headers(Mapping):
     True
     """
 
-    def __init__(self, headers: HeadersList = None, strict: bool = True):
+    def __init__(self, headers: Optional[HeadersList] = None,
+                 strict: bool = True):
         """Headers constructor.
 
         Headers object could be create from list, set or tuple of pairs
@@ -192,7 +193,8 @@ class Headers(Mapping):
             raise KeyError("Key %s exist." % name)
         self.add_header(name, value)
 
-    def add_header(self, name: str, value: Union[str, List[Tuple]] = None,
+    def add_header(self, name: str,
+                   value: Optional[Union[str, List[Tuple]]] = None,
                    **kwargs):
         """Extended header setting.
 

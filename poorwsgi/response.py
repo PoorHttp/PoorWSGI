@@ -12,7 +12,7 @@ from os import access, R_OK, fstat
 from logging import getLogger
 from json import dumps
 from inspect import stack
-from typing import Union, Callable, Iterable, BinaryIO
+from typing import Union, Callable, Iterable, BinaryIO, Optional
 
 import mimetypes
 
@@ -50,7 +50,7 @@ class BaseResponse:
     """Base class for response."""
 
     def __init__(self, content_type: str = "text/html; charset=utf-8",
-                 headers: Union[Headers, HeadersList] = None,
+                 headers: Optional[Union[Headers, HeadersList]] = None,
                  status_code: int = HTTP_OK):
         assert isinstance(content_type, str), \
             "content_type is not string but `%s`" % content_type
@@ -192,7 +192,7 @@ class Response(BaseResponse):
 
     def __init__(self, data: Union[str, bytes] = b'',
                  content_type: str = "text/html; charset=utf-8",
-                 headers: Union[Headers, HeadersList] = None,
+                 headers: Optional[Union[Headers, HeadersList]] = None,
                  status_code: int = HTTP_OK):
         assert isinstance(data, (str, bytes)), \
             "data is not string or bytes but %s" % type(data)
@@ -233,7 +233,7 @@ class JSONResponse(Response):
     ** kwargs from constructor are serialized to json structure.
     """
     def __init__(self, data_=None, charset: str = "utf-8",
-                 headers: Union[Headers, HeadersList] = None,
+                 headers: Optional[Union[Headers, HeadersList]] = None,
                  status_code: int = HTTP_OK,
                  **kwargs):
         content_type = "application/json"
@@ -249,7 +249,7 @@ class JSONResponse(Response):
 class TextResponse(Response):
     """Simple text/plain response."""
     def __init__(self, text: str, charset: str = "utf-8",
-                 headers: Union[Headers, HeadersList] = None,
+                 headers: Optional[Union[Headers, HeadersList]] = None,
                  status_code: int = HTTP_OK):
         content_type = "text/plain"
         if charset:
@@ -271,8 +271,8 @@ class FileObjResponse(BaseResponse):
     from file system or from buffer, but minus position.
     """
     def __init__(self, file_obj: Union[IOBase, BinaryIO],
-                 content_type: str = None,
-                 headers: Union[Headers, HeadersList] = None,
+                 content_type: Optional[str] = None,
+                 headers: Optional[Union[Headers, HeadersList]] = None,
                  status_code: int = HTTP_OK):
         assert file_obj.readable()
         assert not isinstance(file_obj, TextIOBase), \
@@ -339,8 +339,8 @@ class FileResponse(FileObjResponse):
     WSGI server closes file, which is returned by this response. So just
     like Response, instance of FileResponse can be used only once!
     """
-    def __init__(self, path: str, content_type: str = None,
-                 headers: Union[Headers, HeadersList] = None,
+    def __init__(self, path: str, content_type: Optional[str] = None,
+                 headers: Optional[Union[Headers, HeadersList]] = None,
                  status_code: int = HTTP_OK):
         if not access(path, R_OK):
             raise IOError("Could not stat file for reading")
@@ -363,7 +363,7 @@ class GeneratorResponse(BaseResponse):
     """
     def __init__(self, generator: Iterable[bytes],
                  content_type: str = "text/html; charset=utf-8",
-                 headers: Union[Headers, HeadersList] = None,
+                 headers: Optional[Union[Headers, HeadersList]] = None,
                  status_code: int = HTTP_OK):
         super().__init__(content_type=content_type,
                          headers=headers,
@@ -378,7 +378,7 @@ class StrGeneratorResponse(GeneratorResponse):
     """Generator response where generator returns str."""
     def __init__(self, generator: Iterable[str],
                  content_type: str = "text/html; charset=utf-8",
-                 headers: Union[Headers, HeadersList] = None,
+                 headers: Optional[Union[Headers, HeadersList]] = None,
                  status_code: int = HTTP_OK):
         super().__init__([b''], content_type=content_type, headers=headers,
                          status_code=status_code)
@@ -397,7 +397,7 @@ class JSONGeneratorResponse(StrGeneratorResponse):
     ** kwargs from constructor are serialized to json structure.
     """
     def __init__(self, charset: str = "utf-8",
-                 headers: Union[Headers, HeadersList] = None,
+                 headers: Optional[Union[Headers, HeadersList]] = None,
                  status_code: int = HTTP_OK,
                  **kwargs):
         if not JSON_GENERATOR:
@@ -470,7 +470,7 @@ class RedirectResponse(Response):
     def __init__(self, location: str,
                  status_code: Union[int, bool] = HTTP_MOVED_TEMPORARILY,
                  message: Union[str, bytes] = b'',
-                 headers: Union[Headers, HeadersList] = None,
+                 headers: Optional[Union[Headers, HeadersList]] = None,
                  permanent: bool = False):
         if status_code is True or permanent:
             log.warning('Argument `permanent` is deprecated. '
@@ -536,7 +536,7 @@ class HTTPException(Exception):
 
 def make_response(data: Union[str, bytes],
                   content_type: str = "text/html; charset=utf-8",
-                  headers: Union[Headers, HeadersList] = None,
+                  headers: Optional[Union[Headers, HeadersList]] = None,
                   status_code: int = HTTP_OK):
     """Create response from values.
 
@@ -560,7 +560,7 @@ def make_response(data: Union[str, bytes],
 def redirect(location: str,
              status_code: Union[int, bool] = HTTP_MOVED_TEMPORARILY,
              message: Union[str, bytes] = b'',
-             headers: Union[Headers, HeadersList] = None,
+             headers: Optional[Union[Headers, HeadersList]] = None,
              permanent: bool = False):
     """Raise HTTPException with RedirectResponse response.
 

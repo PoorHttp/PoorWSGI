@@ -778,7 +778,8 @@ class Args(dict):
 
         self.getvalue = self.get
 
-    def getfirst(self, key: str, default: Union[List, Tuple] = None,
+    def getfirst(self, key: str,
+                 default: Optional[Union[List, Tuple]] = None,
                  fce: Callable = str):
         """Returns first variable value for key or default.
 
@@ -793,7 +794,8 @@ class Args(dict):
             return fce(val[0])
         return fce(val)
 
-    def getlist(self, key: str, default: Iterable = None, fce: Callable = str):
+    def getlist(self, key: str, default: Optional[Iterable] = None,
+                fce: Callable = str):
         """Returns list of variable values for key or empty list.
 
         fce : convertor (str)
@@ -813,7 +815,8 @@ class Args(dict):
 
 
 class JsonDict(dict):
-    """Compatibility class for read values from JSON POST, PUT or PATCH request.
+    """Compatibility class for read values from JSON POST, PUT or PATCH
+    request.
 
     It has getfirst and getlist methods, which can call function on values.
     """
@@ -837,7 +840,8 @@ class JsonDict(dict):
             return fce(val[0])
         return fce(val)
 
-    def getlist(self, key: str, default: Iterable = None, fce: Callable = str):
+    def getlist(self, key: str, default: Optional[Iterable] = None,
+                fce: Callable = str):
         """Returns generator of variable values for key.
 
         default : list
@@ -857,7 +861,8 @@ class JsonDict(dict):
 
 
 class JsonList(list):
-    """Compatibility class for read values from JSON POST, PUT or PATCH request.
+    """Compatibility class for read values from JSON POST, PUT or PATCH
+    request.
 
     It has getfirst and getlist methods, which can call function on values.
     """
@@ -873,7 +878,7 @@ class JsonList(list):
         return self[0] if self else default
 
     # pylint: disable=inconsistent-return-statements
-    def getfirst(self, key: str = None, default: Any = None,
+    def getfirst(self, key: Optional[str] = None, default: Any = None,
                  fce: Callable = str):
         """Returns first variable value or default, if no one exist.
 
@@ -888,7 +893,8 @@ class JsonList(list):
         if val is not None:
             return fce(val)
 
-    def getlist(self, key=None, default: Iterable = None, fce: Callable = str):
+    def getlist(self, key: Optional[str] = None,
+                default: Optional[Iterable] = None, fce: Callable = str):
         """Returns generator of values.
 
         key : None
@@ -1136,7 +1142,8 @@ class FieldStorage(CgiFieldStorage):
             return None
         return fce(val)
 
-    def getlist(self, key: str, default: List = None, fce: Callable = str):
+    def getlist(self, key: str, default: Optional[List] = None,
+                fce: Callable = str):
         """Returns list of variable values for key or empty list.
 
         Arguments:

@@ -91,7 +91,7 @@ class Application():
             ':float': (r'-?\d+(\.\d+)?', float),
             ':word': (r'\w+', str),
             ':hex': (r'[0-9a-fA-F]+', str),
-            ':uuid':(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]'
+            ':uuid': (r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]'
                       '{4}-[0-9a-f]{4}-[0-9a-f]{12}', str),
             ':re:': (None, str),
             'none': (r'[^/]+', str)
@@ -364,7 +364,8 @@ class Application():
 
     @property
     def document_root(self):
-        """Application document_root as another way how to set poor_DocumentRoot.
+        """Application document_root as another way how to set
+        poor_DocumentRoot.
 
         This setting will be rewrite by poor_DocumentRoot environ variable.
         """
@@ -376,7 +377,8 @@ class Application():
 
     @property
     def document_index(self):
-        """Application document_root as another way how to set poor_DocumentRoot.
+        """Application document_root as another way how to set
+        poor_DocumentRoot.
 
         This setting will be rewrite by poor_DocumentRoot environ variable.
         """
@@ -388,7 +390,8 @@ class Application():
 
     @property
     def secret_key(self):
-        """Application secret_key could be replace by poor_SecretKey in request.
+        """Application secret_key could be replace by poor_SecretKey in
+        request.
 
         Secret key is used by PoorSession class. It is generate from
         some server variables, and the best way is set to your own long
@@ -856,7 +859,7 @@ class Application():
 
     def set_regular_route(self, uri: str, fun: Callable,
                           method: int = METHOD_HEAD | METHOD_GET,
-                          converters=(), rule: str = None):
+                          converters=(), rule: Optional[str] = None):
         r"""Set handler for uri defined by regular expression.
 
         Another way to add fn as handler for uri defined by regular expression.
@@ -1246,7 +1249,8 @@ class Application():
 
     @staticmethod
     def get_options():
-        """Returns dictionary with application variables from system environment.
+        """Returns dictionary with application variables from system
+        environment.
 
         Application variables start with ``app_`` prefix,
         but in returned dictionary is set without this prefix.

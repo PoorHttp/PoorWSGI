@@ -45,7 +45,7 @@ jobs:
         pytest -v examples --mypy
         pytest -v tests_integrity --mypy --with-uwsgi
         pytest -v tests_integrity --mypy
-    - name: Build
-      run: |
-        python setup.py sdist
-        python setup.py bdist_wheel
+#    - name: Build
+#      run: |
+#        python setup.py sdist
+#        python setup.py bdist_wheel

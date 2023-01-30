@@ -4,8 +4,8 @@
 :Functions: parse_negotiation
 """
 # pylint: disable=too-many-lines
-# pylint: disable=consider-using-f-string
 
+# pylint: disable=deprecated-module
 from cgi import FieldStorage as CgiFieldStorage, parse_header
 from json import loads as json_loads
 from io import BytesIO
@@ -234,7 +234,7 @@ class SimpleRequest:
     def server_admin(self):
         """Server admin if set, or ``webmaster@hostname``."""
         return self.__environ.get('SERVER_ADMIN',
-                                  'webmaster@%s' % self.hostname)
+                                  f'webmaster@{self.hostname}')
 
     @property
     def server_hostname(self):
@@ -369,8 +369,8 @@ class SimpleRequest:
             port = self.forwarded_port or self.host_port
             if not ((port == 80 and scheme == 'http') or
                     (port == 443 and scheme == 'https')):
-                return "%s://%s:%d%s" % (scheme, host, port, uri)
-            return "%s://%s%s" % (scheme, host, uri)
+                return f"{scheme}://{host}:{port}{uri}"
+            return f"{scheme}://{host}{uri}"
         return uri
 
 

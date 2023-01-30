@@ -10,7 +10,6 @@ from io import FileIO as file
 import logging
 
 from setuptools import Command, setup  # type: ignore
-from setuptools.errors import DistutilsError
 from setuptools.command.test import test  # type: ignore
 
 from poorwsgi.state import __version__
@@ -21,20 +20,21 @@ environ.update({'PYTHONPATH': 'poorwsgi'})
 
 def find_data_files(directory, target_folder=""):
     """Find files in directory, and prepare tuple for setup."""
-    rv = []
-    for root, dirs, files in walk(directory):
+    retval = []
+    for root, dirs , files in walk(directory):
         if target_folder:
-            rv.append((target_folder,
+            retval.append((target_folder,
                        list(root+'/'+f
                             for f in files if f[0] != '.' and f[-1] != '~')))
         else:
-            rv.append((root,
+            retval.append((root,
                        list(root+'/'+f
                             for f in files if f[0] != '.' and f[-1] != '~')))
-    return rv
+    return retval
 
 
-class build_doc(Command):
+class BuildDoc(Command):
+    """Build html documentation."""
     description = "build html documentation, need jinja24doc >= 1.1.0"
     user_options = [
             ('build-base=', 'b',
@@ -58,9 +58,10 @@ class build_doc(Command):
         """Generate page."""
         if out_name is None:
             out_name = in_name
-        if call(['jinja24doc', '-v', '--var', 'public=%s' % self.public,
-                 '_%s.html' % in_name, 'doc'],
-                stdout=file(self.html_temp + '/%s.html' % out_name, 'w')):
+        if call(['jinja24doc', '-v', '--var', f'public={self.public}',
+                 f'_{in_name}.html', 'doc'],
+                stdout=file(f'{self.html_temp}/{out_name}.html', 'w',
+                            encoding="utf-8")):
             raise IOError(1, 'jinja24doc failed')
 
     def run(self):
@@ -82,7 +83,8 @@ class build_doc(Command):
         copyfile('doc/small-logo.png', self.html_temp+'/small-logo.png')
 
 
-class clean_doc(Command):
+class CleanDoc(Command):
+    """Clean temporary files from build_doc command."""
     description = "clean up temporary files from 'build_doc' command"
     user_options = [
             ('build-base=', 'b',
@@ -107,7 +109,8 @@ class clean_doc(Command):
             logging.warn("'%s' does not exist -- can't clean it", self.html_temp)
 
 
-class install_doc(install_data):
+class InstallDoc(install_data):
+    """Install documentation files."""
     description = "install html documentation"
     user_options = install_data.user_options + [
         ('build-base=', 'b',
@@ -140,6 +143,7 @@ class install_doc(install_data):
 
 
 class PyTest(test):
+    """Run tests."""
     user_options = [('pytest-args=',
                      'a', 'Arguments to pass to py.test.'),
                     ('test-suite=',
@@ -162,12 +166,12 @@ class PyTest(test):
         # import here, cause outside the eggs aren't loaded
         import pytest
         if pytest.main(self.pytest_args) != 0:
-            raise DistutilsError("Test failed")
+            raise RuntimeError("Test failed")
 
 
 def doc():
     """Return README.rst content."""
-    with open('README.rst', 'r') as readme:
+    with open('README.rst', 'r', encoding="utf-8") as readme:
         return readme.read().strip()
 
 
@@ -213,9 +217,9 @@ setup(
         "Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware",
         "Topic :: Software Development :: Libraries :: Python Modules"
     ],
-    cmdclass={'build_doc': build_doc,
-              'clean_doc': clean_doc,
-              'install_doc': install_doc,
+    cmdclass={'build_doc': BuildDoc,
+              'clean_doc': CleanDoc,
+              'install_doc': InstallDoc,
               'test': PyTest},
     tests_require=['pytest', 'requests', 'openapi-core', 'simplejson'],
     extras_require={

@@ -3,11 +3,12 @@
 :Classes:   NoCompress, PoorSession
 :Functions: hidden, get_token, check_token
 """
-from hashlib import sha512, sha256
+from hashlib import sha3_512, sha3_256
 from json import dumps, loads
 from base64 import b64decode, b64encode
 from logging import getLogger
 from time import time
+from random import Random
 from typing import Union, Dict, Any, Optional
 
 import bz2
@@ -15,7 +16,6 @@ import bz2
 from http.cookies import SimpleCookie
 
 from poorwsgi.headers import Headers
-from poorwsgi.request import Request
 from poorwsgi.response import Response
 
 log = getLogger("poorwsgi")  # pylint: disable=invalid-name
@@ -26,35 +26,47 @@ log = getLogger("poorwsgi")  # pylint: disable=invalid-name
 # pylint: disable=consider-using-f-string
 
 
-def hidden(text: Union[str, bytes], passwd: Union[str, bytes]) -> bytes:
+def hidden(text: Union[str, bytes], secret_hash: bytes) -> bytes:
     """(en|de)crypt text with sha hash of passwd via xor.
 
     Arguments:
         text : str or bytes
             raw data to (en|de)crypt
-        passwd : str or bytes
-            password
+        secret_hash : some binary digest of secret key
+            secret key
     """
-    if isinstance(passwd, bytes):
-        passwd = sha512(passwd).digest()
-    else:
-        passwd = sha512(passwd.encode("utf-8")).digest()
-    passlen = len(passwd)
+    secret_len = len(secret_hash)
 
     # text must be bytes
     if isinstance(text, str):
         text = text.encode("utf-8")
 
-    if isinstance(text, str):       # if text is str
-        retval = ''
-        for i, val in enumerate(text):
-            retval += chr(ord(val) ^ ord(passwd[i % passlen]))
-    else:                           # if text is bytes
-        retval = bytearray()
-        for i, val in enumerate(text):
-            retval.append(val ^ passwd[i % passlen])
+    retval = bytearray()
+    for i, val in enumerate(text):
+        retval.append(val ^ secret_hash[i % secret_len])
 
     return retval
+
+
+def encrypt(data: bytes, table: bytearray) -> bytes:
+    """Encrypt data by replacing bytes value.
+
+    >>> encrypt(b'Hello', bytearray(range(255, -1, -1)))
+    b'\xb7\x9a\x93\x93\x90'
+    """
+    return bytes(table[byte] for byte in data)
+
+
+def decrypt(data: bytes, table: bytearray) -> bytes:
+    """Decrypt data by replacing bytes value.
+
+    >>> decrypt(b'\\xb7\\x9a\\x93\\x93\\x90', bytearray(range(255, -1, -1)))
+    b'Hello'
+    """
+    reverse={}
+    for key, val in enumerate(table):
+        reverse[val] = key
+    return bytes(reverse[byte] for byte in data)
 
 
 def get_token(secret: str, client: str, timeout: Optional[int] = None,
@@ -72,7 +84,7 @@ def get_token(secret: str, client: str, timeout: Optional[int] = None,
             expired = now + 2 * timeout
         text = "%s%s%s" % (secret, expired, client)
 
-    return sha256(text.encode()).hexdigest()
+    return sha3_256(text.encode()).hexdigest()
 
 
 def check_token(token: str, secret: str, client: str,
@@ -160,7 +172,7 @@ class PoorSession:
         obj.import(sess.data['dict'])
     """
 
-    def __init__(self, secret_key: Union[Request, str, bytes],
+    def __init__(self, secret_key: Union[str, bytes],
                  expires: int = 0, max_age: Optional[int] = None,
                  domain: str = '', path: str = '/', secure: bool = False,
                  same_site: bool = False, compress=bz2, sid: str = 'SESSID'):
@@ -211,15 +223,6 @@ class PoorSession:
         *Changed in version 2.4.x*: use app.secret_key in constructor, and than
         call load method.
         """
-        if not isinstance(secret_key, (str, bytes)):  # backwards compatibility
-            log.warning('Do not use request in PoorSession constructor, '
-                        'see new api and call load method manually.')
-            if secret_key.secret_key is None:
-                raise SessionError("poor_SecretKey is not set!")
-            self.__secret_key = secret_key.secret_key
-        else:
-            self.__secret_key = secret_key
-
         self.__sid = sid
         self.__expires = expires
         self.__max_age = max_age
@@ -229,13 +232,22 @@ class PoorSession:
         self.__same_site = same_site
         self.__cps = compress if compress is not None else NoCompress
 
+        if isinstance(secret_key, str):
+            secret_key = secret_key.encode('utf-8')
+
+        if not secret_key:
+            raise SessionError("poor_SecretKey is not set!")
+
+        self.__secret_hash = sha3_512(secret_key).digest()
+        self.__secret_table = bytearray(range(0, 256))
+
+        random = Random(self.__secret_hash)
+        random.shuffle(self.__secret_table)
+
         # data is session dictionary to store user data in cookie
         self.data: Dict[Any, Any] = {}
         self.cookie: SimpleCookie = SimpleCookie()
         self.cookie[sid] = ''
-
-        if not isinstance(secret_key, (str, bytes)):  # backwards compatibility
-            self.load(secret_key.cookies)
 
     def load(self, cookies: Union[SimpleCookie, tuple]):
         """Load session from request's cookie"""
@@ -245,9 +257,12 @@ class PoorSession:
 
         if raw:
             try:
-                self.data = loads(hidden(self.__cps.decompress
-                                         (b64decode(raw.encode())),
-                                         self.__secret_key))
+                self.data = loads(
+                    hidden(
+                        decrypt(
+                            self.__cps.decompress(b64decode(raw.encode())),
+                            self.__secret_table),
+                        self.__secret_hash))
             except Exception as err:
                 log.info(repr(err))
                 raise SessionError("Bad session data.") from err
@@ -260,8 +275,11 @@ class PoorSession:
 
         This method is called automatically in header method.
         """
-        raw = b64encode(self.__cps.compress(hidden(dumps(self.data),
-                                                   self.__secret_key), 9))
+        raw = b64encode(
+                self.__cps.compress(
+                    encrypt(hidden(dumps(self.data), self.__secret_hash),
+                            self.__secret_table),
+                    9))
         raw = raw if isinstance(raw, str) else raw.decode()
         self.cookie[self.__sid] = raw
         self.cookie[self.__sid]['HttpOnly'] = True

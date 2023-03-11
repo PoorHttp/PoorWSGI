@@ -11,7 +11,6 @@ from poorwsgi.session import PoorSession, SessionError
 SECRET_KEY = urandom(32)
 
 # pylint: disable=redefined-outer-name
-# pylint: disable=no-self-use
 # pylint: disable=missing-function-docstring
 # pylint: disable=too-few-public-methods
 
@@ -46,6 +45,8 @@ def req_session():
 
 class TestSession:
     """Tests PoorSession configuration options."""
+
+    # pylint: disable=no-self-use
 
     def test_default(self):
         """Tests the default PoorSession configuration."""
@@ -111,6 +112,8 @@ class TestSession:
 class TestSameSite:
     """Tests for the PoorSession same_site option."""
 
+    # pylint: disable=no-self-use
+
     def test_default(self):
         """Tests the default SameSite behavior of PoorSession."""
         session = PoorSession(SECRET_KEY)
@@ -138,6 +141,8 @@ class TestSameSite:
 
 class TestErrors:
     """Tests exceptions."""
+
+    # pylint: disable=no-self-use
 
     def test_no_secret_key(self):
         """Tests PoorSession initialization without a secret key, expecting
@@ -177,6 +182,8 @@ class TestErrors:
 class TestLoadWrite:
     """Tests the load and write methods."""
 
+    # pylint: disable=no-self-use
+
     def test_compatibility_empty(self, req):
         """Tests compatibility with an empty request in PoorSession
         constructor."""
@@ -194,3 +201,29 @@ class TestLoadWrite:
         session = PoorSession(SECRET_KEY)
         session.load(req_session.cookies)
         assert session.data == {'test': True}
+
+    def test_tampered_cookie_rejected(self, req_session):
+        """Tests that a tampered cookie value raises SessionError."""
+        # Flip one byte in the payload part (before the '.')
+        raw = req_session.cookies['SESSID'].value
+        payload_b64, sig_b64 = raw.split('.')
+        # Replace last char of payload to corrupt the ciphertext
+        corrupted = payload_b64[:-1] + ('A' if payload_b64[-1] != 'A' else 'B')
+        # Rebuild cookie with original signature — HMAC must reject it
+        # pylint: disable=protected-access
+        morsel = Morsel()
+        morsel._key = 'SESSID'
+        morsel._value = corrupted + '.' + sig_b64
+        morsel._coded_value = corrupted + '.' + sig_b64
+        req_session.cookies['SESSID'] = morsel
+
+        session = PoorSession(SECRET_KEY)
+        with raises(SessionError):
+            session.load(req_session.cookies)
+
+    def test_wrong_key_rejected(self, req_session):
+        """Tests that a cookie encrypted with a different key raises
+        SessionError."""
+        session = PoorSession(b'different_key_' + SECRET_KEY)
+        with raises(SessionError):
+            session.load(req_session.cookies)

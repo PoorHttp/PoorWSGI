@@ -1051,10 +1051,39 @@ multiple times.
 Sessions
 ~~~~~~~~
 Like mod_python, PoorSession is the session class of PoorWSGI. It's a
-self-contained cookie with a data dictionary. Data are sent to the client
-in a hidden, bzip2-compressed, base64-encoded format. PoorSession needs a ``secret_key``,
-which can be set by the ``poor_SecretKey`` environment variable to the
-Application.secret_key property.
+self-contained cookie with a data dictionary. Data are stored in the cookie
+in an **encrypted and authenticated** format. PoorSession needs a
+``secret_key``, which can be set via the ``poor_SecretKey`` environment
+variable or the ``Application.secret_key`` property.
+
+**Security model** (XOR + substitution variant, no external dependencies):
+
+* **Integrity** — The cookie is signed with HMAC-SHA256. Any modification
+  by the client is detected and the cookie is rejected. An attacker cannot
+  forge a valid cookie without knowing the secret key.
+
+* **Confidentiality** — The data are protected by a XOR stream cipher with a
+  1024-byte keystream (derived via ``shake_256``) combined with a
+  byte-substitution step. This is a custom construction, **not AES**.
+  A passive attacker who can collect a large number of cookies from different
+  users (roughly 512 or more) may be able to reconstruct the keystream via
+  a known-plaintext attack (JSON data always starts with ``{"``), and
+  subsequently read the contents of other cookies. **Do not store highly
+  sensitive data** (passwords, private keys, …) in the cookie. Store only
+  session identifiers, user IDs, or non-critical flags.
+
+* **Upgrade notice** — Updating PoorWSGI to a version that changes the
+  encryption scheme (e.g. changes ``KEYSTREAM_SIZE``, switches from SHA-3
+  to shake, or adds HMAC) will **invalidate all existing cookies**. Users
+  will be logged out after a server restart / upgrade. This is expected
+  behaviour.
+
+* **Cookie format**: ``base64(ciphertext).base64(hmac-sha256)``
+
+The ``KEYSTREAM_SIZE`` constant in ``poorwsgi.session`` controls the keystream
+length (default ``1024``). Increasing it makes known-plaintext attacks harder
+at the cost of slightly larger memory usage per session instance. Changing it
+invalidates all existing cookies.
 
 .. code:: python
 
@@ -1074,7 +1103,7 @@ Application.secret_key property.
         @wraps(fn)      # using wraps make right/better /debug-info page
         def handler(req):
             cookie = PoorSession(app.secret_key)
-            cookie.load()
+            cookie.load(req.cookies)
             if "passwd" not in cookie.data:         # expires or didn't set
                 log.info("Login cookie not found.")
                 redirect("/login", message=b"Login required")

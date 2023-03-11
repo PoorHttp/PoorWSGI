@@ -6,6 +6,13 @@
     * Updated openapi3.py example to openapi-core 0.23+ API (Spec replaced
       by OpenAPI)
     * Drop Python 3.9 and 3.10 support, require Python >= 3.11
+    * PoorSession cookie encryption - ! existing cookies are invalidated !
+        - Self-contained encrypted session cookie using shake_256 XOF keystream
+          (1024 B) and byte-substitution (no external dependencies)
+        - HMAC-SHA256 authentication (Encrypt-then-MAC); tampered or forged
+          cookies are rejected
+        - Domain-separated key derivation for keystream, MAC and permutation
+        - Users will be logged out after upgrading from a previous version
 
 ==== 2.7.0 ====
     * Reserved Request.db attribute for usage

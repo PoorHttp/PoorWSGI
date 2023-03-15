@@ -7,12 +7,12 @@ import pytest
 
 from poorwsgi.response import Response, JSONResponse, TextResponse, \
     GeneratorResponse, StrGeneratorResponse, JSONGeneratorResponse, \
-    RedirectResponse, FileObjResponse, HTTPException, redirect, abort
+    RedirectResponse, FileObjResponse, NotModifiedResponse, \
+    HTTPException, redirect, abort
 from poorwsgi.request import Headers
 from poorwsgi.state import HTTP_NOT_FOUND
 
 # pylint: disable=missing-function-docstring
-# pylint: disable=no-self-use
 # pylint: disable=redefined-outer-name
 
 
@@ -116,7 +116,7 @@ class TestJSONResponse:
     def test_null(self):
         response = JSONResponse()
         data = load(response(start_response))
-        assert data == None
+        assert data is None
 
     def test_list_of_objects(self):
         response = JSONResponse([{'x': 1}, {'x': 2}])
@@ -267,5 +267,19 @@ class TestFileResponse():
 
     def test_assert_text(self):
         with pytest.raises(AssertionError):
-            with open(__file__, 'rt') as file_:
+            with open(__file__, 'rt', encoding='utf-8') as file_:
                 FileObjResponse(file_)
+
+
+class TestNotModifiedResponse():
+    """Tests for NotModifiedResponse."""
+
+    def test_params(self):
+        res = NotModifiedResponse(etag='W/"etag"',
+                                  content_location="content-location",
+                                  date="22 Apr 2022",
+                                  vary="yrav")
+        assert res.headers.get('E-Tag') == 'W/"etag"'
+        assert res.headers.get('Content-Location') == "content-location"
+        assert res.headers.get('Date') == "22 Apr 2022"
+        assert res.headers.get('Vary') == "yrav"

@@ -46,6 +46,11 @@ class TestSimple():
     def test_static(self, url):
         check_url(url+"/test/static")
 
+    def test_static_not_modified(self, url):
+        res = check_url(url+"/test/static")
+        check_url(url+"/test/static", status_code=304,
+                  headers={'E-Tag': res.headers.get('E-Tag')})
+
     def test_variable_int(self, url):
         check_url(url+"/test/123")
 

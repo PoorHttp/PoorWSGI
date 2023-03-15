@@ -1,7 +1,9 @@
-==== 2.5.1.dev0 ====
+==== 2.6.0dev0 ====
     * Running on MS Windows fix
     * UTF-8 HTTP Digest username support
     * JSONResponse support all response type now (data argument)
+    * EmptyResponse replaced by NoContentResponse
+    * new NotModifiedResponse
 
 ==== 2.5.0 ====
     * fix file callback on files smaller than 1000B

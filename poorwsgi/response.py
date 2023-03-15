@@ -22,8 +22,9 @@ try:
 except ImportError:
     JSON_GENERATOR = False
 
-from poorwsgi.state import DECLINED, HTTP_OK, \
-    HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_I_AM_A_TEAPOT
+from poorwsgi.state import DECLINED, HTTP_OK, HTTP_NO_CONTENT, \
+    HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_I_AM_A_TEAPOT, \
+    HTTP_NOT_MODIFIED, deprecated
 from poorwsgi.headers import Headers, HeadersList
 
 log = getLogger('poorwsgi')
@@ -32,6 +33,13 @@ responses[HTTP_I_AM_A_TEAPOT] = "I'm a teapot"
 
 # pylint: disable=unsubscriptable-object
 # pylint: disable=consider-using-f-string
+
+NOT_MODIFIED_DENY = {
+    'Content-Encoding', 'Content-Language', 'Content-Length', 'Content-MD5',
+    'Content-Range', 'Content-Type'}
+NOT_MODIFIED_ONE_OF_REQUIRED = {
+    'Content-Location', 'Date', 'ETag', 'Vary'
+    }
 
 
 class IBytesIO(BytesIO):
@@ -49,7 +57,7 @@ class IBytesIO(BytesIO):
 class BaseResponse:
     """Base class for response."""
 
-    def __init__(self, content_type: str = "text/html; charset=utf-8",
+    def __init__(self, content_type: str = "",
                  headers: Optional[Union[Headers, HeadersList]] = None,
                  status_code: int = HTTP_OK):
         assert isinstance(content_type, str), \
@@ -132,26 +140,20 @@ class BaseResponse:
 
     def __start_response__(self, start_response: Callable):
         if self.__status_code == 304:
-            # Not Modified MUST NOT include other entity-headers
-            # http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+            # Not Modified SHOULD NOT include other representation headers
+            # https://www.rfc-editor.org/rfc/rfc9110.html#name-304-not-modified
             # pylint: disable=too-many-boolean-expressions
-            if 'Content-Encoding' in self.__headers \
-                    or 'Content-Language' in self.__headers \
-                    or 'Content-Length' in self.__headers \
-                    or 'Content-Location' in self.__headers \
-                    or 'Content-MD5' in self.__headers \
-                    or 'Content-Range' in self.__headers \
-                    or 'Content-Type' in self.__headers:
-                log.warning('Some entity header in Not Modified response')
-            if 'Date' not in self.__headers:
-                log.warning('Missing Date header in Not Modified response')
+            _headers = set(self.__headers.keys())
+            if _headers.intersection(NOT_MODIFIED_DENY):
+                log.warning(
+                        'Some representation header in Not Modified response')
+            if not _headers.intersection(NOT_MODIFIED_ONE_OF_REQUIRED):
+                log.warning(
+                        'Missing any required header in Not Modified response')
         else:
             if self.content_type \
                     and not self.__headers.get('Content-Type'):
                 self.__headers.add('Content-Type', self.content_type)
-            elif not self.content_type \
-                    and not self.__headers.get('Content-Type'):
-                log.info('Content-type not set!')
 
             if self.content_length \
                     and not self.__headers.get('Content-Length'):
@@ -413,42 +415,54 @@ class JSONGeneratorResponse(StrGeneratorResponse):
         super().__init__(generator, mime_type, headers, status_code)
 
 
-class EmptyResponse(BaseResponse):
+class NoContentResponse(BaseResponse):
     """For situation, where only state is returned."""
-    def __init__(self, status_code: int = HTTP_OK):
-        super().__init__(status_code=status_code)
-
-    @property
-    def headers(self):
-        """EmptyResponse don't have headers"""
-        return Headers()
-
-    @headers.setter
-    def headers(self, value):
-        # pylint: disable=unused-argument,logging-format-interpolation
-        stack_record = stack()[1]
-        log.warning("EmptyResponse don't use headers.\n"
-                    "  File {1}, line {2}, in {3} \n"
-                    "{0}".format(stack_record[4][0], *stack_record[1:4]))
-
-    def add_header(self, *args, **kwargs):
-        """EmptyResponse don't have headers"""
-        # pylint: disable=unused-argument,logging-format-interpolation
-        stack_record = stack()[1]
-        log.warning("EmptyResponse don't use headers.\n"
-                    "  File {1}, line {2}, in {3} \n"
-                    "{0}".format(stack_record[4][0], *stack_record[1:4]))
+    def __init__(self,
+            headers: Optional[Union[Headers, HeadersList]] = None,
+            status_code: int = HTTP_NO_CONTENT):
+        super().__init__(headers=headers, status_code=status_code)
 
     def __start_response__(self, start_response: Callable):
         start_response(
             "%d %s" % (self.status_code, self.reason), [])
 
 
-class Declined(EmptyResponse):
+class EmptyResponse(NoContentResponse):
+    """Compatibility response"""
+    @deprecated("use NoContentResponse instead.")
+    def __init__(self, status_code: int = HTTP_NO_CONTENT):
+        super().__init__(status_code=status_code)
+
+
+class Declined(NoContentResponse):
     """For situation without answer.
 
     This response is returned, when state.DECLINED was returned.
     """
+    def __init__(self, status_code: int = HTTP_OK):
+        super().__init__(status_code=status_code)
+
+    @property
+    def headers(self):
+        """Declined response don't have headers."""
+        return Headers()
+
+    @headers.setter
+    def headers(self, value):
+        # pylint: disable=unused-argument,logging-format-interpolation
+        stack_record = stack()[1]
+        log.warning("Declined response don't use headers.\n"
+                    "  File {1}, line {2}, in {3} \n"
+                    "{0}".format(stack_record[4][0], *stack_record[1:4]))
+
+    def add_header(self, *args, **kwargs):
+        """Declined response don't have headers"""
+        # pylint: disable=unused-argument,logging-format-interpolation
+        stack_record = stack()[1]
+        log.warning("Declined response don't use headers.\n"
+                    "  File {1}, line {2}, in {3} \n"
+                    "{0}".format(stack_record[4][0], *stack_record[1:4]))
+
     def __call__(self, start_response: Callable):
         log.debug("DECLINED")
         return ()
@@ -481,6 +495,27 @@ class RedirectResponse(Response):
                          headers=headers,
                          status_code=status_code)
         self.add_header("Location", location)
+
+
+class NotModifiedResponse(NoContentResponse):
+    """Not Modified Response."""
+    def __init__(self,
+            headers: Optional[Union[Headers, HeadersList]] = None,
+            etag: Optional[str] = None,
+            content_location: Optional[str] = None,
+            date: Optional[str] = None,
+            vary: Optional[str] = None):
+        # pylint: disable=too-many-arguments
+
+        super().__init__(status_code=HTTP_NOT_MODIFIED, headers=headers)
+        if etag:
+            self.add_header('E-Tag', etag)
+        if content_location:
+            self.add_header('Content-Location', content_location)
+        if date:
+            self.add_header('Date', date)
+        if vary:
+            self.add_header('Vary', vary)
 
 
 class ResponseError(RuntimeError):

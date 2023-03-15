@@ -24,6 +24,7 @@ from poorwsgi.session import PoorSession, SessionError  # noqa
 from poorwsgi.response import Response, RedirectResponse, \
     FileObjResponse, FileResponse, GeneratorResponse, \
     EmptyResponse, HTTPException # noqa
+from poorwsgi.results import not_modified
 
 try:
     import uwsgi  # type: ignore
@@ -257,6 +258,9 @@ def style(req):
 @app.route('/test/<variable:int>')
 @app.route('/test/static')
 def test_dynamic(req, variable=None):
+    if not variable and req.headers.get('E-Tag') == 'W/"0123"':
+        return not_modified(req)
+
     var_info = {'type': type(variable),
                 'value': variable,
                 'uri_rule': req.uri_rule}
@@ -282,7 +286,7 @@ def test_dynamic(req, variable=None):
         ("</table>",) + \
         get_footer()
 
-    response = Response()
+    response = Response(headers={'E-Tag': 'W/"0123"'})
     for line in buff:
         response.write(line + '\n')
     return response

@@ -18,7 +18,7 @@ from typing import Dict, Callable
 import os
 import mimetypes
 
-from poorwsgi.response import Response, EmptyResponse, HTTPException
+from poorwsgi.response import Response, NotModifiedResponse, HTTPException
 from poorwsgi.state import METHOD_ALL, methods, sorted_methods, \
     HTTP_NOT_MODIFIED, HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED, HTTP_FORBIDDEN, \
     HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED, HTTP_INTERNAL_SERVER_ERROR, \
@@ -86,8 +86,9 @@ def handlers_view(handlers, sort=True):
 
 def not_modified(req):
     """Return EmptyResponse with Not Modified status."""
-    # pylint: disable=unused-argument
-    return EmptyResponse(HTTP_NOT_MODIFIED)
+    return NotModifiedResponse(
+            etag=req.headers.get('E-Tag'),
+            content_location=req.headers.get('Content-Location'))
 
 
 def internal_server_error(req, **kwargs):

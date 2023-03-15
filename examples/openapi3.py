@@ -16,7 +16,7 @@ from openapi_core import Spec, \
     openapi_request_validator, openapi_response_validator
 from openapi_core.templating.paths.exceptions import PathNotFound, \
     OperationNotFound
-from openapi_core.validation.exceptions import InvalidSecurity
+from openapi_core.validation.request.exceptions import SecurityValidationError
 
 TEST_PATH = path.dirname(__file__)
 python_path.insert(0, path.abspath(
@@ -84,10 +84,9 @@ def before_each_response(req):
             log.debug(error)
             if isinstance(error, (OperationNotFound, PathNotFound)):
                 return  # not found
-            if isinstance(error, InvalidSecurity):
+            if isinstance(error, SecurityValidationError):
                 abort(JSONResponse(error=str(errors), status_code=401,
                                    charset=None))
-
             errors.append(repr(error)+":"+str(error))
         abort(JSONResponse(error=';'.join(errors), status_code=400,
                            charset=None))
@@ -162,7 +161,8 @@ def method_raises_errror(req):
 @app.route('/login')
 def login(req):
     """Set login cookie test."""
-    cookie = PoorSession(req)
+    assert req
+    cookie = PoorSession(app.secret_key)
     cookie.data['login'] = True
     response = Response(status_code=204)
     cookie.header(response)
@@ -172,8 +172,9 @@ def login(req):
 @app.route('/check/login')
 def check_login(req):
     """Clear login cookie - logout test."""
-    cookie = PoorSession(req)
-    if 'login' not in cookie.data:
+    session = PoorSession(app.secret_key)
+    session.load(req.cookies)
+    if 'login' not in session.data:
         raise HTTPException(401)
     return "login ok"
 

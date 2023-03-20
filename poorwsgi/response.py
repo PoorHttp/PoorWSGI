@@ -9,9 +9,11 @@ Poor WSGI Response classes.
 from http.client import responses
 from io import BytesIO, IOBase, BufferedIOBase, TextIOBase
 from os import access, R_OK, fstat
+from os.path import getctime
 from logging import getLogger
 from json import dumps
 from inspect import stack
+from datetime import datetime
 from typing import Union, Callable, Iterable, BinaryIO, Optional
 
 import mimetypes
@@ -25,7 +27,8 @@ except ImportError:
 from poorwsgi.state import DECLINED, HTTP_OK, HTTP_NO_CONTENT, \
     HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_I_AM_A_TEAPOT, \
     HTTP_NOT_MODIFIED, deprecated
-from poorwsgi.headers import Headers, HeadersList
+from poorwsgi.headers import Headers, HeadersList, \
+    time_to_http, datetime_to_http
 
 log = getLogger('poorwsgi')
 # not in http.client.responses
@@ -340,6 +343,8 @@ class FileResponse(FileObjResponse):
     Be careful not to use a single FileReponse instance multiple times!
     WSGI server closes file, which is returned by this response. So just
     like Response, instance of FileResponse can be used only once!
+
+    This object adds Last-Modified header, if is not set.
     """
     def __init__(self, path: str, content_type: Optional[str] = None,
                  headers: Optional[Union[Headers, HeadersList]] = None,
@@ -355,6 +360,9 @@ class FileResponse(FileObjResponse):
                          content_type=content_type,
                          headers=headers,
                          status_code=status_code)
+
+        if 'Last-Modified' not in self.headers:
+            self.add_header('Last-Modified', time_to_http(getctime(path)))
 
 
 class GeneratorResponse(BaseResponse):
@@ -503,7 +511,7 @@ class NotModifiedResponse(NoContentResponse):
             headers: Optional[Union[Headers, HeadersList]] = None,
             etag: Optional[str] = None,
             content_location: Optional[str] = None,
-            date: Optional[str] = None,
+            date: Optional[Union[str, int, datetime]] = None,
             vary: Optional[str] = None):
         # pylint: disable=too-many-arguments
 
@@ -512,8 +520,12 @@ class NotModifiedResponse(NoContentResponse):
             self.add_header('E-Tag', etag)
         if content_location:
             self.add_header('Content-Location', content_location)
-        if date:
+        if isinstance(date, str) and date:
             self.add_header('Date', date)
+        elif isinstance(date, int):
+            self.add_header('Date', time_to_http(date))
+        elif isinstance(date, datetime):
+            self.add_header('Date', datetime_to_http(date))
         if vary:
             self.add_header('Vary', vary)
 

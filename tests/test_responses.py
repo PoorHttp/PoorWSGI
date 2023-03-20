@@ -1,5 +1,6 @@
 """Test for Response objects and it's functionality."""
 from io import BufferedWriter, BytesIO
+from datetime import datetime, UTC
 
 from simplejson import load, loads
 
@@ -7,7 +8,7 @@ import pytest
 
 from poorwsgi.response import Response, JSONResponse, TextResponse, \
     GeneratorResponse, StrGeneratorResponse, JSONGeneratorResponse, \
-    RedirectResponse, FileObjResponse, NotModifiedResponse, \
+    RedirectResponse, FileObjResponse, FileResponse, NotModifiedResponse, \
     HTTPException, redirect, abort
 from poorwsgi.request import Headers
 from poorwsgi.state import HTTP_NOT_FOUND
@@ -270,6 +271,10 @@ class TestFileResponse():
             with open(__file__, 'rt', encoding='utf-8') as file_:
                 FileObjResponse(file_)
 
+    def test_last_modified_header(self):
+        res = FileResponse(__file__)
+        assert res.headers.get('Last-Modified') is not None
+
 
 class TestNotModifiedResponse():
     """Tests for NotModifiedResponse."""
@@ -283,3 +288,15 @@ class TestNotModifiedResponse():
         assert res.headers.get('Content-Location') == "content-location"
         assert res.headers.get('Date') == "22 Apr 2022"
         assert res.headers.get('Vary') == "yrav"
+
+    def test_date_time(self):
+        res = NotModifiedResponse(date=0)
+        assert res.headers.get('Date') == "Thu, 01 Jan 1970 00:00:00 GMT"
+
+    def test_date_datetime(self):
+        res = NotModifiedResponse(date = datetime.fromtimestamp(0, UTC))
+        assert res.headers.get('Date') == "Thu, 01 Jan 1970 00:00:00 GMT"
+
+    def test_date_empty_string(self):
+        res = NotModifiedResponse(date = "")
+        assert res.headers.get('Date') is None

@@ -4,6 +4,9 @@
     * JSONResponse support all response type now (data argument)
     * EmptyResponse replaced by NoContentResponse
     * new NotModifiedResponse
+    * time_to_http, datetime_to_http, http_to_datetime and http_to_time header
+      functions for manipulating Date type headers
+    * FileResponse generates Last-Modified header now
 
 ==== 2.5.0 ====
     * fix file callback on files smaller than 1000B

@@ -6,9 +6,14 @@
 from collections.abc import Mapping
 from wsgiref.headers import _formatparam  # type: ignore
 
+from datetime import datetime, UTC
 from typing import Union, List, Tuple, Optional
 
 # pylint: disable=consider-using-f-string
+
+# https://httpwg.org/specs/rfc9110.html#field.date
+# e.g. Tue, 15 Nov 1994 08:12:31 GMT
+HEADER_DATETIME_FORMAT = "%a, %d %b %Y %X GMT"
 
 
 def parse_negotiation(value: str):
@@ -48,6 +53,46 @@ def render_negotiation(negotation: List[Tuple]):
     for nego in negotation:
         values.append(';q='.join(map(str, nego)))
     return ', '.join(values)
+
+
+def datetime_to_http(value: datetime):
+    """Return HTTP Date from timestamp.
+
+    >>> datetime_to_http(datetime.fromtimestamp(0, UTC))
+    'Thu, 01 Jan 1970 00:00:00 GMT'
+    """
+    return value.strftime(HEADER_DATETIME_FORMAT)
+
+
+def time_to_http(value: Optional[Union[int, float]] = None):
+    """Return HTTP Date from timestamp.
+
+    >>> time_to_http(0)
+    'Thu, 01 Jan 1970 00:00:00 GMT'
+    >>> time_to_http()  # doctest: +ELLIPSIS
+    '... GMT'
+    """
+    if value is not None:
+        return datetime_to_http(datetime.fromtimestamp(int(value), UTC))
+    return datetime_to_http(datetime.utcnow())
+
+
+def http_to_datetime(value: str):
+    """Return timestamp from HTTP Date
+
+    >>> http_to_datetime("Thu, 01 Jan 1970 00:00:00 GMT")
+    datetime.datetime(1970, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+    """
+    return datetime.strptime(value, HEADER_DATETIME_FORMAT).replace(tzinfo=UTC)
+
+
+def http_to_time(value: str):
+    """Return timestamp from HTTP Date
+
+    >>> http_to_time("Thu, 01 Jan 1970 00:00:00 GMT")
+    0
+    """
+    return int(http_to_datetime(value).timestamp())
 
 
 HeadersList = Union[list, tuple, set, dict]

@@ -25,6 +25,7 @@ from poorwsgi.state import METHOD_ALL, methods, sorted_methods, \
     HTTP_NOT_IMPLEMENTED, \
     __version__, __date__
 from poorwsgi.session import get_token
+from poorwsgi.headers import time_to_http
 
 HTML_ESCAPE_TABLE = {'&': "&amp;",
                      '"': "&quot;",
@@ -385,6 +386,8 @@ def directory_index(req, path):
             "`%s' is not directory.",
             path)
         raise HTTPException(HTTP_INTERNAL_SERVER_ERROR)
+
+    last_modified = time_to_http(getctime(path))
 
     index = os.listdir(path)
     if req.document_root != path[:-1]:

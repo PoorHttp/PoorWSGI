@@ -88,7 +88,7 @@ All values could looks like:
 
     @app.route('/hello')
     def hello(req):
-        return "Hello world!", "text/plain", ('X-Attribute': 'hello world'),
+        return "Hello world!", "text/plain", ('X-Attribute', 'hello world'),
                HTTP_OK
 
 Returning Responses
@@ -207,10 +207,10 @@ Response which is use for generator values. Generator **must** return bytes,
 instead of strings! For string returned generator, use **StrGeneratorResponse**,
 which use generator for utf-8 encoding to bytes.
 
-EmptyResponse
-`````````````
-Sometimes you don't want to response anything instead of status cod. Empty
-response only status code and reason. No headers, no content.
+NoContentResponse
+`````````````````
+Sometimes you don't want to response payload. NoContentResponse has default code
+`204 No Content`.
 
 RedirectResponse
 ````````````````
@@ -221,6 +221,35 @@ Response with interface for more comfortable redirect response.
     @app.route("/old/url")
     def old_url(req):
         return RedirectResponse("/new/url", True)
+
+NotModifiedResponse
+```````````````````
+NotModifiedResponse is base on NoContentResponse with status code
+`304 Bot Modified`. You have to add some Not Modified header in headers
+parameters or as constructor argument.
+
+.. code:: python
+
+    from base64 import urlsafe_b64encode
+    from hashlib import md5
+
+    @app.route("/static/filename")
+    def static_url(req):
+        last_modified = int(getctime(req.document_root+"/filename"))
+        weak = urlsafe_b64encode(md5(last_modified.to_bytes(4)).digest())
+        etag = f'W/"{weak.decode()}"'
+
+        if 'If-None-Match' in req.headers:
+            if  etag == req.headers.get('If-None-Match'):
+                return NotModifiedResponse(etag=etag)
+
+        if 'If-Modified-Since' in req.headers:
+            if_modified = http_to_time(req.headers.get('If-Modified-Since'))
+            if last_modified <= if_modified:
+                return NotModifiedResponse(date=time_to_http())
+
+        return FileResponse(req.document_root+"/filename",
+                            headers={'E-Tag': etag})
 
 Stopping handlers
 ~~~~~~~~~~~~~~~~~
@@ -260,10 +289,10 @@ Response object.
 If status code is ``DECLINED``, that return nothing. That means, that no status
 code, no headers, no response body. Just stop the request.
 
-If status code is ``HTTP_OK``, that return EmptyResponse, so only status code
-and reason, but no headers or message body.
+If status code is ``HTTP_NO_CONTENT``, that return NoContentResponse, so message
+body is not send.
 
-WHen the handler raise any other exception, that generate Internal Server Error
+When the handler raise any other exception, that generate Internal Server Error
 status code.
 
 Compatibility

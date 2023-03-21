@@ -5,11 +5,13 @@ licence as PoorWSGI. So enjoy it ;)
 """
 
 from wsgiref.simple_server import make_server
-from base64 import decodebytes, encodebytes
+from base64 import decodebytes, encodebytes, urlsafe_b64encode
 from collections import OrderedDict
 from io import FileIO as file, BytesIO
+from os.path import getctime
 from sys import path as python_path
 from functools import wraps
+from hashlib import md5
 
 import os
 import logging as log
@@ -20,10 +22,11 @@ python_path.insert(0, os.path.abspath(
 
 # pylint: disable=import-error, wrong-import-position
 from poorwsgi import Application, state, request, redirect  # noqa
+from poorwsgi.headers import http_to_time, time_to_http
 from poorwsgi.session import PoorSession, SessionError  # noqa
 from poorwsgi.response import Response, RedirectResponse, \
     FileObjResponse, FileResponse, GeneratorResponse, \
-    EmptyResponse, HTTPException # noqa
+    NoContentResponse, NotModifiedResponse, HTTPException # noqa
 from poorwsgi.results import not_modified
 
 try:
@@ -496,7 +499,7 @@ def value_error_handler(req, error):
 
 @app.route('/test/empty')
 def test_empty(req):
-    res = EmptyResponse(state.HTTP_OK)
+    res = NoContentResponse()
     res.add_header("Super-Header", "SuperValue")
     return res
 
@@ -531,7 +534,7 @@ def input_stream(req):
 
         chunk = uwsgi.chunked_read() if uwsgi else req.read_chunk()
         i += 1
-    return EmptyResponse(state.HTTP_OK)
+    return NoContentResponse(status_code=state.HTTP_OK)
 
 
 @app.route('/simple')
@@ -545,8 +548,20 @@ def simple(req):
 @app.route('/simple.py')
 def simple_py(req):
     """Return simple.py with FileResponse"""
-    assert req
-    return FileResponse(__file__)
+    last_modified = int(getctime(__file__))
+    weak = urlsafe_b64encode(md5(last_modified.to_bytes(4)).digest())
+    etag = f'W/"{weak.decode()}"'
+
+    if 'If-None-Match' in req.headers:
+        if  etag == req.headers.get('If-None-Match'):
+            return NotModifiedResponse(etag=etag)
+
+    if 'If-Modified-Since' in req.headers:
+        if_modified = http_to_time(req.headers.get('If-Modified-Since'))
+        if last_modified <= if_modified:
+            return NotModifiedResponse(date=time_to_http())
+
+    return FileResponse(__file__, headers={'E-Tag': etag})
 
 
 @app.after_response()

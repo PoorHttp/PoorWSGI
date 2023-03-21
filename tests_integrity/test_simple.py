@@ -95,8 +95,22 @@ class TestResponses():
         assert '@app.route' in res.text
         assert '@app.before_response' in res.text
 
+    def test_file_response_304_last_modified(self, url):
+        res = check_url(url+"/simple.py")
+        last_modified = res.headers.get('Last-Modified')
+        res = check_url(url+"/simple.py",
+                        headers={'If-Modified-Since': last_modified},
+                        status_code=304)
+
+    def test_file_response_304_etag(self, url):
+        res = check_url(url+"/simple.py")
+        etag = res.headers.get('E-Tag')
+        res = check_url(url+"/simple.py",
+                        headers={'If-None-Match': etag},
+                        status_code=304)
+
     def test_empty_response(self, url):
-        check_url("{url}/test/empty".format(url=url))
+        check_url("{url}/test/empty".format(url=url), status_code=204)
 
 
 class TestSession():

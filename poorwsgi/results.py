@@ -86,10 +86,15 @@ def handlers_view(handlers, sort=True):
 
 
 def not_modified(req):
-    """Return EmptyResponse with Not Modified status."""
+    """Return NotModifiedResponse.
+
+    Headers E-Tag, Content-Location is return from request.
+    Date header will be set.
+    """
     return NotModifiedResponse(
             etag=req.headers.get('E-Tag'),
-            content_location=req.headers.get('Content-Location'))
+            content_location=req.headers.get('Content-Location'),
+            date=time_to_http())
 
 
 def internal_server_error(req, **kwargs):
@@ -471,8 +476,8 @@ def directory_index(req, path):
         "  </body>\n"
         "</html>")
 
-    return content
-# enddef
+    return (content, "text/html; character=utf-8",
+            ('Last-Modified', last_modified))
 
 
 def debug_info(req, app):

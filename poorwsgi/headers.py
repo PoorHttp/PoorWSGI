@@ -6,7 +6,7 @@
 from collections.abc import Mapping
 from wsgiref.headers import _formatparam  # type: ignore
 
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from typing import Union, List, Tuple, Optional
 
 # pylint: disable=consider-using-f-string
@@ -58,7 +58,7 @@ def render_negotiation(negotation: List[Tuple]):
 def datetime_to_http(value: datetime):
     """Return HTTP Date from timestamp.
 
-    >>> datetime_to_http(datetime.fromtimestamp(0, UTC))
+    >>> datetime_to_http(datetime.fromtimestamp(0, timezone.utc))
     'Thu, 01 Jan 1970 00:00:00 GMT'
     """
     return value.strftime(HEADER_DATETIME_FORMAT)
@@ -73,7 +73,8 @@ def time_to_http(value: Optional[Union[int, float]] = None):
     '... GMT'
     """
     if value is not None:
-        return datetime_to_http(datetime.fromtimestamp(int(value), UTC))
+        return datetime_to_http(datetime.fromtimestamp(int(value),
+                                timezone.utc))
     return datetime_to_http(datetime.utcnow())
 
 
@@ -83,7 +84,8 @@ def http_to_datetime(value: str):
     >>> http_to_datetime("Thu, 01 Jan 1970 00:00:00 GMT")
     datetime.datetime(1970, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
     """
-    return datetime.strptime(value, HEADER_DATETIME_FORMAT).replace(tzinfo=UTC)
+    return datetime.strptime(value,
+            HEADER_DATETIME_FORMAT).replace(tzinfo=timezone.utc)
 
 
 def http_to_time(value: str):

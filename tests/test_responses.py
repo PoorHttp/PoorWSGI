@@ -1,6 +1,6 @@
 """Test for Response objects and it's functionality."""
 from io import BufferedWriter, BytesIO
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 
 from simplejson import load, loads
 
@@ -294,7 +294,8 @@ class TestNotModifiedResponse():
         assert res.headers.get('Date') == "Thu, 01 Jan 1970 00:00:00 GMT"
 
     def test_date_datetime(self):
-        res = NotModifiedResponse(date = datetime.fromtimestamp(0, UTC))
+        res = NotModifiedResponse(
+                date = datetime.fromtimestamp(0, timezone.utc))
         assert res.headers.get('Date') == "Thu, 01 Jan 1970 00:00:00 GMT"
 
     def test_date_empty_string(self):

@@ -236,7 +236,7 @@ parameters or as constructor argument.
     @app.route("/static/filename")
     def static_url(req):
         last_modified = int(getctime(req.document_root+"/filename"))
-        weak = urlsafe_b64encode(md5(last_modified.to_bytes(4)).digest())
+        weak = urlsafe_b64encode(md5(last_modified.to_bytes(4, "big")).digest())
         etag = f'W/"{weak.decode()}"'
 
         if 'If-None-Match' in req.headers:

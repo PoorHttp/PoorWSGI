@@ -746,15 +746,18 @@ class Request(SimpleRequest):
 class EmptyForm(dict):
     """Compatibility class as fallback."""
     # pylint: disable=unused-argument
-    def getvalue(self, key: str, default: Any = None):
+    @staticmethod
+    def getvalue(key: str, default: Any = None):
         """Just return default."""
         return default
 
-    def getfirst(self, key: str, default: Any = None, fce: Callable = str):
+    @staticmethod
+    def getfirst(key: str, default: Any = None, fce: Callable = str):
         """Just return fce(default) if default is not None."""
         return fce(default) if default is not None else default
 
-    def getlist(self, key: str, default: Any = None, fce: Callable = str):
+    @staticmethod
+    def getlist(key: str, default: Any = None, fce: Callable = str):
         """Just yield fce(default) or iter default."""
         if isinstance(default, (list, set, tuple)):
             for item in default:

@@ -1,6 +1,6 @@
 """WebSocket example.
 
-to run with uWsgi:
+to run with uWSGI (uWSGI needs SSL to working websockets):
 
 .. code:: sh
 
@@ -25,6 +25,16 @@ to proxy with nginx:
         proxy_set_header        Upgrade $http_upgrade;
         proxy_set_header        Connection "Upgrade";
     }
+
+Curl test:
+
+.. code:: sh
+
+    curl -i -N -H "Connection: Upgrade" \
+            -H "Upgrade: websocket" \
+            -H "Origin: http://localhost" \
+            -H "Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==" \
+            http://localhost:8080/ws
 
 """
 # pylint: disable=consider-using-f-string
@@ -180,10 +190,10 @@ def root(req):
 @poor.route('/ws')
 def websocket(req):
     """Websocket endpoint"""
-    wsock = get_websocket(req.environ)
     answers = ("Hmm", "Yee", "Ok", "Really?", "Never mind", "You are best!",
                "😀", "😉", "☺", "😎", "👌", "👍", "🤔", "👏", "🤩", "...")
     try:
+        wsock = get_websocket(req.environ)
         wsock.send("[<i>%s</i>] Hello" %
                    strftime("%Y-%m-%d %T"))
         while True:

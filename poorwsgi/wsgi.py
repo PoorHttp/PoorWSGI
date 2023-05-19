@@ -16,6 +16,7 @@ from typing import List, Union, Callable, Optional, Type
 from time import time
 
 import re
+import uuid
 
 from poorwsgi.state import \
     METHOD_GET, METHOD_POST, METHOD_HEAD, methods, \
@@ -91,8 +92,8 @@ class Application():
             ':float': (r'-?\d+(\.\d+)?', float),
             ':word': (r'\w+', str),
             ':hex': (r'[0-9a-fA-F]+', str),
-            ':uuid': (r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]'
-                      '{4}-[0-9a-f]{4}-[0-9a-f]{12}', str),
+            ':uuid': (r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-'
+                      r'[0-9a-fA-F]{4}-[0-9a-fA-F]{12}', uuid.UUID),
             ':re:': (None, str),
             'none': (r'[^/]+', str)
         }

@@ -60,6 +60,12 @@ class TestSimple():
     def test_variable_user(self, url):
         check_url(url+"/test/teste@tester.net")
 
+    def test_variable_uuid(self, url):
+        check_url(url+"/test/123e4567-e89b-12d3-a456-426655440000")
+
+    def test_variable_uuid_upper(self, url):
+        check_url(url+"/test/123E4567-E89B-12D3-A456-426655440000")
+
     def test_debug_info(self, url):
         check_url(url+"/debug-info")
 

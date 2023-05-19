@@ -259,6 +259,7 @@ def style(req):
 @app.route('/test/<variable:word>')
 @app.route('/test/<variable:float>')
 @app.route('/test/<variable:int>')
+@app.route('/test/<variable:uuid>')
 @app.route('/test/static')
 def test_dynamic(req, variable=None):
     if not variable and req.headers.get('E-Tag') == 'W/"0123"':

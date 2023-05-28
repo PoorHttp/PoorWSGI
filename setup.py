@@ -217,6 +217,7 @@ setup(
         "Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware",
         "Topic :: Software Development :: Libraries :: Python Modules"
     ],
+    python_requires=">=3.8",
     cmdclass={'build_doc': BuildDoc,
               'clean_doc': CleanDoc,
               'install_doc': InstallDoc,

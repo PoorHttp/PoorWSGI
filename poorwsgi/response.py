@@ -24,11 +24,20 @@ try:
 except ImportError:
     JSON_GENERATOR = False
 
-from poorwsgi.state import DECLINED, HTTP_OK, HTTP_NO_CONTENT, \
-    HTTP_MOVED_PERMANENTLY, HTTP_MOVED_TEMPORARILY, HTTP_I_AM_A_TEAPOT, \
-    HTTP_NOT_MODIFIED, deprecated
-from poorwsgi.headers import Headers, HeadersList, \
-    time_to_http, datetime_to_http
+from poorwsgi.state import (
+    DECLINED,
+    HTTP_OK,
+    HTTP_NO_CONTENT,
+    HTTP_PARTIAL_CONTENT,
+    HTTP_MOVED_PERMANENTLY,
+    HTTP_MOVED_TEMPORARILY,
+    HTTP_I_AM_A_TEAPOT,
+    HTTP_NOT_MODIFIED,
+    HTTP_RANGE_NOT_SATISFIABLE,
+    deprecated
+)
+from poorwsgi.headers import Headers, HeadersList, RangeList, \
+    time_to_http, datetime_to_http, ContentRange
 
 log = getLogger('poorwsgi')
 # not in http.client.responses
@@ -59,6 +68,7 @@ class IBytesIO(BytesIO):
 
 class BaseResponse:
     """Base class for response."""
+    _ranges: RangeList
 
     def __init__(self, content_type: str = "",
                  headers: Optional[Union[Headers, HeadersList]] = None,
@@ -84,7 +94,11 @@ class BaseResponse:
         # Status. One of state.HTTP_* values.
         self.__status_code = status_code
         self.__reason = responses[self.__status_code]
+        self._ranges = set()
         self.__done = False
+        self._start = 0
+        self._end = 0
+        self._content_length = 0
 
     @property
     def status_code(self):
@@ -100,6 +114,16 @@ class BaseResponse:
     def status_code(self, value: int):
         if value not in responses:
             raise ValueError("Bad response status %s" % value)
+        if value not in (HTTP_OK, HTTP_PARTIAL_CONTENT) and self._ranges:
+            stack_record = stack()[1]
+            # pylint: disable=logging-format-interpolation
+            log.warning("%s status code can't be partial.\n"
+                        "  File {1}, line {2}, in {3} \n"
+                        "{0}".format((stack_record[4] or [''])[0],
+                                     *stack_record[1:4]),
+                        self.__status_code)
+            self._ranges.clear()
+            del self.__headers['Accept-Ranges']
         self.__status_code = value
         self.__reason = responses[self.__status_code]
 
@@ -118,7 +142,7 @@ class BaseResponse:
 
         That is size of internal buffer.
         """
-        return 0
+        return self._content_length
 
     @property
     def data(self):
@@ -141,6 +165,50 @@ class BaseResponse:
         """Call Headers.add_header on headers object."""
         self.__headers.add_header(name, value, **kwargs)
 
+    def make_partial(self, ranges: Optional[RangeList] = None):
+        """Make response partial.
+
+        It adds `Accept-Ranges` headers with `bytes` value and set range to new
+        value. If range is defined, and response support seek in buffer, or
+        skip generator, it returns right range response.
+
+        Inconsistent ranges are skipped!
+
+        Response status_code **MUST** be HTTP_OK (200 OK). **Only one range**
+        is supported at this moment. Other behaviour, like `If-Range`
+        conditions depends on response or programmers support.
+
+        >>> res = BaseResponse()
+        >>> res.make_partial({(0, 100)})
+        >>> res.ranges
+        ((0, 100),)
+        >>> res.make_partial({(50, 100), (60, 20), (150, None), (None, 200)})
+        >>> res.ranges
+        ((50, 100), (150, None), (None, 200))
+        """
+        if self.__status_code != HTTP_OK:
+            stack_record = stack()[1]
+            # pylint: disable=logging-format-interpolation
+            log.warning("%s status code can't be partial.\n"
+                        "  File {1}, line {2}, in {3} \n"
+                        "{0}".format((stack_record[4] or [''])[0],
+                                     *stack_record[1:4]),
+                        self.__status_code)
+            return
+
+        self.add_header('Accept-Ranges', 'bytes')
+        self._ranges.clear()
+        for start, end in ranges or []:
+            if end is not None and start is not None and end < start:
+                log.warning("Inconsistent range %d - %d", start, end)
+            else:
+                self._ranges.add((start, end))
+
+    @property
+    def ranges(self):
+        """Tuple of ranges set in make_partial method."""
+        return tuple(self._ranges)
+
     def __start_response__(self, start_response: Callable):
         if self.__status_code == 304:
             # Not Modified SHOULD NOT include other representation headers
@@ -154,6 +222,34 @@ class BaseResponse:
                 log.warning(
                         'Missing any required header in Not Modified response')
         else:
+            if self.__status_code == HTTP_OK:
+                if self._ranges:
+                    del self.__headers['Accept-Ranges']
+                    content_range = ContentRange(
+                            end=self.content_length-1,
+                            full=self._content_length)
+                    self._start, self._end = self.ranges[0]
+                    if self._start is None:
+                        self._end = min(self._content_length, self._end)
+                        self._start = self._content_length - self._end
+                        self._end = None
+                    content_range.start = self._start
+                    if self._end:
+                        self._end = min(self._content_length-1, self._end)
+                        content_range.end = self._end
+                        self._content_length = self._end - self._start + 1
+                    else:
+                        self._content_length -= self._start
+                    if self._content_length:
+                        self.status_code = HTTP_PARTIAL_CONTENT
+                        self.__headers.add("Content-Range", str(content_range))
+                    else:
+                        content_range.start, content_range.end = self.ranges[0]
+                        error = Response(
+                                headers={"Content-Range": str(content_range)},
+                                status_code=HTTP_RANGE_NOT_SATISFIABLE)
+                        raise HTTPException(error)
+
             if self.content_type \
                     and not self.__headers.get('Content-Type'):
                 self.__headers.add('Content-Type', self.content_type)
@@ -210,11 +306,7 @@ class Response(BaseResponse):
             data = data.encode("utf-8")
 
         self.__buffer = IBytesIO(data)
-        self.__content_length = len(data)
-
-    @property
-    def content_length(self):
-        return self.__content_length
+        self._content_length = len(data)
 
     @property
     def data(self):
@@ -225,11 +317,13 @@ class Response(BaseResponse):
         """Write data to internal buffer."""
         if isinstance(data, str):
             data = data.encode('utf-8')
-        self.__content_length += len(data)
+        self._content_length += len(data)
         self.__buffer.write(data)
 
     def __end_of_response__(self):
-        self.__buffer.seek(0)
+        self.__buffer.seek(self._start)
+        if self._end:
+            return IBytesIO(self.__buffer.read(self._end - self._start + 1))
         return self.__buffer
 
 
@@ -238,6 +332,7 @@ class JSONResponse(Response):
 
     ** kwargs from constructor are serialized to json structure.
     """
+
     def __init__(self, data_=None, charset: str = "utf-8",
                  headers: Optional[Union[Headers, HeadersList]] = None,
                  status_code: int = HTTP_OK,
@@ -254,6 +349,7 @@ class JSONResponse(Response):
 
 class TextResponse(Response):
     """Simple text/plain response."""
+
     def __init__(self, text: str, charset: str = "utf-8",
                  headers: Optional[Union[Headers, HeadersList]] = None,
                  status_code: int = HTTP_OK):
@@ -276,6 +372,7 @@ class FileObjResponse(BaseResponse):
     File content is returned from current position. So Content-Length is set
     from file system or from buffer, but minus position.
     """
+
     def __init__(self, file_obj: Union[IOBase, BinaryIO],
                  content_type: Optional[str] = None,
                  headers: Optional[Union[Headers, HeadersList]] = None,
@@ -291,15 +388,16 @@ class FileObjResponse(BaseResponse):
         self.__file = file_obj
         if file_obj.seekable():
             self.__pos = file_obj.tell()
+            self._start = self.__pos
         try:
-            self.__content_length = \
+            self._content_length = \
                     fstat(file_obj.fileno()).st_size - self.__pos
         except OSError:
             if isinstance(file_obj, BytesIO):
-                self.__content_length = \
+                self._content_length = \
                         file_obj.getbuffer().nbytes - self.__pos
             else:
-                self.__content_length = 0
+                self._content_length = 0
                 print(type(file_obj))
                 log.debug('File object has unknown size.')
 
@@ -316,14 +414,6 @@ class FileObjResponse(BaseResponse):
         log.info('File object is not seekable.')
         return b''
 
-    @property
-    def content_length(self):
-        """Return content_length of response.
-
-        That is size of internal buffer.
-        """
-        return self.__content_length
-
     # must be redefined, because self.__buffer is private attribute
     def __end_of_response__(self):
         """Method **for internal use only!**.
@@ -331,8 +421,11 @@ class FileObjResponse(BaseResponse):
         This method was called from Application object at the end of request
         for returning right value to wsgi server.
         """
+        print("start - end:", self._start, self._end)
         if self.__file.seekable():
-            self.__file.seek(self.__pos)
+            self.__file.seek(self._start)
+            if self._end:
+                return IBytesIO(self.__file.read(self._end - self._start + 1))
         return self.__file
 
 
@@ -361,6 +454,7 @@ class FileResponse(FileObjResponse):
                          content_type=content_type,
                          headers=headers,
                          status_code=status_code)
+        self.make_partial()
 
         if 'Last-Modified' not in self.headers:
             self.add_header('Last-Modified', time_to_http(getctime(path)))

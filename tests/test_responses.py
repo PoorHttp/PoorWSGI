@@ -15,6 +15,7 @@ from poorwsgi.state import HTTP_NOT_FOUND
 
 # pylint: disable=missing-function-docstring
 # pylint: disable=redefined-outer-name
+# pylint: disable=no-self-use
 
 
 args = (
@@ -36,10 +37,6 @@ kwargs = (
 )
 
 
-class Found(Exception):
-    """Support exception for tests, just like StopIteration."""
-
-
 @pytest.fixture(params=args)
 def response_args(request):
     return Response(*request.param)
@@ -55,14 +52,15 @@ def write(data):
     assert False
 
 
-def start_response(data, headers):
-    assert isinstance(data, str)
+def start_response(status_code, headers):
+    assert isinstance(status_code, str)
     assert isinstance(headers, list)
     return write
 
 
 class TestReponse:
     """Basic tests for Response."""
+
     def test_args(self, response_args):
         res = response_args(start_response)
         assert isinstance(res.read(), bytes)
@@ -76,37 +74,118 @@ class TestReponse:
         with pytest.raises(RuntimeError):
             response_args(start_response)
 
+    def test_no_accept_range(self):
+        res = Response()
+        assert res.headers.get('Accept-Ranges') is None
+
+    def test_make_partial(self):
+        res = Response()
+        res.make_partial()
+        assert res.headers.get('Accept-Ranges') == 'bytes'
+
+    def test_cant_be_partial(self):
+        res = Response(status_code=HTTP_NOT_FOUND)
+        res.make_partial()
+        assert res.headers.get('Accept-Ranges') is None
+
+    def test_cant_be_partial_after(self):
+        res = Response()
+        res.make_partial({(0, 3)})
+        res.status_code = HTTP_NOT_FOUND
+        assert res.headers.get('Accept-Ranges') is None
+        assert not res.ranges
+
+    def test_partial_content_start(self):
+        res = Response(b'0123456789')
+        res.make_partial({(0, 4)})
+        assert res(start_response).read() == b'01234'
+        assert int(res.headers.get('Content-Length')) == 5
+        assert res.headers.get('Content-Range') == "bytes 0-4/10"
+
+    def test_partial_content_mid(self):
+        res = Response(b'0123456789')
+        res.make_partial({(3, 6)})
+        assert res(start_response).read() == b'3456'
+        assert int(res.headers.get('Content-Length')) == 4
+        assert res.headers.get('Content-Range') == "bytes 3-6/10"
+
+    def test_partial_content_end(self):
+        res = Response(b'0123456789')
+        res.make_partial({(5, 9)})
+        assert res(start_response).read() == b'56789'
+        assert int(res.headers.get('Content-Length')) == 5
+        assert res.headers.get('Content-Range') == "bytes 5-9/10"
+
+    def test_partial_content_more(self):
+        res = Response(b'0123456789')
+        res.make_partial({(8, 15)})
+        assert res(start_response).read() == b'89'
+        assert int(res.headers.get('Content-Length')) == 2
+        assert res.headers.get('Content-Range') == "bytes 8-9/10"
+
+    def test_partial_content_over(self):
+        res = Response(b'0123456789')
+        res.make_partial({(10, 15)})
+        with pytest.raises(HTTPException) as err:
+            res(start_response)
+        # assert isinstance(err.value.response, RangeNotSatisfiable)
+        assert err.value.response.status_code == 416
+        assert err.value.response.headers['Content-Range'] == "bytes 10-15/10"
+
+    def test_partial_content_last(self):
+        res = Response(b'0123456789')
+        res.make_partial({(None, 2)})
+        assert res(start_response).read() == b'89'
+        assert int(res.headers.get('Content-Length')) == 2
+        assert res.headers.get('Content-Range') == "bytes 8-9/10"
+
+    def test_partial_content_last_more(self):
+        res = Response(b'0123456789')
+        res.make_partial({(None, 20)})
+        assert res(start_response).read() == b'0123456789'
+        assert int(res.headers.get('Content-Length')) == 10
+        assert res.headers.get('Content-Range') == "bytes 0-9/10"
+
+    def test_partial_content_from(self):
+        res = Response(b'0123456789')
+        res.make_partial({(7, None)})
+        assert res(start_response).read() == b'789'
+        assert int(res.headers.get('Content-Length')) == 3
+        assert res.headers.get('Content-Range') == "bytes 7-9/10"
+
+    def test_partial_contents(self):
+        res = Response(b'0123456789')
+        # Not supported now
+        res.make_partial({(0, 2), (8, 9)})
+        # Only first range was returned
+        assert res(start_response).read() == b'012'
+        assert int(res.headers.get('Content-Length')) == 3
+        assert res.headers.get('Content-Range') == "bytes 0-2/10"
+
 
 class TestJSONResponse:
     """Tests for JSONResponse."""
+
     def test_kwargs(self):
         res = JSONResponse(items=list(range(5)))
         data = load(res(start_response))
         assert data == {"items": [0, 1, 2, 3, 4]}
+        assert res.content_length == 26
 
     def test_charset(self):
         res = JSONResponse(msg="Message")
+        res(start_response)
+        assert res.headers['Content-Type'] == "application/json; charset=utf-8"
 
-        def start_response(data, headers):
-            assert data
-            for key, val in headers:
-                if key == "Content-Type":
-                    assert val == "application/json; charset=utf-8"
-                    raise Found()
-        with pytest.raises(Found):
-            res(start_response)
+    def test_content_length(self):
+        res = JSONResponse(msg="Message")
+        res(start_response)
+        assert int(res.headers.get('Content-Length')) == 18
 
     def test_no_charset(self):
         res = JSONResponse(msg="Message", charset=None)
-
-        def start_response(data, headers):
-            assert data
-            for key, val in headers:
-                if key == "Content-Type":
-                    assert val == "application/json"
-                    raise Found()
-        with pytest.raises(Found):
-            res(start_response)
+        res(start_response)
+        assert res.headers.get('Content-Type') == "application/json"
 
     def test_once(self):
         response = JSONResponse(msg="Message", charset=None)
@@ -124,6 +203,11 @@ class TestJSONResponse:
         data = load(response(start_response))
         assert data == [{'x': 1}, {'x': 2}]
 
+    def test_partial_content_start(self):
+        response = JSONResponse([{'x': 1}, {'x': 2}])
+        response.make_partial({(0, 4)})
+        assert response(start_response).read() == b'[{"x"'
+
     def test_data_or_kwargs(self):
         with pytest.raises(RuntimeError):
             JSONResponse([], msg="Messgae")
@@ -131,19 +215,28 @@ class TestJSONResponse:
 
 class TestTextResponse:
     """Test for TextResponse."""
+
     def test_simple(self):
         res = TextResponse("Simple text")
         res.content_type = "text/plain; charset=utf-8"
         assert res.data == b"Simple text"
+        assert res.content_length == 11
 
     def test_no_charset(self):
         res = TextResponse("Simple text", charset=None)
         res.content_type = "text/plain"
         assert res.data == b"Simple text"
+        assert res.content_length == 11
+
+    def test_content_length(self):
+        res = TextResponse("Simple text")
+        res(start_response)
+        assert int(res.headers.get('Content-Length')) == 11
 
 
 class TestGeneratorResponse:
     """Tests for GeneratorResponse classes."""
+
     def test_generator(self):
         res = GeneratorResponse((str(x).encode("utf-8") for x in range(5)))
         gen = res(start_response)
@@ -163,6 +256,7 @@ class TestGeneratorResponse:
 
 class TestJSONGenerarorResponse:
     """Test. for JSONGeneratorResponse."""
+
     def test_generator(self):
         res = JSONGeneratorResponse(items=range(5))
         gen = res(start_response)
@@ -171,27 +265,13 @@ class TestJSONGenerarorResponse:
 
     def test_charset(self):
         res = JSONGeneratorResponse(items=range(5))
-
-        def start_response(data, headers):
-            assert data
-            for key, val in headers:
-                if key == "Content-Type":
-                    assert val == "application/json; charset=utf-8"
-                    raise Found()
-        with pytest.raises(Found):
-            res(start_response)
+        res(start_response)
+        assert res.headers['Content-Type'] == "application/json; charset=utf-8"
 
     def test_no_charset(self):
         res = JSONGeneratorResponse(items=range(5), charset=None)
-
-        def start_response(data, headers):
-            assert data
-            for key, val in headers:
-                if key == "Content-Type":
-                    assert val == "application/json"
-                    raise Found()
-        with pytest.raises(Found):
-            res(start_response)
+        res(start_response)
+        assert res.headers.get('Content-Type') == "application/json"
 
     def test_once(self):
         response = JSONGeneratorResponse(items=range(5), charset=None)
@@ -202,6 +282,7 @@ class TestJSONGenerarorResponse:
 
 class TestRedirectResponse:
     """Test for RedirectResponse and redirect function."""
+
     def test_init(self):
         res = RedirectResponse('/', 303, message='See Other')
         assert res.status_code == 303
@@ -275,6 +356,28 @@ class TestFileResponse():
         res = FileResponse(__file__)
         assert res.headers.get('Last-Modified') is not None
 
+    def test_accept_range(self):
+        res = FileResponse(__file__)
+        assert res.headers.get('Accept-Ranges') == 'bytes'
+
+    def test_partial_content_start(self):
+        res = FileResponse(__file__)
+        res.make_partial({(0, 4)})
+        assert res(start_response).read() == b'"""Te'
+        assert int(res.headers.get('Content-Length')) == 5
+
+    def test_partial_content_mid(self):
+        res = FileResponse(__file__)
+        res.make_partial({(3, 6)})
+        assert res(start_response).read() == b'Test'
+        assert int(res.headers.get('Content-Length')) == 4
+
+    def test_partial_content_last(self):
+        res = FileResponse(__file__)
+        res.make_partial({(None, 4)})
+        assert res(start_response).read() == b'one\n'
+        assert int(res.headers.get('Content-Length')) == 4
+
 
 class TestNotModifiedResponse():
     """Tests for NotModifiedResponse."""
@@ -295,9 +398,9 @@ class TestNotModifiedResponse():
 
     def test_date_datetime(self):
         res = NotModifiedResponse(
-                date = datetime.fromtimestamp(0, timezone.utc))
+                date=datetime.fromtimestamp(0, timezone.utc))
         assert res.headers.get('Date') == "Thu, 01 Jan 1970 00:00:00 GMT"
 
     def test_date_empty_string(self):
-        res = NotModifiedResponse(date = "")
+        res = NotModifiedResponse(date="")
         assert res.headers.get('Date') is None

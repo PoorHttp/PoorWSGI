@@ -251,6 +251,28 @@ parameters or as constructor argument.
         return FileResponse(req.document_root+"/filename",
                             headers={'E-Tag': etag})
 
+Partial Content
+```````````````
+Sometimes, you want to return partial Content, which is typical reaction to
+`Range` headers. For that situations, there is `make_partial` Response method.
+
+.. code:: python
+
+    @app.route("/last/100/bytes")
+    def last_bytes(req):
+        response = Response(os.urandom(1000))
+        response.make_partial({None, 100})
+        return response
+
+
+    @app.route("/var/log/messages")
+    def messages(req):
+        """Return last 1000 bytes of message"""
+        response = FileResponse("/var/log/messages")
+        response.make_partial({None, 1000})
+        return response
+
+
 Stopping handlers
 ~~~~~~~~~~~~~~~~~
 

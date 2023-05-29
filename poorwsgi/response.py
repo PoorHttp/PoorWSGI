@@ -166,10 +166,10 @@ class BaseResponse:
         """Call Headers.add_header on headers object."""
         self.__headers.add_header(name, value, **kwargs)
 
-    def make_partial(self, ranges: Optional[RangeList] = None):
+    def make_partial(self, ranges: Optional[RangeList] = None, units="bytes"):
         """Make response partial.
 
-        It adds `Accept-Ranges` headers with `bytes` value and set range to new
+        It adds `Accept-Ranges` headers with units value and set range to new
         value. If range is defined, and response support seek in buffer, or
         skip generator, it returns right range response.
 
@@ -178,6 +178,8 @@ class BaseResponse:
         Response status_code **MUST** be HTTP_OK (200 OK). **Only one range**
         is supported at this moment. Other behaviour, like `If-Range`
         conditions depends on response or programmers support.
+
+        see https://www.rfc-editor.org/rfc/rfc9110.html#name-range-requests
 
         >>> res = BaseResponse()
         >>> res.make_partial([(0, 100)])
@@ -197,7 +199,7 @@ class BaseResponse:
                         self.__status_code)
             return
 
-        self.add_header('Accept-Ranges', 'bytes')
+        self.add_header('Accept-Ranges', units)
         self._ranges.clear()
         for start, end in ranges or []:
             if end is not None and start is not None and end < start:
@@ -400,7 +402,6 @@ class FileObjResponse(BaseResponse):
                         file_obj.getbuffer().nbytes - self.__pos
             else:
                 self._content_length = 0
-                print(type(file_obj))
                 log.debug('File object has unknown size.')
 
     # must be redefined, because self.__buffer is private attribute
@@ -423,7 +424,6 @@ class FileObjResponse(BaseResponse):
         This method was called from Application object at the end of request
         for returning right value to wsgi server.
         """
-        print("start - end:", self._start, self._end)
         if self.__file.seekable():
             self.__file.seek(self._start)
             if self._end:

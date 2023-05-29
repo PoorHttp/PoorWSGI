@@ -254,7 +254,8 @@ parameters or as constructor argument.
 Partial Content
 ```````````````
 Sometimes, you want to return partial Content, which is typical reaction to
-`Range` headers. For that situations, there is `make_partial` Response method.
+`Range` headers. For that situations, there are `parse_range` function and
+`make_partial` Response method.
 
 .. code:: python
 

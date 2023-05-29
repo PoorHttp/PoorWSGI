@@ -83,6 +83,11 @@ class TestReponse:
         res.make_partial()
         assert res.headers.get('Accept-Ranges') == 'bytes'
 
+    def test_make_partial_chunks(self):
+        res = Response()
+        res.make_partial(units="chunks")
+        assert res.headers.get('Accept-Ranges') == 'chunks'
+
     def test_cant_be_partial(self):
         res = Response(status_code=HTTP_NOT_FOUND)
         res.make_partial()

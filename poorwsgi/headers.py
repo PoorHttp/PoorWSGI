@@ -66,6 +66,11 @@ def render_negotiation(negotation: List[Tuple]):
 def parse_range(value: str) -> Dict[str, RangeList]:
     """Parse HTTP Range header.
 
+    Parse `Range` header value and return dictionary with units key and list
+    tuples of range.
+
+    see: https://www.rfc-editor.org/rfc/rfc9110.html#name-range-requests
+
     >>> parse_range("bytes=0-499")
     {'bytes': [(0, 499)]}
     >>> parse_range("units=500-999")

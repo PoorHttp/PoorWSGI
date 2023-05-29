@@ -1132,7 +1132,7 @@ class Application():
         (Application.defaults) or error handler (Application.state_from_table),
         and handlers from Application.after.
         """
-        # pylint: disable=method-hidden,too-many-branches
+        # pylint: disable=method-hidden,too-many-branches,too-many-statements
         env['REQUEST_STARTTIME'] = time()
         request = None
 
@@ -1166,7 +1166,8 @@ class Application():
             if request is None:
                 log.critical(str(err))
                 request = SimpleRequest(env, self)
-
+            else:
+                log.info("Excaption in response", exc_info=True)
             try:
                 response = self.error_from_table(request, err)
                 if not response:

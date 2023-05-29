@@ -1187,8 +1187,10 @@ class Application():
             if not response:
                 response = to_response(self.state_from_table(request, 500))
 
+        skip_sendfile = request.server_software == "uWsgi" and response.ranges
+        # need working fileno method
         if isinstance(response, FileObjResponse) and \
-                "wsgi.file_wrapper" in env:     # need working fileno method
+                "wsgi.file_wrapper" in env and not skip_sendfile:
             return env['wsgi.file_wrapper'](response(start_response))
         return response(start_response)         # return bytes generator
     # enddef

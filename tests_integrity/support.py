@@ -60,11 +60,12 @@ def check_url(url, method="GET", status_code=200, allow_redirects=True,
     try:
         request = Request(method, url, cookies=session.cookies, **kwargs)
         response = session.send(request.prepare(),
-                                allow_redirects=allow_redirects, timeout=timeout)
+                                allow_redirects=allow_redirects,
+                                timeout=timeout)
         if isinstance(status_code, int):
             status_code = [status_code]
-        assert response.status_code in status_code, \
-               response.text or response.reason
+        assert response.status_code in status_code
+        assert response.text or response.reason
         return response
     except RequestException:
         pass

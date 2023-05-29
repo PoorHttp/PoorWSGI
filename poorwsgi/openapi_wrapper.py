@@ -16,7 +16,8 @@ class OpenAPIRequest():
 
     Be careful with testing of big incoming request body property, which
     returns Request.data depend on ``auto_data`` and ``data_size``
-    configuration properties.
+    configuration properties. Request.data is available only when request
+    Content-Length is available.
     """
     re_pattern = re.compile(r"<(\w*:)?(\w*)>")
 

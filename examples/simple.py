@@ -22,12 +22,12 @@ python_path.insert(0, os.path.abspath(
 
 # pylint: disable=import-error, wrong-import-position
 from poorwsgi import Application, state, request, redirect  # noqa
-from poorwsgi.headers import http_to_time, time_to_http
+from poorwsgi.headers import http_to_time, time_to_http  # noqa
 from poorwsgi.session import PoorSession, SessionError  # noqa
 from poorwsgi.response import Response, RedirectResponse, \
     FileObjResponse, FileResponse, GeneratorResponse, \
-    NoContentResponse, NotModifiedResponse, HTTPException # noqa
-from poorwsgi.results import not_modified
+    NoContentResponse, NotModifiedResponse, HTTPException  # noqa
+from poorwsgi.results import not_modified  # noqa
 
 try:
     import uwsgi  # type: ignore
@@ -563,6 +563,14 @@ def simple_py(req):
             return NotModifiedResponse(date=time_to_http())
 
     return FileResponse(__file__, headers={'E-Tag': etag})
+
+
+@app.route('/simple.py/partial')
+def partial_simple_py(req):
+    """Return simple.py with FileResponse"""
+    response = FileResponse(__file__)
+    response.make_partial({(None, 100)})
+    return response
 
 
 @app.after_response()

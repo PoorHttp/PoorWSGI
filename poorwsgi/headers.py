@@ -98,6 +98,23 @@ def http_to_time(value: str):
 
 
 HeadersList = Union[list, tuple, set, dict]
+RangeList = set[tuple[Optional[int], Optional[int]]]
+
+
+class ContentRange:
+    """Content-Range header."""
+    # pylint: disable=too-few-public-methods
+    start: int
+    end: int
+    full: Union[int, str]
+
+    def __init__(self, start=0, end=0, full="*"):
+        self.start = start
+        self.end = end
+        self.full = full
+
+    def __str__(self):
+        return f"bytes {self.start}-{self.end}/{self.full}"
 
 
 class Headers(Mapping):

@@ -115,6 +115,11 @@ class TestResponses():
                         headers={'If-None-Match': etag},
                         status_code=304)
 
+    def test_partial_file(self, url):
+        res = check_url(url+"/simple.py/partial", status_code=206)
+        assert len(res.text) == 100
+        assert res.text[-22:] == "httpd.serve_forever()\n"
+
     def test_empty_response(self, url):
         check_url("{url}/test/empty".format(url=url), status_code=204)
 

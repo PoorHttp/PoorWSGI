@@ -116,7 +116,9 @@ class TestResponses():
                         status_code=304)
 
     def test_partial_file(self, url):
-        res = check_url(url+"/simple.py/partial", status_code=206)
+        res = check_url(url+"/simple.py",
+                        headers={'Range': 'bytes=-100'},
+                        status_code=206)
         assert len(res.text) == 100
         assert res.text[-22:] == "httpd.serve_forever()\n"
 

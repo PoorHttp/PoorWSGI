@@ -267,9 +267,12 @@ Sometimes, you want to return partial Content, which is typical reaction to
 
     @app.route("/var/log/messages")
     def messages(req):
-        """Return last 1000 bytes of message"""
+        """Return parts defined in request Range header."""
         response = FileResponse("/var/log/messages")
-        response.make_partial({None, 1000})
+        if 'Range' in req.headers:
+            ranges = parse_range(req.headers['Range'])
+            if "bytes" in ranges:
+                response.make_partial(ranges["bytes"])
         return response
 
 

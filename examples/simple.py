@@ -22,7 +22,7 @@ python_path.insert(0, os.path.abspath(
 
 # pylint: disable=import-error, wrong-import-position
 from poorwsgi import Application, state, request, redirect  # noqa
-from poorwsgi.headers import http_to_time, time_to_http  # noqa
+from poorwsgi.headers import http_to_time, time_to_http, parse_range  # noqa
 from poorwsgi.session import PoorSession, SessionError  # noqa
 from poorwsgi.response import Response, RedirectResponse, \
     FileObjResponse, FileResponse, GeneratorResponse, \
@@ -554,7 +554,7 @@ def simple_py(req):
     etag = f'W/"{weak.decode()}"'
 
     if 'If-None-Match' in req.headers:
-        if  etag == req.headers.get('If-None-Match'):
+        if etag == req.headers.get('If-None-Match'):
             return NotModifiedResponse(etag=etag)
 
     if 'If-Modified-Since' in req.headers:
@@ -562,14 +562,12 @@ def simple_py(req):
         if last_modified <= if_modified:
             return NotModifiedResponse(date=time_to_http())
 
-    return FileResponse(__file__, headers={'E-Tag': etag})
+    response = FileResponse(__file__, headers={'E-Tag': etag})
+    if 'Range' in req.headers:
+        ranges = parse_range(req.headers['Range'])
+        if "bytes" in ranges:
+            response.make_partial(ranges["bytes"])
 
-
-@app.route('/simple.py/partial')
-def partial_simple_py(req):
-    """Return simple.py with FileResponse"""
-    response = FileResponse(__file__)
-    response.make_partial({(None, 100)})
     return response
 
 

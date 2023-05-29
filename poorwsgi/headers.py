@@ -4,16 +4,24 @@
 :Functions: parse_negotiation, render_negotiation
 """
 from collections.abc import Mapping
+from logging import getLogger
 from wsgiref.headers import _formatparam  # type: ignore
 
-from datetime import datetime, timezone
-from typing import Union, List, Tuple, Optional
+import re
 
+from datetime import datetime, timezone
+from typing import Union, List, Tuple, Optional, Dict
+
+log = getLogger('poorwsgi')
 # pylint: disable=consider-using-f-string
 
 # https://httpwg.org/specs/rfc9110.html#field.date
 # e.g. Tue, 15 Nov 1994 08:12:31 GMT
 HEADER_DATETIME_FORMAT = "%a, %d %b %Y %X GMT"
+RE_BYTES_RANGE = re.compile(r"(\d*)-(\d*),?")
+
+HeadersList = Union[List, Tuple, set, dict]
+RangeList = List[Tuple[Optional[int], Optional[int]]]
 
 
 def parse_negotiation(value: str):
@@ -53,6 +61,44 @@ def render_negotiation(negotation: List[Tuple]):
     for nego in negotation:
         values.append(';q='.join(map(str, nego)))
     return ', '.join(values)
+
+
+def parse_range(value: str) -> Dict[str, RangeList]:
+    """Parse HTTP Range header.
+
+    >>> parse_range("bytes=0-499")
+    {'bytes': [(0, 499)]}
+    >>> parse_range("units=500-999")
+    {'units': [(500, 999)]}
+    >>> parse_range("bytes=-500")
+    {'bytes': [(None, 500)]}
+    >>> parse_range("bytes=9500-")
+    {'bytes': [(9500, None)]}
+    >>> parse_range("chunks=500-600,601-999")
+    {'chunks': [(500, 600), (601, 999)]}
+    >>> parse_range("bytes=0-1,1-2,1-,-5")
+    {'bytes': [(0, 1), (1, 2), (1, None), (None, 5)]}
+    >>> parse_range("bytes=0-499")
+    {'bytes': [(0, 499)]}
+    >>> parse_range("invalid")
+    {}
+    >>> parse_range("invalid=a-b")
+    {'invalid': []}
+    """
+    try:
+        unit, pairs = value.split("=")
+        ranges: RangeList = []
+        for start, end in RE_BYTES_RANGE.findall(pairs):
+            if not start and not end:
+                log.warning("Invalid range value, probably not number")
+                continue
+            ranges.append((
+                    int(start) if start else None,
+                    int(end) if end else None))
+        return {unit: ranges}
+    except ValueError:
+        log.error("Invalid Range header value `%s`", value)
+        return {}
 
 
 def datetime_to_http(value: datetime):
@@ -96,10 +142,6 @@ def http_to_time(value: str):
     0
     """
     return int(http_to_datetime(value).timestamp())
-
-
-HeadersList = Union[List, Tuple, set, dict]
-RangeList = List[Tuple[Optional[int], Optional[int]]]
 
 
 class ContentRange:

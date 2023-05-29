@@ -68,6 +68,7 @@ class IBytesIO(BytesIO):
 
 class BaseResponse:
     """Base class for response."""
+    # pylint: disable=too-many-instance-attributes
     _ranges: RangeList
 
     def __init__(self, content_type: str = "",
@@ -94,7 +95,7 @@ class BaseResponse:
         # Status. One of state.HTTP_* values.
         self.__status_code = status_code
         self.__reason = responses[self.__status_code]
-        self._ranges = set()
+        self._ranges = []
         self.__done = False
         self._start = 0
         self._end = 0
@@ -179,10 +180,10 @@ class BaseResponse:
         conditions depends on response or programmers support.
 
         >>> res = BaseResponse()
-        >>> res.make_partial({(0, 100)})
+        >>> res.make_partial([(0, 100)])
         >>> res.ranges
         ((0, 100),)
-        >>> res.make_partial({(50, 100), (60, 20), (150, None), (None, 200)})
+        >>> res.make_partial([(50, 100), (60, 20), (150, None), (None, 200)])
         >>> res.ranges
         ((50, 100), (150, None), (None, 200))
         """
@@ -201,15 +202,16 @@ class BaseResponse:
         for start, end in ranges or []:
             if end is not None and start is not None and end < start:
                 log.warning("Inconsistent range %d - %d", start, end)
-            else:
-                self._ranges.add((start, end))
+            elif (start, end) not in self._ranges:
+                self._ranges.append((start, end))
 
     @property
     def ranges(self):
         """Tuple of ranges set in make_partial method."""
         return tuple(self._ranges)
 
-    def __start_response__(self, start_response: Callable):
+    def __start_response__(self, start_response: Callable):  # noqa: C901
+        # pylint: disable=too-many-branches
         if self.__status_code == 304:
             # Not Modified SHOULD NOT include other representation headers
             # https://www.rfc-editor.org/rfc/rfc9110.html#name-304-not-modified
@@ -520,9 +522,10 @@ class JSONGeneratorResponse(StrGeneratorResponse):
 
 class NoContentResponse(BaseResponse):
     """For situation, where only state is returned."""
+
     def __init__(self,
-            headers: Optional[Union[Headers, HeadersList]] = None,
-            status_code: int = HTTP_NO_CONTENT):
+                 headers: Optional[Union[Headers, HeadersList]] = None,
+                 status_code: int = HTTP_NO_CONTENT):
         super().__init__(headers=headers, status_code=status_code)
 
     def __start_response__(self, start_response: Callable):
@@ -583,6 +586,7 @@ class RedirectResponse(Response):
     MOVED_TEMPORARILY. **Argument ``permanent`` and ``status_code`` as boolean
     is deprecated. Use real status_code instead.**
     """
+
     # pylint: disable=too-many-arguments
     def __init__(self, location: str,
                  status_code: Union[int, bool] = HTTP_MOVED_TEMPORARILY,
@@ -602,12 +606,13 @@ class RedirectResponse(Response):
 
 class NotModifiedResponse(NoContentResponse):
     """Not Modified Response."""
+
     def __init__(self,
-            headers: Optional[Union[Headers, HeadersList]] = None,
-            etag: Optional[str] = None,
-            content_location: Optional[str] = None,
-            date: Optional[Union[str, int, datetime]] = None,
-            vary: Optional[str] = None):
+                 headers: Optional[Union[Headers, HeadersList]] = None,
+                 etag: Optional[str] = None,
+                 content_location: Optional[str] = None,
+                 date: Optional[Union[str, int, datetime]] = None,
+                 vary: Optional[str] = None):
         # pylint: disable=too-many-arguments
 
         super().__init__(status_code=HTTP_NOT_MODIFIED, headers=headers)

@@ -90,42 +90,42 @@ class TestReponse:
 
     def test_cant_be_partial_after(self):
         res = Response()
-        res.make_partial({(0, 3)})
+        res.make_partial([(0, 3)])
         res.status_code = HTTP_NOT_FOUND
         assert res.headers.get('Accept-Ranges') is None
         assert not res.ranges
 
     def test_partial_content_start(self):
         res = Response(b'0123456789')
-        res.make_partial({(0, 4)})
+        res.make_partial([(0, 4)])
         assert res(start_response).read() == b'01234'
         assert int(res.headers.get('Content-Length')) == 5
         assert res.headers.get('Content-Range') == "bytes 0-4/10"
 
     def test_partial_content_mid(self):
         res = Response(b'0123456789')
-        res.make_partial({(3, 6)})
+        res.make_partial([(3, 6)])
         assert res(start_response).read() == b'3456'
         assert int(res.headers.get('Content-Length')) == 4
         assert res.headers.get('Content-Range') == "bytes 3-6/10"
 
     def test_partial_content_end(self):
         res = Response(b'0123456789')
-        res.make_partial({(5, 9)})
+        res.make_partial([(5, 9)])
         assert res(start_response).read() == b'56789'
         assert int(res.headers.get('Content-Length')) == 5
         assert res.headers.get('Content-Range') == "bytes 5-9/10"
 
     def test_partial_content_more(self):
         res = Response(b'0123456789')
-        res.make_partial({(8, 15)})
+        res.make_partial([(8, 15)])
         assert res(start_response).read() == b'89'
         assert int(res.headers.get('Content-Length')) == 2
         assert res.headers.get('Content-Range') == "bytes 8-9/10"
 
     def test_partial_content_over(self):
         res = Response(b'0123456789')
-        res.make_partial({(10, 15)})
+        res.make_partial([(10, 15)])
         with pytest.raises(HTTPException) as err:
             res(start_response)
         # assert isinstance(err.value.response, RangeNotSatisfiable)
@@ -134,21 +134,21 @@ class TestReponse:
 
     def test_partial_content_last(self):
         res = Response(b'0123456789')
-        res.make_partial({(None, 2)})
+        res.make_partial([(None, 2)])
         assert res(start_response).read() == b'89'
         assert int(res.headers.get('Content-Length')) == 2
         assert res.headers.get('Content-Range') == "bytes 8-9/10"
 
     def test_partial_content_last_more(self):
         res = Response(b'0123456789')
-        res.make_partial({(None, 20)})
+        res.make_partial([(None, 20)])
         assert res(start_response).read() == b'0123456789'
         assert int(res.headers.get('Content-Length')) == 10
         assert res.headers.get('Content-Range') == "bytes 0-9/10"
 
     def test_partial_content_from(self):
         res = Response(b'0123456789')
-        res.make_partial({(7, None)})
+        res.make_partial([(7, None)])
         assert res(start_response).read() == b'789'
         assert int(res.headers.get('Content-Length')) == 3
         assert res.headers.get('Content-Range') == "bytes 7-9/10"
@@ -156,7 +156,7 @@ class TestReponse:
     def test_partial_contents(self):
         res = Response(b'0123456789')
         # Not supported now
-        res.make_partial({(0, 2), (8, 9)})
+        res.make_partial([(0, 2), (8, 9)])
         # Only first range was returned
         assert res(start_response).read() == b'012'
         assert int(res.headers.get('Content-Length')) == 3
@@ -205,7 +205,7 @@ class TestJSONResponse:
 
     def test_partial_content_start(self):
         response = JSONResponse([{'x': 1}, {'x': 2}])
-        response.make_partial({(0, 4)})
+        response.make_partial([(0, 4)])
         assert response(start_response).read() == b'[{"x"'
 
     def test_data_or_kwargs(self):
@@ -362,19 +362,19 @@ class TestFileResponse():
 
     def test_partial_content_start(self):
         res = FileResponse(__file__)
-        res.make_partial({(0, 4)})
+        res.make_partial([(0, 4)])
         assert res(start_response).read() == b'"""Te'
         assert int(res.headers.get('Content-Length')) == 5
 
     def test_partial_content_mid(self):
         res = FileResponse(__file__)
-        res.make_partial({(3, 6)})
+        res.make_partial([(3, 6)])
         assert res(start_response).read() == b'Test'
         assert int(res.headers.get('Content-Length')) == 4
 
     def test_partial_content_last(self):
         res = FileResponse(__file__)
-        res.make_partial({(None, 4)})
+        res.make_partial([(None, 4)])
         assert res(start_response).read() == b'one\n'
         assert int(res.headers.get('Content-Length')) == 4
 

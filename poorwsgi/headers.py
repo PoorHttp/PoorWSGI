@@ -84,7 +84,8 @@ def http_to_datetime(value: str):
     >>> http_to_datetime("Thu, 01 Jan 1970 00:00:00 GMT")
     datetime.datetime(1970, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
     """
-    return datetime.strptime(value,
+    return datetime.strptime(
+            value,
             HEADER_DATETIME_FORMAT).replace(tzinfo=timezone.utc)
 
 
@@ -97,8 +98,8 @@ def http_to_time(value: str):
     return int(http_to_datetime(value).timestamp())
 
 
-HeadersList = Union[list, tuple, set, dict]
-RangeList = set[tuple[Optional[int], Optional[int]]]
+HeadersList = Union[List, Tuple, set, dict]
+RangeList = List[Tuple[Optional[int], Optional[int]]]
 
 
 class ContentRange:

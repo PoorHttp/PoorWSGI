@@ -21,15 +21,17 @@ environ.update({'PYTHONPATH': 'poorwsgi'})
 def find_data_files(directory, target_folder=""):
     """Find files in directory, and prepare tuple for setup."""
     retval = []
-    for root, dirs , files in walk(directory):
+    for root, _, files in walk(directory):
         if target_folder:
-            retval.append((target_folder,
-                       list(root+'/'+f
-                            for f in files if f[0] != '.' and f[-1] != '~')))
+            retval.append(
+                    (target_folder,
+                     list(root+'/'+f
+                          for f in files if f[0] != '.' and f[-1] != '~')))
         else:
-            retval.append((root,
-                       list(root+'/'+f
-                            for f in files if f[0] != '.' and f[-1] != '~')))
+            retval.append(
+                    (root,
+                     list(root+'/'+f
+                          for f in files if f[0] != '.' and f[-1] != '~')))
     return retval
 
 
@@ -184,7 +186,7 @@ setup(
     maintainer="Ondrej Tuma",
     maintainer_email="mcbig@zeropage.cz",
     url="http://poorhttp.zeropage.cz/poorwsgi",
-    project_urls = {
+    project_urls={
         'Documentation': 'http://poorhttp.zeropage.cz/poorwsgi',
         'Funding': 'https://github.com/sponsors/ondratu',
         'Source': 'https://github.com/poorHttp/PoorWSGI',
@@ -194,8 +196,8 @@ setup(
     data_files=[
         ('share/doc/poorwsgi',
          ['doc/ChangeLog', 'doc/licence.txt', 'README.rst',
-          'CONTRIBUTION.rst'])] +
-        find_data_files("examples", "share/poorwsgi/examples"),
+          'CONTRIBUTION.rst'])
+         ] + find_data_files("examples", "share/poorwsgi/examples"),
     license="BSD",
     license_files='doc/licence.txt',
     long_description=doc(),

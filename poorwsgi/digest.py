@@ -251,7 +251,7 @@ def get_re_type():
     return password
 
 
-def main():
+def main():  # noqa: C901
     """Main function for manipulation with passwordfile."""
     # pylint: disable=too-many-return-statements
     # pylint: disable=too-many-statements

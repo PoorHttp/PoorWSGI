@@ -1041,7 +1041,7 @@ class Application():
         for fun in self.__before:
             fun(req)
 
-    def handler_from_table(self, req: Request):
+    def handler_from_table(self, req: Request):  # noqa: C901
         """Call right handler from handlers table (fill with route function).
 
         If no handler is fined, try to find directory or file if Document Root,
@@ -1124,7 +1124,7 @@ class Application():
 
         return self.handler_from_default(req)
 
-    def __request__(self, env, start_response):
+    def __request__(self, env, start_response):  # noqa: C901
         """Create Request instance and return wsgi response.
 
         This method create Request object, call handlers from

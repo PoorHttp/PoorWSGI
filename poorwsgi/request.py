@@ -978,7 +978,7 @@ class CachedInput:
         self.__todo -= size
         return self.__file.read(size)
 
-    def readline(self, size=-1):
+    def readline(self, size=-1):  # noqa: C901
         """Compatible file read which works with internal buffer."""
         if size < 0:
             size = self.block_size
@@ -1049,10 +1049,11 @@ class FieldStorage(CgiFieldStorage):
     :lists:     if variable is list of variables, this contains instances of
                 FieldStorage.
     """
-    def __init__(self, req, headers=None, outerboundary=b'', environ=None,
-                 keep_blank_values=0, strict_parsing=0, limit=None,
-                 encoding='utf-8', errors='replace', max_num_fields=None,
-                 separator='&', file_callback=None):
+
+    def __init__(self, req, headers=None, outerboundary=b'',  # noqa: C901
+                 environ=None, keep_blank_values=0, strict_parsing=0,
+                 limit=None, encoding='utf-8', errors='replace',
+                 max_num_fields=None, separator='&', file_callback=None):
         """Constructor of FieldStorage.
 
         Many of input parameters are need only for next internal use, because

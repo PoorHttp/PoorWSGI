@@ -383,7 +383,7 @@ def not_implemented(req, code=None, error=None):
 # enddef
 
 
-def directory_index(req, path):
+def directory_index(req, path):  # noqa: C901
     """Returns directory index as html page."""
     if not isdir(path):
         log.error(

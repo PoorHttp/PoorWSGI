@@ -117,8 +117,9 @@ def plain_text(req):
 def response_handler(req):
     """Override content-type via header value."""
     assert req
-    return Response(status_code=200,
-        headers={'Content-Type':'application/json'},
+    return Response(
+        status_code=200,
+        headers={'Content-Type': 'application/json'},
         data=b"{}")
 
 
@@ -137,18 +138,25 @@ def test_json(req):
                         request=req.json)
 
 
-@app.route("/arg/<int_arg:int>")
+@app.route("/arg/<arg:int>")
 def ajax_integer(req, arg):
     """Simple JSON response with integer argument in path."""
     assert req
-    return json.dumps({"integer_arg": arg}), "application/json"
+    return json.dumps({"arg": arg}), "application/json"
 
 
-@app.route("/arg/<float_arg:float>")
+@app.route("/arg/<arg:float>")
 def ajax_float(req, arg):
     """Simple JSON response with float argument in path."""
     assert req
-    return json.dumps({"float_arg": arg}), "application/json"
+    return json.dumps({"arg": arg}), "application/json"
+
+
+@app.route("/arg/<arg:uuid>")
+def ajax_uuid(req, arg):
+    """Simple JSON response with uuid argument in path."""
+    assert req
+    return json.dumps({"arg": str(arg)}), "application/json"
 
 
 @app.route('/internal-server-error')

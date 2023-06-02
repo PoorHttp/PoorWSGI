@@ -116,6 +116,49 @@
       }
       ]
     },
+    "/arg/{arg}": {
+      "get": {
+        "summary": "Json with UUID path argument",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "arg": {
+                      "$ref": "#/components/schemas/arg"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "parameters": [
+      {
+        "name": "arg",
+        "in": "path",
+        "required": true,
+        "description": "UUID argument",
+        "schema": {
+          "$ref": "#/components/schemas/arg"
+        }
+      },
+      {
+        "$ref": "#/components/parameters/accept"
+      }
+      ]
+    },
+
     "/login": {
       "get": {
         "summary": "Create login cookie",
@@ -168,6 +211,12 @@
   },
   "components": {
     "schemas": {
+      "arg": {
+        "oneOf": [
+          {"type": "number"},
+          {"type": "string", "format": "uuid"}
+        ]
+      }
     },
     "parameters": {
       "accept": {

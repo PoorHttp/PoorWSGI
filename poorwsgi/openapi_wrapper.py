@@ -5,6 +5,8 @@ https://github.com/p1c2u/openapi-core with version 0.13.0 or higher.
 
 :Classes:   OpenAPIRequest, OpenAPIResponse
 """
+from collections import OrderedDict
+
 import re
 
 from openapi_core.validation.request.datatypes import (  # type: ignore
@@ -50,8 +52,16 @@ class OpenAPIRequest():
     @property
     def parameters(self):
         """Return RequestParameters object for validator."""
+        path_args = OrderedDict()
+        for (key, val) in self.request.path_args.items():
+            # allowed openapi core types...
+            if (not isinstance(val, (float, int, str, bool)) and
+                    val is not None):
+                val = str(val)
+            path_args[key] = val
+
         return RequestParameters(
-            path=self.request.path_args,
+            path=path_args,
             query=self.request.args,
             header=self.request.headers,
             cookie=self.request.cookies,

@@ -13,6 +13,7 @@ SPEC = response_spec_json(
 
 # pylint: disable=missing-function-docstring
 # pylint: disable=redefined-outer-name
+# pylint: disable=no-self-use
 
 
 @fixture(scope="module")
@@ -40,6 +41,7 @@ def session(url):
 
 class TestOpenAPI():
     """OpenAPI tests"""
+
     def test_plain_text(self, url):
         res = check_api(url+"/plain_text",
                         headers={'Accept': 'text/plain'},
@@ -88,7 +90,7 @@ class TestOpenAPI():
         assert res.json()["request"] == data
 
     def test_json_post_unicode_struct(self, url):
-        data = dict(city="Česká Lípa")
+        data = {"city": "Česká Lípa"}
         res = check_api(url+"/json", status_code=418,
                         method="PUT", json=data,
                         response_spec=SPEC)
@@ -100,19 +102,29 @@ class TestOpenAPI():
                         response_spec=SPEC)
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
-        assert data.get("integer_arg") == 42
+        assert data.get("arg") == 42
 
     def test_arg_float(self, url):
         res = check_api(url+"/arg/3.14",
                         headers={'Accept': 'application/json'},
-                        response_spec=SPEC)
+                        response_spec=SPEC,
+                        path_pattern=url+"/arg/{arg}")
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
-        assert data.get("float_arg") == 3.14
+        assert data.get("arg") == 3.14
+
+    def test_arg_uuid(self, url):
+        res = check_api(url+"/arg/3e4666bf-d5e5-4aa7-b8ce-cefe41c7568a",
+                        headers={'Accept': 'application/json'},
+                        response_spec=SPEC,
+                        path_pattern=url+"/arg/{arg}")
+        assert res.headers["Content-Type"] == "application/json"
+        data = res.json()
+        assert data.get("arg") == "3e4666bf-d5e5-4aa7-b8ce-cefe41c7568a"
 
     def test_arg_string(self, url):
         res = check_api(url+"/arg/ok",
-                        status_code=404,
+                        status_code=400,
                         headers={'Accept': 'application/json'},
                         response_spec=SPEC)
         assert res.headers["Content-Type"] == "application/json"

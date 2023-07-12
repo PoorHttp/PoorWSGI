@@ -139,8 +139,10 @@ def internal_server_error(req, **kwargs):
             "  method: <b><code>{req.method}</code></b><br/>\n"
             "  uri: <b><code>{req.uri}</code></b><br/>\n"
             "  uri_rule: <b><code>{req.uri_rule}</code></b><br/>\n"
-            "  uri_handler: <b><code>{uri_handler}</code></b><br/>\n"
-            "".format(req=req, uri_handler=html_escape(str(req.uri_handler))))
+            "  uri_handler: <b><code>"
+            "{req.uri_handler.__module__}.{req.uri_handler.__name__}"
+            "</code></b><br/>\n"
+            "".format(req=req))
 
         res.write(
             "  <h2>Exception Traceback</h2>\n"

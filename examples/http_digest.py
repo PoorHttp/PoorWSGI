@@ -73,7 +73,7 @@ def root(req):
     body = (
         '<ul>',
         '<li>%s - admin zone (admin/admin)</li>' % get_link('/admin_zone'),
-        '<li>%s - user zone (user/looser)</li>' % get_link('/user_zone'),
+        '<li>%s - user zone (user/looser;sha/sha)</li>' % get_link('/user_zone'),
         '<li>%s - user (user/looser)</li>' % get_link('/user'),
         '<li>%s - utf-8 (Ondřej/heslíčko)</li>' % get_link('/user/utf-8'),
         '<li>%s - foo (foo/bar)</li>' % get_link('/foo'),

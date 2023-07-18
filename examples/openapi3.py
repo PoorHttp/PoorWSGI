@@ -12,8 +12,11 @@ from sys import path as python_path
 import logging as log
 import json
 
-from openapi_core import Spec, \
-    openapi_request_validator, openapi_response_validator
+from openapi_core import (  # type: ignore[attr-defined]
+        Spec,
+        openapi_request_validator,
+        openapi_response_validator)
+
 from openapi_core.templating.paths.exceptions import PathNotFound, \
     OperationNotFound
 from openapi_core.validation.request.exceptions import SecurityValidationError
@@ -48,8 +51,8 @@ options_headers = {
 
 
 with open(path.join(path.dirname(__file__), "openapi.json"),
-        "r", encoding="utf-8") as openapi:
-    spec = Spec.create(json.load(openapi))
+          "r", encoding="utf-8") as openapi:
+    spec = Spec.create(json.load(openapi))  # type: ignore[attr-defined]
 
 
 @app.before_response()

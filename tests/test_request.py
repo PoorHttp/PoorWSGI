@@ -81,6 +81,7 @@ class TestArgs:
         assert args.getfirst("age", "23", int) == 23
         assert tuple(args.getlist("values", ("3", "4"), int)) == (3, 4)
         assert not tuple(args.getlist("values"))
+        assert args.get("no") is None
 
 
 class TestForm:

@@ -11,7 +11,7 @@ from poorwsgi.response import Response, JSONResponse, TextResponse, \
     RedirectResponse, FileObjResponse, FileResponse, NotModifiedResponse, \
     HTTPException, redirect, abort
 from poorwsgi.request import Headers
-from poorwsgi.state import HTTP_NOT_FOUND
+from poorwsgi.state import HTTP_NOT_FOUND, HTTP_RANGE_NOT_SATISFIABLE
 
 # pylint: disable=missing-function-docstring
 # pylint: disable=redefined-outer-name
@@ -73,6 +73,10 @@ class TestReponse:
         response_args(start_response)
         with pytest.raises(RuntimeError):
             response_args(start_response)
+
+
+class TestPartial:
+    """Test for Partial Response"""
 
     def test_no_accept_range(self):
         res = Response()
@@ -166,6 +170,75 @@ class TestReponse:
         assert res(start_response).read() == b'012'
         assert int(res.headers.get('Content-Length')) == 3
         assert res.headers.get('Content-Range') == "bytes 0-2/10"
+
+
+class TestPartialGenerator:
+    """Test for Partial Response via generators."""
+
+    def test_partial_know_length(self):
+        res = GeneratorResponse((str(x).encode("utf-8") for x in range(10)),
+                                content_length=10)
+        res.make_partial([(7, None)])
+        gen = res(start_response)
+        assert int(res.headers.get('Content-Length')) == 3
+        assert res.headers.get('Content-Range') == "bytes 7-9/10"
+        assert b"".join(gen) == b"789"
+
+    def test_partial_know_length_blocks_start(self):
+        res = GeneratorResponse((str(x).encode("utf-8")*3 for x in range(10)),
+                                content_length=30)
+        res.make_partial([(0, 6)])
+        gen = res(start_response)
+        assert int(res.headers.get('Content-Length')) == 7
+        assert res.headers.get('Content-Range') == "bytes 0-6/30"
+        assert b"".join(gen) == b"0001112"
+
+    def test_partial_know_length_blocks_range(self):
+        res = GeneratorResponse((str(x).encode("utf-8")*3 for x in range(10)),
+                                content_length=30)
+        res.make_partial([(8, 16)])
+        gen = res(start_response)
+        assert int(res.headers.get('Content-Length')) == 9
+        assert res.headers.get('Content-Range') == "bytes 8-16/30"
+        assert b"".join(gen) == b"233344455"
+
+    def test_partial_know_length_blocks_range2(self):
+        res = GeneratorResponse((b'01234' for x in range(5)),
+                                content_length=25)
+        res.make_partial([(7, 8)])
+        gen = res(start_response)
+        assert int(res.headers.get('Content-Length')) == 2
+        assert res.headers.get('Content-Range') == "bytes 7-8/25"
+        assert b"".join(gen) == b"23"
+
+    def test_partial_know_length_blocks_end(self):
+        res = GeneratorResponse((str(x).encode("utf-8")*3 for x in range(10)),
+                                content_length=30)
+        res.make_partial([(None, 7)])
+        gen = res(start_response)
+        assert int(res.headers.get('Content-Length')) == 7
+        assert res.headers.get('Content-Range') == "bytes 23-29/30"
+        assert b"".join(gen) == b"7888999"
+
+    def test_partial_unknown_length_start(self):
+        res = GeneratorResponse((str(x).encode("utf-8") for x in range(10)))
+        res.make_partial([(7, None)])
+        with pytest.raises(HTTPException):
+            res(start_response)
+
+    def test_partial_unknown_length_range(self):
+        res = GeneratorResponse((str(x).encode("utf-8") for x in range(10)))
+        res.make_partial([(7, 9)])
+        with pytest.raises(HTTPException):
+            res(start_response)
+            # assert err.status_code == HTTP_RANGE_NOT_SATISFIABLE
+
+    def test_partial_unknown_length_end(self):
+        res = GeneratorResponse((str(x).encode("utf-8") for x in range(10)))
+        res.make_partial([(None, 7)])
+        with pytest.raises(HTTPException):
+            res(start_response)
+            # assert err.status_code == HTTP_RANGE_NOT_SATISFIABLE
 
 
 class TestJSONResponse:

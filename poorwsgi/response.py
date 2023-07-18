@@ -233,16 +233,16 @@ class BaseResponse:
                             end=self.content_length-1,
                             full=self._content_length)
                     self._start, self._end = self.ranges[0]
-                    if self._start is None:
+                    if self._start is None and self._content_length:
                         self._end = min(self._content_length, self._end)
                         self._start = self._content_length - self._end
                         self._end = None
                     content_range.start = self._start
-                    if self._end:
+                    if self._end and self._content_length:
                         self._end = min(self._content_length-1, self._end)
                         content_range.end = self._end
                         self._content_length = self._end - self._start + 1
-                    else:
+                    elif self._content_length:
                         self._content_length -= self._start
                     if self._content_length:
                         self.status_code = HTTP_PARTIAL_CONTENT
@@ -489,21 +489,51 @@ class GeneratorResponse(BaseResponse):
     Even though you can figure out iterating your generator more times, just
     like Response, instance of GeneratorResponse can be used only once!
     """
+
+    # pylint: disable=too-many-arguments
     def __init__(self, generator: Iterable[bytes],
                  content_type: str = "text/html; charset=utf-8",
                  headers: Optional[Union[Headers, HeadersList]] = None,
-                 status_code: int = HTTP_OK):
+                 status_code: int = HTTP_OK,
+                 content_length: int = 0):
         super().__init__(content_type=content_type,
                          headers=headers,
                          status_code=status_code)
+        self._content_length = content_length
         self.__generator = generator
 
+    def __range_generator__(self):
+        pos = 0
+        for data in self.__generator:
+            end = length = len(data)
+
+            # skip blocks out of range
+            if pos + length <= self._start:
+                pos += length
+                continue
+
+            start = 0
+            if pos < self._start:
+                start = self._start - pos
+            if self._end and (pos+length) > self._end:
+                end = (self._end + 1) - pos
+            pos += length
+            yield data[start:end]
+
+            # is enough
+            if self._end and pos > self._end:
+                return b''
+        return b''
+
     def __end_of_response__(self):
+        if self._start is not None or self._end is not None:
+            return self.__range_generator__()
         return self.__generator
 
 
 class StrGeneratorResponse(GeneratorResponse):
     """Generator response where generator returns str."""
+
     def __init__(self, generator: Iterable[str],
                  content_type: str = "text/html; charset=utf-8",
                  headers: Optional[Union[Headers, HeadersList]] = None,

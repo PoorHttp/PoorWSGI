@@ -125,6 +125,19 @@ class TestResponses():
     def test_empty_response(self, url):
         check_url("{url}/test/empty".format(url=url), status_code=204)
 
+    def test_partial_empty(self, url):
+        check_url("{url}/test/partial/empty".format(url=url), status_code=200)
+
+    def test_partial_empty_first_100(self, url):
+        check_url("{url}/test/partial/empty".format(url=url),
+                  headers={'Range': 'bytes=0-100'},
+                  status_code=416)
+
+    def test_partial_empty_last_100(self, url):
+        check_url("{url}/test/partial/empty".format(url=url),
+                  headers={'Range': 'bytes=-100'},
+                  status_code=416)
+
 
 class TestSession():
     def test_login(self, url):

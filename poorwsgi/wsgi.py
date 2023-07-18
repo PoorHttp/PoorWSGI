@@ -1190,11 +1190,14 @@ class Application():
 
         skip_sendfile = request.server_software == "uWsgi" and response.ranges
         # need working fileno method
-        if isinstance(response, FileObjResponse) and \
-                "wsgi.file_wrapper" in env and not skip_sendfile:
-            return env['wsgi.file_wrapper'](response(start_response))
-        return response(start_response)         # return bytes generator
-    # enddef
+        try:
+            if isinstance(response, FileObjResponse) and \
+                    "wsgi.file_wrapper" in env and not skip_sendfile:
+                return env['wsgi.file_wrapper'](response(start_response))
+            return response(start_response)         # return bytes generator
+        except HTTPException as http_err:  # HTTP_RANGE_NOT_SATISFIABLE case
+            response = http_err.make_response()
+            return response(start_response)
 
     def __call__(self, env, start_response):
         """Callable define for Application instance.

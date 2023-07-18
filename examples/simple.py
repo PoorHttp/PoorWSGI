@@ -505,6 +505,16 @@ def test_empty(req):
     return res
 
 
+@app.route('/test/partial/empty')
+def test_partial_empty(req):
+    res = Response()
+    ranges = {}
+    if 'Range' in req.headers:
+        ranges = parse_range(req.headers['Range'])
+    res.make_partial(ranges.get("bytes", None))
+    return res
+
+
 @app.route('/yield')
 def yielded(req):
     """Simple response generator by yield."""
@@ -563,10 +573,10 @@ def simple_py(req):
             return NotModifiedResponse(date=time_to_http())
 
     response = FileResponse(__file__, headers={'E-Tag': etag})
+    ranges = {}
     if 'Range' in req.headers:
         ranges = parse_range(req.headers['Range'])
-        if "bytes" in ranges:
-            response.make_partial(ranges["bytes"])
+    response.make_partial(ranges.get("bytes", None))
 
     return response
 

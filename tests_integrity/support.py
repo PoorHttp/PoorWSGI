@@ -7,8 +7,12 @@ from socket import socket, error as SocketError
 
 from requests import Request, Session
 from requests.exceptions import RequestException
-from openapi_core import openapi_response_validator
+from openapi_core import unmarshal_response
+from openapi_core.contrib.requests import (RequestsOpenAPIRequest,
+                                           RequestsOpenAPIResponse)
+from openapi_core.exceptions import OpenAPIError
 from openapi_core.templating.paths.exceptions import PathNotFound
+
 
 from . openapi import OpenAPIRequest, OpenAPIResponse
 
@@ -72,7 +76,7 @@ def check_url(url, method="GET", status_code=200, allow_redirects=True,
     raise ConnectionError("Not response")
 
 
-def check_api(url, method="GET", status_code=200, path_pattern=None,
+def check_api(url, method="GET", status_code=200,
               response_spec=None, **kwargs):
     """Do HTTP API request and check status_code."""
     assert response_spec, "response_validator must be set"
@@ -87,21 +91,19 @@ def check_api(url, method="GET", status_code=200, path_pattern=None,
         if isinstance(status_code, int):
             status_code = [status_code]
         assert response.status_code in status_code
-        api_request = OpenAPIRequest(request, path_pattern)
-        result = openapi_response_validator.validate(response_spec,
-                api_request, OpenAPIResponse(response))
-        if result.errors:
-            to_raise = False
-            for error in result.errors:
-                if isinstance(error, PathNotFound):
-                    if response.status_code == 404:
-                        continue
-                    warn(UserWarning(f"Not API definition for {url}!"))
-                    continue
-                stderr.write("API output error: {str(error)}")
-                to_raise = True
-            if to_raise:
-                raise TestError("API errors not zero: {len(result.errors)}")
+        try:
+            unmarshal_response(
+                    RequestsOpenAPIRequest(request),
+                    RequestsOpenAPIResponse(response),
+                    response_spec)
+        except PathNotFound:
+            if response.status_code == 404:
+                return response
+            warn(UserWarning(f"Not API definition for {url}!"))
+            return response
+        except OpenAPIError as error:
+            stderr.write("API output error: {str(error)}")
+            raise TestError("API error: {error}") from error
         return response
     except RequestException as err:
         print(err)

@@ -12,11 +12,12 @@ from sys import path as python_path
 import logging as log
 import json
 
-from openapi_core import (  # type: ignore[attr-defined]
+from openapi_core import (
         Spec,
-        openapi_request_validator,
-        openapi_response_validator)
+        unmarshal_request, unmarshal_response,
+        )
 
+from openapi_core.exceptions import OpenAPIError
 from openapi_core.templating.paths.exceptions import PathNotFound, \
     OperationNotFound
 from openapi_core.validation.request.exceptions import SecurityValidationError
@@ -52,7 +53,7 @@ options_headers = {
 
 with open(path.join(path.dirname(__file__), "openapi.json"),
           "r", encoding="utf-8") as openapi:
-    spec = Spec.create(json.load(openapi))  # type: ignore[attr-defined]
+    app.openapi_spec = Spec.from_dict(json.load(openapi))  # type: ignore
 
 
 @app.before_response()
@@ -80,30 +81,31 @@ def cors_response(req, res):
 def before_each_response(req):
     """Check API before process each response."""
     req.api = OpenAPIRequest(req)
-    result = openapi_request_validator.validate(spec, req.api)
-    if result.errors:
-        errors = []
-        for error in result.errors:
-            log.debug(error)
-            if isinstance(error, (OperationNotFound, PathNotFound)):
-                return  # not found
-            if isinstance(error, SecurityValidationError):
-                abort(JSONResponse(error=str(errors), status_code=401,
-                                   charset=None))
-            errors.append(repr(error)+":"+str(error))
-        abort(JSONResponse(error=';'.join(errors), status_code=400,
+    try:
+        unmarshal_request(req.api, app.openapi_spec)
+    except (OperationNotFound, PathNotFound) as error:
+        log.debug("%s", error)
+        return  # not found
+
+    except SecurityValidationError as error:
+        abort(JSONResponse(error=str(error), status_code=401,
+                           charset=None))
+    except OpenAPIError as error:
+        abort(JSONResponse(error=str(error), status_code=400,
                            charset=None))
 
 
 @app.after_response()
 def after_each_response(req, res):
     """Check if ansewer is valid by OpenAPI."""
-    result = openapi_response_validator.validate(spec,
-        req.api or OpenAPIRequest(req),     # when error in before_request
-        OpenAPIResponse(res))
-    for error in result.errors:
-        if isinstance(error, (OperationNotFound, PathNotFound)):
-            continue
+    try:
+        unmarshal_response(
+                req.api or OpenAPIRequest(req),  # when error in before_request
+                OpenAPIResponse(res),
+                app.openapi_spec)
+    except (OperationNotFound, PathNotFound):
+        return res
+    except OpenAPIError as error:
         log.error("API output error: %s", str(error))
         assert False, f"OpenAPI Error {str(error)}"
     return res

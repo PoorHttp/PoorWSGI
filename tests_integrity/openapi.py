@@ -78,7 +78,7 @@ class OpenAPIResponse():
 def response_spec_json(filename):
     """Initialization response_validator for openapi.json."""
     with open(filename, "r", encoding="utf-8") as openapi:
-        return Spec.create(json.load(openapi))
+        return Spec.from_dict(json.load(openapi))
 
 
 __all__ = ["response_spec_json", "OpenAPIRequest", "OpenAPIResponse"]

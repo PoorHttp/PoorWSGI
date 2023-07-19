@@ -57,8 +57,7 @@ class TestOpenAPI():
     def test_json_arg_integer(self, url):
         res = check_api(url+"/json/42",
                         headers={'Accept': 'application/json'},
-                        response_spec=SPEC,
-                        path_pattern=url+"/json/{arg}")
+                        response_spec=SPEC)
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
         assert data.get("arg") == '42'
@@ -66,8 +65,7 @@ class TestOpenAPI():
     def test_json_arg_float(self, url):
         res = check_api(url+"/json/3.14",
                         headers={'Accept': 'application/json'},
-                        response_spec=SPEC,
-                        path_pattern=url+"/json/{arg}")
+                        response_spec=SPEC)
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
         assert data.get("arg") == '3.14'
@@ -76,8 +74,7 @@ class TestOpenAPI():
         res = check_api(url+"/json/ok",
                         status_code=400,
                         headers={'Accept': 'application/json'},
-                        response_spec=SPEC,
-                        path_pattern=url+"/json/{arg}")
+                        response_spec=SPEC)
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
         assert data.get("error") is not None
@@ -107,8 +104,7 @@ class TestOpenAPI():
     def test_arg_float(self, url):
         res = check_api(url+"/arg/3.14",
                         headers={'Accept': 'application/json'},
-                        response_spec=SPEC,
-                        path_pattern=url+"/arg/{arg}")
+                        response_spec=SPEC)
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
         assert data.get("arg") == 3.14
@@ -116,8 +112,7 @@ class TestOpenAPI():
     def test_arg_uuid(self, url):
         res = check_api(url+"/arg/3e4666bf-d5e5-4aa7-b8ce-cefe41c7568a",
                         headers={'Accept': 'application/json'},
-                        response_spec=SPEC,
-                        path_pattern=url+"/arg/{arg}")
+                        response_spec=SPEC)
         assert res.headers["Content-Type"] == "application/json"
         data = res.json()
         assert data.get("arg") == "3e4666bf-d5e5-4aa7-b8ce-cefe41c7568a"

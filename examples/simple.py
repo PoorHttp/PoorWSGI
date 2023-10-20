@@ -515,6 +515,20 @@ def test_partial_empty(req):
     return res
 
 
+@app.route('/test/partial/generator')
+def test_partial_generator(req):
+    def gen():
+        for i in range(10):
+            yield b"line %d\n" % i
+
+    res = GeneratorResponse(gen(), content_length=70)
+    ranges = {}
+    if 'Range' in req.headers:
+        ranges = parse_range(req.headers['Range'])
+    res.make_partial(ranges.get("bytes", None))
+    return res
+
+
 @app.route('/yield')
 def yielded(req):
     """Simple response generator by yield."""

@@ -115,7 +115,11 @@ class TestResponses():
                         headers={'If-None-Match': etag},
                         status_code=304)
 
-    def test_partial_file(self, url):
+
+class TestPartialResponse():
+    """Tests for Partial Responses"""
+
+    def test_file(self, url):
         res = check_url(url+"/simple.py",
                         headers={'Range': 'bytes=-100'},
                         status_code=206)
@@ -125,18 +129,27 @@ class TestResponses():
     def test_empty_response(self, url):
         check_url("{url}/test/empty".format(url=url), status_code=204)
 
-    def test_partial_empty(self, url):
+    def test_empty(self, url):
         check_url("{url}/test/partial/empty".format(url=url), status_code=200)
 
-    def test_partial_empty_first_100(self, url):
+    def test_empty_first_100(self, url):
         check_url("{url}/test/partial/empty".format(url=url),
-                  headers={'Range': 'bytes=0-100'},
+                  headers={'Range': 'bytes=0-99'},
                   status_code=416)
 
-    def test_partial_empty_last_100(self, url):
-        check_url("{url}/test/partial/empty".format(url=url),
-                  headers={'Range': 'bytes=-100'},
-                  status_code=416)
+    def test_first_15(self, url):
+        res = check_url("{url}/test/partial/generator".format(url=url),
+                        headers={'Range': 'bytes=0-14'},
+                        status_code=206)
+        assert len(res.text) == 15
+        assert res.text[-22:] == "line 0\nline 1\nl"
+
+    def test_last_15(self, url):
+        res = check_url("{url}/test/partial/generator".format(url=url),
+                        headers={'Range': 'bytes=-15'},
+                        status_code=206)
+        assert len(res.text) == 15
+        assert res.text[-22:] == "\nline 8\nline 9\n"
 
 
 class TestSession():

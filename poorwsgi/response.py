@@ -334,21 +334,42 @@ class Response(BaseResponse):
 class JSONResponse(Response):
     """Simple application/json response.
 
-    ** kwargs from constructor are serialized to json structure.
+     Arguments:
+        data_ : Any
+            Alternative way to add any data to json response.
+        charset : str
+            ``charset`` value for ``Content-Type`` header. ``utf-8`` by
+            default.
+        headers : Headers
+            Response headers.
+        status_code : int
+            HTTP Status response code, 200 (``HTTP_OK``) by default.
+        encoder_kwargs : dict
+            Keyword arguments for ``json.dumps`` function.
+        kwargs : keywords arguments
+            Other keys and values are serialized to JSON structure.
+
+    >>> res = JSONResponse(msg="Čeština",
+    ...                    encoder_kwargs={"ensure_ascii": False})
+    >>> res.data
+    b'{"msg": "\xc4\x8ce\xc5\xa1tina"}'
     """
 
     def __init__(self, data_=None, charset: str = "utf-8",
                  headers: Optional[Union[Headers, HeadersList]] = None,
-                 status_code: int = HTTP_OK,
+                 status_code: int = HTTP_OK, encoder_kwargs=None,
                  **kwargs):
+        # pylint: disable=too-many-arguments
         content_type = "application/json"
+        encoder_kwargs = encoder_kwargs or {}
         if charset:
             content_type += "; charset="+charset
         if kwargs and data_ is not None:
             raise RuntimeError("Only one of data and kwargs is allowed.")
         if kwargs and data_ is None:
             data_ = kwargs
-        super().__init__(dumps(data_), content_type, headers, status_code)
+        super().__init__(dumps(data_, **encoder_kwargs),
+                         content_type, headers, status_code)
 
 
 class TextResponse(Response):

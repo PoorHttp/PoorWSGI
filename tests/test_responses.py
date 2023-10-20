@@ -217,6 +217,12 @@ class TestJSONResponse:
         with pytest.raises(RuntimeError):
             JSONResponse([], msg="Messgae")
 
+    def test_no_decoded_unicode(self):
+        res = JSONResponse(msg="Čeština",
+                           encoder_kwargs={"ensure_ascii": False})
+        data = res.data
+        assert data == b'{"msg": "\xc4\x8ce\xc5\xa1tina"}'
+
 
 class TestTextResponse:
     """Test for TextResponse."""

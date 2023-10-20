@@ -5,7 +5,6 @@ from distutils.dir_util import remove_tree
 from os import path, makedirs, walk, environ
 from shutil import copyfile
 from subprocess import call
-from io import FileIO as file
 
 import logging
 
@@ -62,7 +61,7 @@ class BuildDoc(Command):
             out_name = in_name
         if call(['jinja24doc', '-v', '--var', f'public={self.public}',
                  f'_{in_name}.html', 'doc'],
-                stdout=file(f'{self.html_temp}/{out_name}.html', 'w',
+                stdout=open(f'{self.html_temp}/{out_name}.html', 'w',
                             encoding="utf-8")):
             raise IOError(1, 'jinja24doc failed')
 

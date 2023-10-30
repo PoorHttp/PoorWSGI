@@ -9,9 +9,9 @@ import pytest
 from poorwsgi.response import Response, JSONResponse, TextResponse, \
     GeneratorResponse, StrGeneratorResponse, JSONGeneratorResponse, \
     RedirectResponse, FileObjResponse, FileResponse, NotModifiedResponse, \
-    HTTPException, redirect, abort
+    PartialResponse, HTTPException, redirect, abort
 from poorwsgi.request import Headers
-from poorwsgi.state import HTTP_NOT_FOUND, HTTP_RANGE_NOT_SATISFIABLE
+from poorwsgi.state import HTTP_NOT_FOUND  # , HTTP_RANGE_NOT_SATISFIABLE
 
 # pylint: disable=missing-function-docstring
 # pylint: disable=redefined-outer-name
@@ -170,6 +170,37 @@ class TestPartial:
         assert res(start_response).read() == b'012'
         assert int(res.headers.get('Content-Length')) == 3
         assert res.headers.get('Content-Range') == "bytes 0-2/10"
+
+    def test_unknown_units(self):
+        res = Response(b'0123456789')
+        res.make_partial([(2, 4)], "lines")
+        assert res(start_response).read() == b'0123456789'
+        assert "Content-Range" not in res.headers
+        assert res.headers.get("Accept-Ranges") == "lines"
+
+
+class TestPartialResponse:
+    """Test for special PartialResponse class."""
+
+    def test_response(self):
+        res = PartialResponse(b'56789')
+        res.make_range([(5, 9)], "chars")
+        assert res(start_response).read() == b'56789'
+        assert int(res.headers.get('Content-Length')) == 5
+        assert res.headers.get('Content-Range') == "chars 5-9/*"
+
+    def test_full(self):
+        res = PartialResponse(b'56789')
+        res.make_range([(5, 9)], "chars", 25)
+        assert res(start_response).read() == b'56789'
+        assert int(res.headers.get('Content-Length')) == 5
+        assert res.headers.get('Content-Range') == "chars 5-9/25"
+
+    def test_partial(self):
+        res = PartialResponse(b'56789')
+        res.make_partial([(5, 9)], "chars")
+        assert "Accept-Range" not in res.headers
+        assert "Content-Range" not in res.headers
 
 
 class TestPartialGenerator:

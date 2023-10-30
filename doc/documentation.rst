@@ -276,6 +276,18 @@ Sometimes, you want to return partial Content, which is typical reaction to
                 response.make_partial(ranges["bytes"])
         return response
 
+PartialResponse
+```````````````
+For special use cases, programmer have own mechanism to select range, for example, if units is not bytes. For that situations, there is PartialResponse, which is similar to Response, but it is ``206 Partial Content`` yet, and you have to use ``make_range`` method to only create right ``Content-Range`` header.
+
+.. code:: python
+
+    @app.route("/some/range"):
+    def some_range(req):
+        """Return 100 unicodes with right Content-Range header."""
+        response = PartialResponse(''.join(random.choices("ěščřžýáíé", k=100)))
+        response.make_range({100, 199}, "unicodes", 200)
+        return response
 
 Stopping handlers
 ~~~~~~~~~~~~~~~~~

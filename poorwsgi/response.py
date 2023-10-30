@@ -70,6 +70,7 @@ class BaseResponse:
     """Base class for response."""
     # pylint: disable=too-many-instance-attributes
     _ranges: RangeList
+    _units: Optional[str]
 
     def __init__(self, content_type: str = "",
                  headers: Optional[Union[Headers, HeadersList]] = None,
@@ -100,6 +101,7 @@ class BaseResponse:
         self._start = 0
         self._end = 0
         self._content_length = 0
+        self._units = None
 
     @property
     def status_code(self):
@@ -199,6 +201,7 @@ class BaseResponse:
                         self.__status_code)
             return
 
+        self._units = units
         self.add_header('Accept-Ranges', units)
         self._ranges.clear()
         for start, end in ranges or []:
@@ -227,7 +230,7 @@ class BaseResponse:
                         'Missing any required header in Not Modified response')
         else:
             if self.__status_code == HTTP_OK:
-                if self._ranges:
+                if self._ranges and self._units == "bytes":
                     del self.__headers['Accept-Ranges']
                     content_range = ContentRange(
                             end=self.content_length-1,
@@ -253,6 +256,9 @@ class BaseResponse:
                                 headers={"Content-Range": str(content_range)},
                                 status_code=HTTP_RANGE_NOT_SATISFIABLE)
                         raise HTTPException(error)
+                elif self._ranges:
+                    log.warning("Unknown units `%s', full response will be "
+                                "returned.", self._units)
 
             if self.content_type \
                     and not self.__headers.get('Content-Type'):
@@ -329,6 +335,54 @@ class Response(BaseResponse):
         if self._end:
             return IBytesIO(self.__buffer.read(self._end - self._start + 1))
         return self.__buffer
+
+
+class PartialResponse(Response):
+    """Partial Response object which only compute Content-Range header.
+
+    This is for special cases, when you can know how to return right range, for
+    example, when you want to return another unit.
+
+    >>> res = PartialResponse()
+    >>> res.make_range([(1, 3)], "blocks")
+    >>> res.headers
+    Headers("...('Content-Range', 'blocks 1-3/*'))")
+    >>> res.make_range([(1, 3)], "blocks", 10)
+    >>> res.headers
+    Headers("...('Content-Range', 'blocks 1-3/10'))")
+    """
+    full: Union[str, int]
+
+    def __init__(self, data: Union[str, bytes] = b'',
+                 content_type: str = "text/html; charset=utf-8",
+                 headers: Optional[Union[Headers, HeadersList]] = None):
+        super().__init__(data, content_type, headers, HTTP_PARTIAL_CONTENT)
+
+    def make_partial(self, ranges: Optional[RangeList] = None, units="bytes"):
+        """This mathod do nothing.
+
+        For creating Content-Range header, use special make_range method.
+        """
+        log.warning("PartialResponse is partial yet. Use make_range method.")
+
+    def make_range(self, ranges: RangeList, units="bytes", full="*"):
+        """Just set Content-Range header values and units attribute."""
+        self._units = units
+        self._ranges.clear()
+        for start, end in ranges:
+            if start is None or end is None:
+                log.warning("PartialResponse needs full range")
+            elif end < start:
+                log.warning("Inconsistent range %d - %d", start, end)
+            elif (start, end) not in self._ranges:
+                self._ranges.append((start, end))
+        if len(ranges) != 1:
+            log.warning("Only one range will be used!")
+        if len(ranges) >= 1:
+            del self.headers['Content-Range']
+            start, end = self.ranges[0]
+            content_range = ContentRange(start, end, full, units)
+            self.headers.add("Content-Range", str(content_range))
 
 
 class JSONResponse(Response):

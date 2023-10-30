@@ -151,6 +151,13 @@ class TestPartialResponse():
         assert len(res.text) == 15
         assert res.text[-22:] == "\nline 8\nline 9\n"
 
+    def test_unicodes(self, url):
+        res = check_url("{url}/test/partial/unicodes".format(url=url),
+                        headers={'Range': 'unicodes=50-99'},
+                        status_code=206)
+        assert len(res.text) == 50
+        assert len(res.text) < len(res.text.encode("utf-8"))
+
 
 class TestSession():
     def test_login(self, url):

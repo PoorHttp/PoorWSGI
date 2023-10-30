@@ -9,6 +9,8 @@
     * FileResponse generates Last-Modified header now
     * Response and FileObjResponse can be partial
     * JSONResponse Encoder arguments
+    * Generator responses can be partial
+    * Special PartialResponse class
 
 ==== 2.5.0 ====
     * fix file callback on files smaller than 1000B

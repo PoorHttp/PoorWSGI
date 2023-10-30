@@ -150,19 +150,29 @@ def http_to_time(value: str):
 
 
 class ContentRange:
-    """Content-Range header."""
+    """Content-Range header.
+
+    >>> str(ContentRange(1, 2))
+    'bytes 1-2/*'
+    >>> str(ContentRange(1, 2, 10))
+    'bytes 1-2/10'
+    >>> str(ContentRange(2, 5, units="lines"))
+    'lines 2-5/*'
+    """
     # pylint: disable=too-few-public-methods
     start: int
     end: int
+    units: str
     full: Union[int, str]
 
-    def __init__(self, start=0, end=0, full="*"):
+    def __init__(self, start=0, end=0, full="*", units="bytes"):
         self.start = start
         self.end = end
         self.full = full
+        self.units = units
 
     def __str__(self):
-        return f"bytes {self.start}-{self.end}/{self.full}"
+        return f"{self.units} {self.start}-{self.end}/{self.full}"
 
 
 class Headers(Mapping):

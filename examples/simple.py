@@ -12,6 +12,7 @@ from os.path import getctime
 from sys import path as python_path
 from functools import wraps
 from hashlib import md5
+from random import choices
 
 import os
 import logging as log
@@ -26,7 +27,8 @@ from poorwsgi.headers import http_to_time, time_to_http, parse_range  # noqa
 from poorwsgi.session import PoorSession, SessionError  # noqa
 from poorwsgi.response import Response, RedirectResponse, \
     FileObjResponse, FileResponse, GeneratorResponse, \
-    NoContentResponse, NotModifiedResponse, HTTPException  # noqa
+    NoContentResponse, NotModifiedResponse, PartialResponse, \
+    HTTPException  # noqa
 from poorwsgi.results import not_modified  # noqa
 
 try:
@@ -502,6 +504,21 @@ def value_error_handler(req, error):
 def test_empty(req):
     res = NoContentResponse()
     res.add_header("Super-Header", "SuperValue")
+    return res
+
+
+@app.route('/test/partial/unicodes')
+def test_partial_unicodes(req):
+    ranges = {}
+    if 'Range' in req.headers:
+        ranges = parse_range(req.headers['Range'])
+    start, end = ranges.get("unicodes", {100, 199})[0]
+    start = start or 100
+    end = end or 199
+    if end <= start:
+        start = end+100
+    res = PartialResponse(''.join(choices("ěščřžýáíé", k=end+1-start)))
+    res.make_range({(start, end)}, "unicodes")
     return res
 
 

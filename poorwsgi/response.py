@@ -210,6 +210,40 @@ class BaseResponse:
             elif (start, end) not in self._ranges:
                 self._ranges.append((start, end))
 
+    def make_range(self, ranges: RangeList, units="bytes", full="*"):
+        """Just set Content-Range header values and units attribute.
+
+        Content-Range is set in __start_response__ method for HTTP_OK status.
+        This method is need, when you want to make partial response by
+        yourself. This method needs response with HTTP_PARTIAL_CONTENT status.
+        """
+        if self.__status_code != HTTP_PARTIAL_CONTENT:
+            stack_record = stack()[1]
+            # pylint: disable=logging-format-interpolation
+            log.warning("%s status code can't be partial.\n"
+                        "  File {1}, line {2}, in {3} \n"
+                        "{0}".format((stack_record[4] or [''])[0],
+                                     *stack_record[1:4]),
+                        self.__status_code)
+            return
+
+        self._units = units
+        self._ranges.clear()
+        for start, end in ranges:
+            if start is None or end is None:
+                log.warning("PartialResponse needs full range")
+            elif end < start:
+                log.warning("Inconsistent range %d - %d", start, end)
+            elif (start, end) not in self._ranges:
+                self._ranges.append((start, end))
+        if len(ranges) != 1:
+            log.warning("Only one range will be used!")
+        if len(ranges) >= 1:
+            del self.headers['Content-Range']
+            start, end = self.ranges[0]
+            content_range = ContentRange(start, end, full, units)
+            self.headers.add("Content-Range", str(content_range))
+
     @property
     def ranges(self):
         """Tuple of ranges set in make_partial method."""
@@ -365,25 +399,6 @@ class PartialResponse(Response):
         """
         log.warning("PartialResponse is partial yet. Use make_range method.")
 
-    def make_range(self, ranges: RangeList, units="bytes", full="*"):
-        """Just set Content-Range header values and units attribute."""
-        self._units = units
-        self._ranges.clear()
-        for start, end in ranges:
-            if start is None or end is None:
-                log.warning("PartialResponse needs full range")
-            elif end < start:
-                log.warning("Inconsistent range %d - %d", start, end)
-            elif (start, end) not in self._ranges:
-                self._ranges.append((start, end))
-        if len(ranges) != 1:
-            log.warning("Only one range will be used!")
-        if len(ranges) >= 1:
-            del self.headers['Content-Range']
-            start, end = self.ranges[0]
-            content_range = ContentRange(start, end, full, units)
-            self.headers.add("Content-Range", str(content_range))
-
 
 class JSONResponse(Response):
     """Simple application/json response.
@@ -517,6 +532,7 @@ class FileResponse(FileObjResponse):
 
     This object adds Last-Modified header, if is not set.
     """
+
     def __init__(self, path: str, content_type: Optional[str] = None,
                  headers: Optional[Union[Headers, HeadersList]] = None,
                  status_code: int = HTTP_OK):

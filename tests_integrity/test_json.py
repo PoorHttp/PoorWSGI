@@ -118,6 +118,13 @@ class TestResponse:
                         method="POST", json=data)
         assert res.json()["request"] == data
 
+    def test_raw_unicode(self, server):
+        data = '{"name": "Ondřej Tůma"}'
+        res = check_url(server+"/unicode")
+        assert res.text == data
+        assert int(res.headers['Content-Length']) == len(data.encode("utf-8"))
+
+
     def test_bad_json_response(self, server):
         check_url(server+"/test/json", status_code=400,
                   method="POST", data=b"abraka crash",

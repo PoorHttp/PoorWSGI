@@ -67,6 +67,14 @@ def get_timestamp(req):
     return JSONResponse(timestamp=req.start_time)
 
 
+@app.route('/unicode')
+def get_unicode(req):
+    """Return simple JSON with contain raw unicode characters."""
+    return JSONResponse(name="Ondřej Tůma",
+                        encoder_kwargs={"ensure_ascii": False})
+
+
+
 @app.route('/test/headers')
 def test_headers(req):
     """Request headers response."""

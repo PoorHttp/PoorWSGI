@@ -18,8 +18,8 @@ python_path.insert(0, os.path.abspath(
 
 # pylint: disable=import-error, wrong-import-position
 from poorwsgi import Application, state  # noqa
-from poorwsgi.response import JSONResponse, JSONGeneratorResponse # noqa
-from poorwsgi.request import parse_json_request # noqa
+from poorwsgi.response import JSONResponse, JSONGeneratorResponse  # noqa
+from poorwsgi.request import parse_json_request  # noqa
 
 try:
     import uwsgi  # type: ignore
@@ -31,6 +31,12 @@ logger = log.getLogger()
 logger.setLevel("DEBUG")
 app = application = Application("JSON")
 app.debug = True
+
+PROFILE = os.environ.get("PROFILE", None)
+
+if PROFILE is not None:
+    import cProfile
+    app.set_profile(cProfile.runctx, 'req')
 
 
 @app.route('/test/json', method=state.METHOD_GET_POST)
@@ -59,6 +65,12 @@ def test_json_generator(req):
     return JSONGeneratorResponse(status_code=418, message="I'm teapot :-)",
                                  numbers=range(5),
                                  request=req.json)
+
+
+@app.route('/profile')
+def get_profile(req):
+    """Returun PROFILE env variable"""
+    return JSONResponse(PROFILE=PROFILE)
 
 
 @app.route('/timestamp')

@@ -4,6 +4,7 @@ from warnings import warn
 from time import sleep
 from subprocess import Popen
 from socket import socket, error as SocketError
+from itertools import chain
 
 from requests import Request, Session
 from requests.exceptions import RequestException
@@ -14,25 +15,25 @@ from openapi_core.exceptions import OpenAPIError
 from openapi_core.templating.paths.exceptions import PathNotFound
 
 
-from . openapi import OpenAPIRequest, OpenAPIResponse
-
-
 class TestError(RuntimeError):
     """Support exception."""
 
 
-def start_server(request, example):
+def start_server(request, example, env=None):
     """Start web server with example."""
 
     process = None
     print("Starting wsgi application...")
     if request.config.getoption("--with-uwsgi"):
+        env = env or {}
+        env = [["--env", "=".join(items)] for items in env.items()]
+        env = list(chain.from_iterable(env))
         process = Popen(["uwsgi", "--plugin", "python3",
                          "--http-socket", "localhost:8080", "--wsgi-file",
-                         example])
+                         example] + env)
     else:
         # pylint: disable=consider-using-with
-        process = Popen([executable, example])
+        process = Popen([executable, example], env=env)
 
     assert process is not None
     connect = False

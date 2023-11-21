@@ -11,6 +11,7 @@
     * JSONResponse Encoder arguments
     * Generator responses can be partial
     * Special PartialResponse class
+    * Fix set_profile method
 
 ==== 2.5.0 ====
     * fix file callback on files smaller than 1000B

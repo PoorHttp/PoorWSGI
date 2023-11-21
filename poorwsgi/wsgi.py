@@ -1218,7 +1218,7 @@ class Application():
         uri_dump = (self.__dump + env.get('PATH_INFO').replace('/', '_') +
                     '.profile')
         log.info('Generate %s', uri_dump)
-        self.__runctx('wrapper(rv)', globals(), locals(), filename=uri_dump)
+        self.__runctx('wrapper(rval)', globals(), locals(), filename=uri_dump)
         return rval[0]
     # enddef
 

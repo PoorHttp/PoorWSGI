@@ -1213,7 +1213,9 @@ class Application():
             rval.append(self.__original_request__(env, start_response))
 
         rval = []
-        uri_dump = (self.__dump + env.get('PATH_INFO').replace('/', '_') +
+        uri_dump = (self.__dump + "_" + env.get('REQUEST_METHOD') +
+                    env.get('PATH_INFO').replace('/', '_') +
+                    "." + str(time()) +
                     '.profile')
         log.info('Generate %s', uri_dump)
         self.__runctx('wrapper(rval)', globals(), locals(), filename=uri_dump)

@@ -104,14 +104,9 @@ def internal_server_error(req, **kwargs):
     in dispatch_table.errors. If poor_Debug variable is to On, Tracaback
     will be generated.
     """
+    log.exception("", exc_info=True)
     assert kwargs is not None
     exc_type, exc_value, exc_traceback = exc_info()
-    traceback = format_exception(exc_type,
-                                 exc_value,
-                                 exc_traceback)
-    traceback = ''.join(traceback)
-    log.error(traceback)
-    traceback = traceback.split('\n')
 
     res = Response(status_code=HTTP_INTERNAL_SERVER_ERROR)
 
@@ -149,6 +144,12 @@ def internal_server_error(req, **kwargs):
             "  <pre>\n")
 
         # Traceback
+        traceback = format_exception(exc_type,
+                                     exc_value,
+                                     exc_traceback)
+        traceback = ''.join(traceback)
+        traceback = traceback.split('\n')
+
         for i, line in enumerate(traceback):
             traceback_line = html_escape(line)
             res.write('<span class="line%s">%s</span>\n' %
@@ -176,7 +177,7 @@ def internal_server_error(req, **kwargs):
 def bad_request(req, error=None):
     """ 400 Bad Request server error handler. """
     if error:
-        log.error(error)
+        log.warning("400 - Bad Request: %s", error)
     content = (
         "<!DOCTYPE html>\n"
         "<html>\n"
@@ -203,7 +204,7 @@ def bad_request(req, error=None):
 def unauthorized(req, realm=None, stale='', error=None):
     """Return 401 Unauthorized response."""
     if error:
-        log.error(error)
+        log.warning("401 - Unauthorized response: %s", error)
     headers = None
     if req.app.auth_type == 'Digest':
         if not realm:
@@ -256,7 +257,7 @@ def unauthorized(req, realm=None, stale='', error=None):
 def forbidden(req, error=None):
     """ 403 - Forbidden Access server error handler. """
     if error:
-        log.error(error)
+        log.warning("400 - Forbidden Access: %s", error)
 
     content = (
         "<!DOCTYPE html>\n"
@@ -286,7 +287,7 @@ def forbidden(req, error=None):
 def not_found(req, error=None):
     """ 404 - Page Not Found server error handler. """
     if error:
-        log.error(error)
+        log.warning("404 - Not Found: %s", error)
 
     content = (
         "<!DOCTYPE html>\n"
@@ -315,7 +316,7 @@ def not_found(req, error=None):
 def method_not_allowed(req, error=None):
     """ 405 Method Not Allowed server error handler. """
     if error:
-        log.error(error)
+        log.warning("405 - Method Not Allowed: %s", error)
 
     content = (
         "<!DOCTYPE html>\n"
@@ -345,7 +346,7 @@ def method_not_allowed(req, error=None):
 def not_implemented(req, code=None, error=None):
     """ 501 Not Implemented server error handler. """
     if error:
-        log.error(error)
+        log.error("501 - Not Implemented: %s", error)
 
     content = (
         "<!DOCTYPE html>\n"

@@ -1164,10 +1164,8 @@ class Application():
 
         except BaseException as err:  # pylint: disable=broad-except
             if request is None:
-                log.critical(str(err))
+                log.critical(str(err), exc_info=True)
                 request = SimpleRequest(env, self)
-            else:
-                log.info("Excaption in response", exc_info=True)
             try:
                 response = self.error_from_table(request, err)
                 if not response:

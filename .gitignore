@@ -1,0 +1,5 @@
+PoorWSGI.egg-info/
+dist/
+build/
+.eggs/
+tags

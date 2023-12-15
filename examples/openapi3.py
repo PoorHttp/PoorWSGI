@@ -31,6 +31,7 @@ python_path.insert(0, path.abspath(
 from poorwsgi import Application, state  # noqa
 from poorwsgi.response import Response, abort, HTTPException, \
     JSONResponse  # noqa
+from poorwsgi.request import Request
 from poorwsgi.openapi_wrapper import OpenAPIRequest, \
     OpenAPIResponse  # noqa
 from poorwsgi.session import PoorSession  # noqa
@@ -71,9 +72,10 @@ def cors_request(req):
 @app.after_response()
 def cors_response(req, res):
     """CORS additional headers in response."""
-    res.add_header("Access-Control-Allow-Origin",
-                   req.headers.get("Origin", "*"))
-    res.add_header("Access-Control-Allow-Credentials", "true")
+    if isinstance(req, Request):
+        res.add_header("Access-Control-Allow-Origin",
+                       req.headers.get("Origin", "*"))
+        res.add_header("Access-Control-Allow-Credentials", "true")
     return res
 
 
@@ -98,9 +100,11 @@ def before_each_response(req):
 @app.after_response()
 def after_each_response(req, res):
     """Check if ansewer is valid by OpenAPI."""
+    if not hasattr(req, "api"):
+        req.api = OpenAPIRequest(req)
     try:
         unmarshal_response(
-                req.api or OpenAPIRequest(req),  # when error in before_request
+                req.api,
                 OpenAPIResponse(res),
                 app.openapi_spec)
     except (OperationNotFound, PathNotFound):

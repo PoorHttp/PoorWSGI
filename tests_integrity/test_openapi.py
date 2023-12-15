@@ -93,6 +93,12 @@ class TestOpenAPI():
                         response_spec=SPEC)
         assert res.json()["request"] == data
 
+    def test_invalid_post_data(self, url):
+        check_api(url+"/json", status_code=400,
+                  method="POST", data=b'\0',
+                  headers={"Content-Type": "application/json"},
+                  response_spec=SPEC)
+
     def test_arg_integer(self, url):
         res = check_api(url+"/arg/42",
                         headers={'Accept': 'application/json'},

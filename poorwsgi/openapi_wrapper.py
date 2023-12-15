@@ -9,11 +9,11 @@ from collections import OrderedDict
 
 import re
 
-from openapi_core.validation.request.datatypes import (  # type: ignore
-        RequestParameters)
+from openapi_core.protocols import Request, Response
+from openapi_core.validation.request.datatypes import RequestParameters
 
 
-class OpenAPIRequest():
+class OpenAPIRequest(Request):
     """Wrapper of PoorWSGI request to OpenAPIRequest.
 
     Be careful with testing of big incoming request body property, which
@@ -78,7 +78,7 @@ class OpenAPIRequest():
         return self.request.mime_type
 
 
-class OpenAPIResponse():
+class OpenAPIResponse(Response):
     """Wrapper of PoorWSGI request to OpenAPIResponse."""
 
     def __init__(self, response):

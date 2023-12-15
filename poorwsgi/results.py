@@ -127,6 +127,10 @@ def internal_server_error(req, **kwargs):
         "  <h1>500 - Internal Server Error</h1>\n")
 
     if req.debug:
+        handler = {"module": None, "name": None}
+        if req.uri_handler:
+            handler["module"] = req.uri_handler.__module__
+            handler["name"] = req.uri_handler.__name__
         res.write(
             "  <h2>Response detail</h2>\n"
             "  remote host: <b><code>{req.remote_host}</code></b><br/>\n"
@@ -135,9 +139,9 @@ def internal_server_error(req, **kwargs):
             "  uri: <b><code>{req.uri}</code></b><br/>\n"
             "  uri_rule: <b><code>{req.uri_rule}</code></b><br/>\n"
             "  uri_handler: <b><code>"
-            "{req.uri_handler.__module__}.{req.uri_handler.__name__}"
+            "{handler[module]}.{handler[name]}"
             "</code></b><br/>\n"
-            "".format(req=req))
+            "".format(req=req, handler=handler))
 
         res.write(
             "  <h2>Exception Traceback</h2>\n"

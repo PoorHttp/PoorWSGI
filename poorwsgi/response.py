@@ -774,6 +774,7 @@ class HTTPException(Exception):
     >>> HTTPException(401, stale=True)  # doctest: +ELLIPSIS
     HTTPException(401, {'stale': True}...)
     """
+
     def __init__(self, arg: Union[int, Response], **kwargs):
         """status_code is one of HTTP_* status code from state module.
 
@@ -800,6 +801,13 @@ class HTTPException(Exception):
         if isinstance(self.args[0], Response):
             return self.args[0]
         return None
+
+    @property
+    def status_code(self):
+        """Return status code from exception or Response."""
+        if isinstance(self.args[0], int):
+            return self.args[0]
+        return self.args[0].status_code
 
 
 def make_response(data: Union[str, bytes],

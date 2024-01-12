@@ -438,21 +438,29 @@ class TestHTTPException:
     """Tests for HTTPException and other functions which raise that."""
 
     def test_redirect(self):
-        with pytest.raises(HTTPException):
+        with pytest.raises(HTTPException) as err:
             redirect('/')
+
+        assert err.value.status_code == 302
 
     def test_abort_status_code(self):
         with pytest.raises(HTTPException) as err:
             abort(404)
 
-        assert err.value.args[0] == 404
+        assert err.value.status_code == 404
 
     def test_abort_response(self):
         with pytest.raises(HTTPException) as err:
             abort(Response(status_code=400))
 
         assert isinstance(err.value.response, Response)
-        assert err.value.response.status_code == 400
+        assert err.value.status_code == 400
+
+    def test_ordinary_exception(self):
+        with pytest.raises(HTTPException) as err:
+            raise HTTPException(500)
+
+        assert err.value.status_code == 500
 
 
 class TestFileResponse():

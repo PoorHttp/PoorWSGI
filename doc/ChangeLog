@@ -1,3 +1,6 @@
+==== 2.7.0dev0 ====
+    * HTTPException has status_code property
+
 ==== 2.6.1 ====
     * Fix OpenAPI Core wrappers
 

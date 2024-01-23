@@ -795,7 +795,7 @@ CachedInput
 ~~~~~~~~~~~
 
 When HTTP Forms are base64 encoded, FieldStorage use readline on request input
-file. This is not so optimal. So there is CachedInput class, which is returned 
+file. This is not so optimal. So there is CachedInput class, which is returned
 
 Proccess variables
 ~~~~~~~~~~~~~~~~~~

@@ -7,6 +7,7 @@ from pytest import fixture
 
 from . support import start_server, check_url
 
+# pylint: disable=inconsistent-return-statements
 # pylint: disable=missing-function-docstring
 # pylint: disable=no-self-use
 # pylint: disable=redefined-outer-name
@@ -15,6 +16,7 @@ from . support import start_server, check_url
 
 @fixture(scope="module")
 def url(request):
+    """URL (server fixture in fact)."""
     url = environ.get("TEST_SIMPLE_URL", "").strip('/')
     if url:
         return url
@@ -40,6 +42,8 @@ def session(url):
 
 
 class TestSimple():
+    """Test for routes."""
+
     def test_root(self, url):
         check_url(url)
 
@@ -73,6 +77,7 @@ class TestSimple():
 class TestRequest:
     """Test for requests."""
     # pylint: disable=too-few-public-methods
+
     def test_stream_request(self, url):
         def generator():
             for i in range(5):
@@ -83,6 +88,7 @@ class TestRequest:
 
 class TestResponses():
     """Tests for Responses"""
+
     def test_yield(self, url):
         """yield function is done by GeneratorResponse."""
         check_url(url+"/yield")
@@ -160,6 +166,8 @@ class TestPartialResponse():
 
 
 class TestSession():
+    """Session tests."""
+
     def test_login(self, url):
         check_url(url+"/login", status_code=302, allow_redirects=False)
 
@@ -181,27 +189,30 @@ class TestSession():
                   allow_redirects=False)
 
     def test_form_upload(self, url, session):
-        files = {'file_0': ('testfile.py', open(__file__, 'rb'),
-                            'text/x-python', {'Expires': '0'})}
-        res = check_url(url+"/test/upload", method="POST", session=session,
-                        allow_redirects=False, files=files)
-        assert 'testfile.py' in res.text
-        assert __doc__ in res.text
-        assert 'anything' in res.text
+        with open(__file__, 'rb') as _file:
+            files = {'file_0': ('testfile.py', _file,
+                                'text/x-python', {'Expires': '0'})}
+            res = check_url(url+"/test/upload", method="POST", session=session,
+                            allow_redirects=False, files=files)
+            assert 'testfile.py' in res.text
+            assert __doc__ in res.text
+            assert 'anything' in res.text
 
     def test_form_upload_small(self, url, session):
         manifest = join(dirname(__file__), pardir, 'MANIFEST.in')
-        files = {'file_0': ('MANIFEST.in', open(manifest, 'rb'),
-                            'text/plain', {'Expires': '0'})}
-        res = check_url(url+"/test/upload", method="POST", session=session,
-                        allow_redirects=False, files=files)
-        assert 'MANIFEST.in' in res.text
-        assert 'graft' in res.text
-        assert 'global-exclude' in res.text
+        with open(manifest, 'rb') as _file:
+            files = {'file_0': ('MANIFEST.in', _file,
+                                'text/plain', {'Expires': '0'})}
+            res = check_url(url+"/test/upload", method="POST", session=session,
+                            allow_redirects=False, files=files)
+            assert 'MANIFEST.in' in res.text
+            assert 'graft' in res.text
+            assert 'global-exclude' in res.text
 
 
 class TestErrors():
     """Integrity tests for native http state handlers."""
+
     def test_internal_server_error(self, url):
         check_url(url+"/internal-server-error", status_code=500)
 

@@ -16,7 +16,7 @@ from . support import start_server, check_url
 
 @fixture(scope="module")
 def server(request):
-    value = environ.get("TEST_SIMPLE_URL", "").strip('/')
+    value = environ.get("TEST_SIMPLE_JSON_URL", "").strip('/')
     if value:
         return value
 
@@ -31,6 +31,7 @@ def server(request):
 
 class TestHeaders:
     """Test right headers in response."""
+
     def test_headers_empty(self, server):
         res = check_url(server+"/test/headers")
         assert "X-Powered-By" in res.headers
@@ -71,7 +72,7 @@ class TestRequest:
         data = [{"x": 124.2, "y": 100.1}]
         res = check_url(server+"/test/json", status_code=418,
                         method="POST", json=data, timeout=1)
-        assert res.json() == {"message": "I\'m teapot :-)",
+        assert res.json() == {"message": "I'm teapot :-)",
                               "numbers": [0, 1, 2, 3, 4],
                               "request": data}
 
@@ -86,7 +87,7 @@ class TestRequest:
         res = check_url(server+"/test/json", status_code=418,
                         method="POST", data=generator(),
                         headers={'Content-Type': 'application/json'})
-        assert res.json() == {"message": "I\'m teapot :-)",
+        assert res.json() == {"message": "I'm teapot :-)",
                               "numbers": [0, 1, 2, 3, 4],
                               "request": [{"0": 0, "1": 1, "2": 2, "3": 3,
                                            "4": 4, "end": None}]}
@@ -94,15 +95,16 @@ class TestRequest:
 
 class TestResponse:
     """Test right responses."""
+
     def test_json_response(self, server):
         res = check_url(server+"/test/json", status_code=418, timeout=1)
-        assert res.json() == {"message": "I\'m teapot :-)",
+        assert res.json() == {"message": "I'm teapot :-)",
                               "numbers": [0, 1, 2, 3, 4],
                               "request": {}}
 
     def test_json_generator_response(self, server):
         res = check_url(server+"/test/json-generator", status_code=418)
-        assert res.json() == {"message": "I\'m teapot :-)",
+        assert res.json() == {"message": "I'm teapot :-)",
                               "numbers": [0, 1, 2, 3, 4],
                               "request": {}}
 
@@ -123,7 +125,6 @@ class TestResponse:
         res = check_url(server+"/unicode")
         assert res.text == data
         assert int(res.headers['Content-Length']) == len(data.encode("utf-8"))
-
 
     def test_bad_json_response(self, server):
         check_url(server+"/test/json", status_code=400,

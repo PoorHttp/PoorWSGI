@@ -1,6 +1,6 @@
 """requests library object Wrapper for openapi_core library objects."""
 from urllib.parse import urlparse, parse_qs
-from cgi import parse_header
+from email.message import Message
 
 import json
 
@@ -25,8 +25,9 @@ class OpenAPIRequest():
         self.request = request
         self.data = request.data
 
-        ctype = parse_header(request.headers.get('Content-Type', ''))
-        self.mimetype = ctype[0]
+        msg = Message()
+        msg['content-type'] = request.headers.get('Content-Type', '')
+        self.mimetype = msg.get_content_type()
 
         self.parameters = RequestParameters(
             path=args,
@@ -52,7 +53,9 @@ class OpenAPIResponse():
 
     def __init__(self, response):
         self.response = response
-        self.ctype = parse_header(response.headers.get('Content-Type', ''))
+        msg = Message()
+        msg['content-type'] = response.headers.get('Content-Type', '')
+        self.content_type = msg.get_content_type()
 
     @property
     def data(self):
@@ -67,7 +70,7 @@ class OpenAPIResponse():
     @property
     def mimetype(self):
         """Response Content-Type"""
-        return self.ctype[0]
+        return self.content_type
 
     @property
     def headers(self):

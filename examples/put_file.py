@@ -15,16 +15,18 @@ sys.path.insert(0, os.path.abspath(
 
 # pylint: disable=import-error, disable=wrong-import-position
 from poorwsgi import Application, state  # noqa
-from poorwsgi.response import JSONResponse
+from poorwsgi.response import JSONResponse  # noqa
 
 logger = log.getLogger()
 logger.setLevel("DEBUG")
 app = application = Application("large_file")
 app.debug = True
 
+# pylint: disable=duplicate-code
+
 
 @app.route('/blackhole/<filename>', method=state.METHOD_PUT)
-def blackhole_put(req, filename:str):
+def blackhole_put(req, filename: str):
     """Upload file via PUT method like in webdav"""
     checksum = sha256()
     uploaded = 0
@@ -46,7 +48,7 @@ def blackhole_put(req, filename:str):
 
 
 @app.route('/temporary/<filename>', method=state.METHOD_PUT)
-def temporary_put(req, filename:str):
+def temporary_put(req, filename: str):
     """Upload file via PUT method like in webdav"""
     checksum = sha256()
     uploaded = 0
@@ -143,5 +145,5 @@ class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
 if __name__ == '__main__':
     ADDRESS = sys.argv[1] if len(sys.argv) > 1 else '127.0.0.1'
     httpd = make_server(ADDRESS, 8080, app, ThreadingWSGIServer)
-    print("Starting to serve on http://%s:8080" % ADDRESS)
+    print(f"Starting to serve on http://{ADDRESS}:8080")
     httpd.serve_forever()

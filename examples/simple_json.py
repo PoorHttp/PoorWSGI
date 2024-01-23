@@ -3,6 +3,7 @@
 This sample testing example is free to use, modify and study under same BSD
 licence as PoorWSGI. So enjoy it ;)
 """
+# pylint: disable=duplicate-code
 
 from wsgiref.simple_server import make_server
 from sys import path as python_path
@@ -68,7 +69,7 @@ def test_json_generator(req):
 
 
 @app.route('/profile')
-def get_profile(req):
+def get_profile(_):
     """Returun PROFILE env variable"""
     return JSONResponse(PROFILE=PROFILE)
 
@@ -80,11 +81,10 @@ def get_timestamp(req):
 
 
 @app.route('/unicode')
-def get_unicode(req):
+def get_unicode(_):
     """Return simple JSON with contain raw unicode characters."""
     return JSONResponse(name="Ondřej Tůma",
                         encoder_kwargs={"ensure_ascii": False})
-
 
 
 @app.route('/test/headers')
@@ -110,5 +110,5 @@ def test_headers(req):
 if __name__ == '__main__':
     ADDRESS = sys.argv[1] if len(sys.argv) > 1 else '127.0.0.1'
     httpd = make_server(ADDRESS, 8080, app)
-    print("Starting to serve on http://%s:8080" % ADDRESS)
+    print(f"Starting to serve on http://{ADDRESS}:8080")
     httpd.serve_forever()

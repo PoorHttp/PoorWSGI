@@ -6,7 +6,7 @@ from base64 import encodebytes
 
 from pytest import fixture
 # websocket-client
-from websocket import WebSocket  # type: ignore
+from websocket import WebSocket
 
 from . support import start_server, check_url
 
@@ -18,7 +18,7 @@ from . support import start_server, check_url
 
 @fixture(scope="module")
 def server(request):
-    value = environ.get("TEST_SIMPLE_URL", "").strip('/')
+    value = environ.get("TEST_WEBSOCKET_URL", "").strip('/')
     if value:
         return value
 
@@ -54,6 +54,8 @@ class TestWebSocket:
                            encodebytes(uuid).decode().strip()})
 
     def test_websocket(self, ws_url):
+        # python websocket library breaks usage websocket-client with pylint
+        # pylint: disable=no-member
         wsck = WebSocket()
         wsck.connect(ws_url+"/ws")
         msg = wsck.recv()

@@ -38,6 +38,7 @@ Curl test:
 
 """
 # pylint: disable=consider-using-f-string
+# pylint: disable=duplicate-code
 
 from wsgiref.simple_server import make_server, WSGIServer
 from socketserver import ThreadingMixIn
@@ -59,11 +60,17 @@ from poorwsgi.response import Declined  # noqa
 try:
     import uwsgi  # type: ignore
 
+    # pylint: disable=invalid-name
     WebSocketError = OSError
+
+    def WSocketApp(var):  # noqa: N802
+        """Compatible with wsocket WSocketApp"""
+        return var
 
     class WebSocket():
         """Compatibility class."""
         # pylint: disable=no-self-use
+
         def __init__(self):
             uwsgi.websocket_handshake()
 
@@ -81,7 +88,7 @@ except ModuleNotFoundError:
 
     uwsgi = None  # pylint: disable=invalid-name
     from wsocket import (WSocketApp,  # type: ignore
-                         WebSocketError, FixedHandler)
+                         WebSocketError)
 
 
 def get_websocket(environment):
@@ -109,7 +116,7 @@ logger.setLevel("DEBUG")
 poor = Application(__name__)
 poor.debug = True
 
-app = application = poor if uwsgi else WSocketApp(poor)
+app = application = WSocketApp(poor)
 
 
 @poor.route('/')
@@ -220,6 +227,7 @@ class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
 
 
 if __name__ == '__main__':
+    from wsocket import FixedHandler
     httpd = make_server('127.0.0.1', 8080, app,
                         ThreadingWSGIServer, FixedHandler)
     print("Starting to serve on http://127.0.0.1:8080")

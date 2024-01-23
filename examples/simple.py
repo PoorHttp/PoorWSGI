@@ -4,32 +4,33 @@ This sample testing example is free to use, modify and study under same BSD
 licence as PoorWSGI. So enjoy it ;)
 """
 
-from wsgiref.simple_server import make_server
+import logging as log
+import os
 from base64 import decodebytes, encodebytes, urlsafe_b64encode
 from collections import OrderedDict
-from io import FileIO as file, BytesIO
-from os.path import getctime
-from sys import path as python_path
 from functools import wraps
 from hashlib import md5
+from io import BytesIO
+from io import FileIO as file
+from os.path import getctime
 from random import choices
-
-import os
-import logging as log
+from sys import path as python_path
+from wsgiref.simple_server import make_server
 
 EXAMPLES_PATH = os.path.dirname(__file__)
-python_path.insert(0, os.path.abspath(
-    os.path.join(EXAMPLES_PATH, os.path.pardir)))
+python_path.insert(
+    0, os.path.abspath(os.path.join(EXAMPLES_PATH, os.path.pardir)))
 
 # pylint: disable=import-error, wrong-import-position
-from poorwsgi import Application, state, request, redirect  # noqa
-from poorwsgi.headers import http_to_time, time_to_http, parse_range  # noqa
+from poorwsgi import Application, redirect, request, state  # noqa
+from poorwsgi.headers import http_to_time, parse_range, time_to_http  # noqa
+from poorwsgi.response import FileResponse  # noqa
+from poorwsgi.response import HTTPException  # noqa
+from poorwsgi.response import (FileObjResponse, GeneratorResponse,  # noqa
+                               NoContentResponse, NotModifiedResponse,
+                               PartialResponse, RedirectResponse, Response)
+from poorwsgi.results import html_escape, not_modified  # noqa
 from poorwsgi.session import PoorSession, SessionError  # noqa
-from poorwsgi.response import Response, RedirectResponse, \
-    FileObjResponse, FileResponse, GeneratorResponse, \
-    NoContentResponse, NotModifiedResponse, PartialResponse, \
-    HTTPException  # noqa
-from poorwsgi.results import not_modified  # noqa
 
 try:
     import uwsgi  # type: ignore
@@ -37,14 +38,13 @@ try:
 except ModuleNotFoundError:
     uwsgi = None  # pylint: disable=invalid-name
 
-
 logger = log.getLogger()
 logger.setLevel("DEBUG")
 app = application = Application("simple")
 app.debug = True
 app.document_root = '.'
 app.document_index = True
-app.secret_key = os.urandom(32)     # random key each run
+app.secret_key = os.urandom(32)  # random key each run
 
 
 class MyValueError(ValueError):
@@ -52,17 +52,24 @@ class MyValueError(ValueError):
 
 
 class Storage(file):
+    """File storage class created by StorageFactory."""
+
     def __init__(self, directory, filename):
         log.debug("directory: %s; filename: %s", directory, filename)
         self.path = directory + '/' + filename
 
         if os.access(self.path, os.F_OK):
-            raise Exception("File %s exist yet" % filename)
+            msg = f"File {filename} exist yet"
+            raise OSError(msg)
 
         super().__init__(self.path, 'w+b')
 
 
 class StorageFactory:
+    """Storage Factory do some code before creating file."""
+
+    # pylint: disable=too-few-public-methods
+
     def __init__(self, directory):
         self.directory = directory
         if not os.access(directory, os.R_OK):
@@ -80,6 +87,7 @@ app.auto_form = False
 
 @app.before_response()
 def log_request(req):
+    """Log each request before processing."""
     log.info("Before response")
     log.info("Data: %s", req.data)
 
@@ -93,7 +101,8 @@ def auto_form(req):
         factory = StorageFactory('./upload')
         try:
             req.form = request.FieldStorage(
-                req, keep_blank_values=app.keep_blank_values,
+                req,
+                keep_blank_values=app.keep_blank_values,
                 strict_parsing=app.strict_parsing,
                 file_callback=factory.create)
         except Exception as err:  # pylint: disable=broad-except
@@ -102,54 +111,41 @@ def auto_form(req):
 
 
 def get_crumbnav(req):
+    """Create crumb navigation from url."""
     navs = [req.hostname]
     if req.uri == '/':
         navs.append('<b>/</b>')
     else:
         navs.append('<a href="/">/</a>')
-        navs.append('<b>%s</b>' % req.uri)
+        navs.append(f'<b>{req.uri}</b>')
     return " &raquo; ".join(navs)
 
 
-def html(s):
-    s = str(s)
-    s = s.replace('&', '&amp;')
-    s = s.replace('>', '&gt;')
-    s = s.replace('<', '&lt;')
-    return s
-
-
 def get_header(title):
+    """Return HTML header."""
     return (
-        "<html>",
-        "<head>",
+        "<html>", "<head>",
         '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>',
-        "<title>Simple.py - %s</title>" % title,
-        '<link rel="stylesheet" href="/style.css">',
-        "</head>",
-        "<body>",
-        "<h1>Simple.py - %s</h1>" % title
-    )
+        f"<title>Simple.py - {title}</title>",
+        '<link rel="stylesheet" href="/style.css">', "</head>", "<body>",
+        f"<h1>Simple.py - {title}</h1>")
 
 
 def get_footer():
-    return (
-        "<hr>",
-        "<small>Copyright (c) 2013-2021 Ondřej Tůma. See ",
-        '<a href="http://poorhttp.zeropage.cz">poorhttp.zeropage.cz</a>'
-        '</small>.',
-        "</body>",
-        "</html>"
-    )
+    """Return HTML footer."""
+    return ("<hr>", "<small>Copyright (c) 2013-2021 Ondřej Tůma. See ",
+            '<a href="http://poorhttp.zeropage.cz">poorhttp.zeropage.cz</a>'
+            '</small>.', "</body>", "</html>")
 
 
 def get_variables(req):
+    """Return some environment variables and it's values."""
     usable = ("REQUEST_METHOD", "QUERY_STRING", "SERVER_NAME", "SERVER_PORT",
               "REMOTE_ADDR", "REMOTE_HOST", "PATH_INFO")
-    return sorted(tuple(
-        (key, html(val)) for key, val in req.environ.items()
-        if key.startswith("wsgi.") or key.startswith("poor_") or
-        key in usable))
+    return sorted(
+        tuple((key, html_escape(repr(val)))
+              for key, val in req.environ.items() if key.startswith("wsgi.")
+              or key.startswith("poor_") or key in usable))
 
 
 app.set_filter('email', r'[\w\.\-]+@[\w\.\-]+')
@@ -157,6 +153,7 @@ app.set_filter('email', r'[\w\.\-]+@[\w\.\-]+')
 
 def check_login(fun):
     """Check session cookie."""
+
     @wraps(fun)
     def handler(req):
         session = PoorSession(app.secret_key)
@@ -166,17 +163,22 @@ def check_login(fun):
             pass
         if 'login' not in session.data:
             log.info('Login cookie not found.')
-            redirect("/", message="Login required",)
+            redirect(
+                "/",
+                message="Login required",
+            )
         return fun(req)
+
     return handler
 
 
 @app.route('/')
 def root(req):
+    """Return root index."""
     buff = get_header("Index") + (
         get_crumbnav(req),
         "<ul>",
-        '<li><a href="%s">/</a> - This Page</li>' % req.construct_url('/'),
+        '<li><a href="' + req.construct_url('/') + '">/</a> - This Page</li>',
         '<li><a href="/test/static">/test/static</a> - Testing Static Page'
         '</li>',
         '<li><a href="/test/42">/test/&lt;variable:int&gt;</a>'
@@ -206,7 +208,7 @@ def root(req):
         '<li><a href="/internal-server-error">/internal-server-error</a>'
         ' - Inernal Server Error</li>',
         "</ul>",
-        ) + get_footer()
+    ) + get_footer()
     response = Response()
     for line in buff:
         response.write(line + '\n')
@@ -214,7 +216,8 @@ def root(req):
 
 
 @app.route('/favicon.ico')
-def favicon(req):
+def favicon(_):
+    """Return favicon."""
     icon = b"""
 AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAD///8A////AP///wD///8AFRX/Bw8P/24ICP/IAgL/7wAA/+oAAP/GAAD/bQAA/wj///8A
@@ -242,7 +245,8 @@ AADwDwAA+B8AAA==
 
 
 @app.route('/style.css')
-def style(req):
+def style(_):
+    """Return stylesheet."""
     buff = """
         body { width: 90%; max-width: 900px; margin: auto;
         padding-top: 30px; }
@@ -264,12 +268,15 @@ def style(req):
 @app.route('/test/<variable:uuid>')
 @app.route('/test/static')
 def test_dynamic(req, variable=None):
+    """Test dynamics values."""
     if not variable and req.headers.get('E-Tag') == 'W/"0123"':
         return not_modified(req)
 
-    var_info = {'type': type(variable),
-                'value': variable,
-                'uri_rule': req.uri_rule}
+    var_info = {
+        'type': html_escape(repr(type(variable))),
+        'value': html_escape(repr(variable)),
+        'uri_rule': html_escape(req.uri_rule),
+    }
 
     title = "Variable" if variable is not None else "Static"
 
@@ -277,18 +284,18 @@ def test_dynamic(req, variable=None):
         (get_crumbnav(req),
          "<h2>Variable</h2>",
          "<table>") + \
-        tuple("<tr><td>%s:</td><td>%s</td></tr>" %
-              (key, html(val)) for key, val in var_info.items()) + \
+        tuple(f"<tr><td>{key}:</td><td>{val}</td></tr>"
+              for key, val in var_info.items()) + \
         ("</table>",
          "<h2>Browser Headers</h2>",
          "<table>") + \
-        tuple("<tr><td>%s:</td><td>%s</td></tr>" %
-              (key, val) for key, val in req.headers.items()) + \
+        tuple(f"<tr><td>{key}:</td><td>{val}</td></tr>"
+              for key, val in req.headers.items()) + \
         ("</table>",
          "<h2>Request Variables </h2>",
          "<table>") + \
-        tuple("<tr><td>%s:</td><td>%s</td></tr>" %
-              (key, val) for key, val in get_variables(req)) + \
+        tuple(f"<tr><td>{key}:</td><td>{val}</td></tr>"
+              for key, val in get_variables(req)) + \
         ("</table>",) + \
         get_footer()
 
@@ -301,26 +308,27 @@ def test_dynamic(req, variable=None):
 @app.route('/test/<variable:re:.*>')
 @app.route('/test/<variable0>/<variable1>/<variable2>')
 def test_varargs(req, *args):
-    var_info = {'len': len(args),
-                'uri_rule': req.uri_rule}
-    var_info.update(req.groups)
+    """Handler for variable path agrs"""
+    var_info = {'len': len(args), 'uri_rule': html_escape(req.uri_rule)}
+    for key, val in req.path_args.items():
+        var_info[key] = html_escape(repr(val))
 
     buff = get_header("Variable args test") + \
         (get_crumbnav(req),
          "<h2>Variables</h2>",
          "<table>") + \
-        tuple("<tr><td>%s:</td><td>%s</td></tr>" %
-              (key, html(val)) for key, val in var_info.items()) + \
+        tuple(f"<tr><td>{key}:</td><td>{val}</td></tr>"
+              for key, val in var_info.items()) + \
         ("</table>",
          "<h2>Browser Headers</h2>",
          "<table>") + \
-        tuple("<tr><td>%s:</td><td>%s</td></tr>" %
-              (key, val) for key, val in req.headers.items()) + \
+        tuple(f"<tr><td>{key}:</td><td>{val}</td></tr>"
+              for key, val in req.headers.items()) + \
         ("</table>",
          "<h2>Request Variables </h2>",
          "<table>") + \
-        tuple("<tr><td>%s:</td><td>%s</td></tr>" %
-              (key, val) for key, val in get_variables(req)) + \
+        tuple(f"<tr><td>{key}:</td><td>{val}</td></tr>"
+              for key, val in get_variables(req)) + \
         ("</table>",) + \
         get_footer()
 
@@ -332,6 +340,7 @@ def test_varargs(req, *args):
 
 @app.route('/login')
 def login(req):
+    """Create login session cookie."""
     log.debug("Input cookies: %s", repr(req.cookies))
     cookie = PoorSession(app.secret_key)
     cookie.data['login'] = True
@@ -342,6 +351,7 @@ def login(req):
 
 @app.route('/logout')
 def logout(req):
+    """Destroy login session cookie."""
     log.debug("Input cookies: %s", repr(req.cookies))
     cookie = PoorSession(app.secret_key)
     cookie.destroy()
@@ -353,24 +363,26 @@ def logout(req):
 @app.route('/test/form', method=state.METHOD_GET_POST)
 @check_login
 def test_form(req):
+    """Form example"""
+    # pylint: disable=consider-using-f-string
     # get_var_info = {'len': len(args)}
     var_info = OrderedDict((
-        ('form_keys', req.form.keys()),
-        ('form_values', ', '.join(tuple(str(req.form.getvalue(key))
-                                  for key in req.form.keys()))),
-        ('form_getfirst', '%s,%s' % (req.form.getfirst('pname'),
-                                     req.form.getfirst('px'))),
-        ('form_getlist', '%s,%s' % (list(req.form.getlist('pname')),
-                                    list(req.form.getlist('px')))),
+        ('form_keys', ','.join(req.form.keys())),
+        ('form_values', ', '.join(
+            tuple(str(req.form.getvalue(key)) for key in req.form.keys()))),
+        ('form_getfirst',
+         '%s,%s' % (req.form.getfirst('pname'), req.form.getfirst('px'))),
+        ('form_getlist', '%s,%s' %
+         (list(req.form.getlist('pname')), list(req.form.getlist('px')))),
         ('', ''),
-        ('args_keys', req.args.keys()),
-        ('args_values', ', '.join(tuple(str(req.args[key])
-                                        for key in req.args.keys()))),
-        ('args_getfirst', '%s,%s' % (req.args.getfirst('gname'),
-                                     req.args.getfirst('gx'))),
-        ('args_getlist', '%s,%s' % (list(req.args.getlist('gname')),
-                                    list(req.args.getlist('gx')))),
-        ))
+        ('args_keys', ','.join(req.args.keys())),
+        ('args_values',
+         ', '.join(tuple(str(req.args[key]) for key in req.args.keys()))),
+        ('args_getfirst',
+         '%s,%s' % (req.args.getfirst('gname'), req.args.getfirst('gx'))),
+        ('args_getlist', '%s,%s' %
+         (list(req.args.getlist('gname')), list(req.args.getlist('gx')))),
+    ))
 
     buff = get_header("HTTP Form args test") + \
         (get_crumbnav(req),
@@ -395,7 +407,7 @@ def test_form(req):
          "<h2>Variables</h2>",
          "<table>") + \
         tuple("<tr><td>%s:</td><td>%s</td></tr>" %
-              (key, html(val)) for key, val in var_info.items()) + \
+              (key, html_escape(val)) for key, val in var_info.items()) + \
         ("</table>",
          "<h2>Browser Headers</h2>",
          "<table>") + \
@@ -418,35 +430,46 @@ def test_form(req):
 @app.route('/test/upload', method=state.METHOD_GET_POST)
 @check_login
 def test_upload(req):
+    """Upload file example."""
     var_info = OrderedDict((
         ('form_keys', req.form.keys()),
-        ('form_value_names', ', '.join(tuple(req.form[key].name
-                                             for key in req.form.keys()))),
-        ('form_value_types', ', '.join(tuple(req.form[key].type
-                                             for key in req.form.keys()))),
-        ('form_value_fnames', ', '.join(tuple(str(req.form[key].filename)
-                                              for key in req.form.keys()))),
-        ('form_value_lenghts', ', '.join(tuple(str(req.form[key].length)
-                                               for key in req.form.keys()))),
-        ('form_value_files', ', '.join(tuple(str(req.form[key].file)
-                                             for key in req.form.keys()))),
-        ('form_value_lists', ', '.join(tuple(
-            'Yes' if req.form[key].list else 'No'
-            for key in req.form.keys()))),
-        ))
+        ('form_value_names', ', '.join(
+            tuple(html_escape(req.form[key].name)
+                  for key in req.form.keys()))),
+        ('form_value_types', ', '.join(
+            tuple(html_escape(req.form[key].type)
+                  for key in req.form.keys()))),
+        ('form_value_fnames', ', '.join(
+            tuple(
+                html_escape(str(req.form[key].filename))
+                for key in req.form.keys()))),
+        ('form_value_lenghts',
+         ', '.join(tuple(str(req.form[key].length)
+                         for key in req.form.keys()))),
+        ('form_value_files', ', '.join(
+            tuple(
+                html_escape(str(req.form[key].file))
+                for key in req.form.keys()))),
+        ('form_value_lists', ', '.join(
+            tuple('Yes' if req.form[key].list else 'No'
+                  for key in req.form.keys()))),
+    ))
 
     files = []
     for key in req.form.keys():
         if req.form[key].filename:
-            files.append("<h2>%s</h2>" % req.form[key].filename)
-            files.append("<i>%s</i>" % req.form[key].type)
+            files.append(f"<h2>{req.form[key].filename}</h2>")
+            files.append(f"<i>{req.form[key].type}</i>")
             if req.form[key].type.startswith('text/'):
-                files.append("<pre>%s</pre>" %
-                             html(req.form.getvalue(key).decode('utf-8')))
+                files.append(
+                    "<pre>" +
+                    html_escape(req.form.getvalue(key).decode('utf-8')) +
+                    "</pre>")
             else:
-                files.append("<pre>%s</pre>" %
-                             encodebytes(req.form.getvalue(key)).decode())
-            os.remove("./upload/%s" % (req.form[key].filename))
+                files.append("<pre>" +
+                             encodebytes(req.form.getvalue(key)).decode() +
+                             "</pre>")
+            os.remove("./upload/" + req.form[key].filename)
 
     buff = get_header('HTTP file upload test') + \
         (get_crumbnav(req),
@@ -459,8 +482,8 @@ def test_upload(req):
          '</form>',
          "<h2>Uploaded File</h2>",
          "<table>") + \
-        tuple("<tr><td>%s:</td><td>%s</td></tr>" %
-              (key, html(val)) for key, val in var_info.items()) + \
+        tuple("<tr><td>{key}:</td><td>{val}</td></tr>"
+              for key, val in var_info.items()) + \
         ("</table>",) + \
         tuple(files) + \
         get_footer()
@@ -473,6 +496,7 @@ def test_upload(req):
 
 @app.http_state(state.HTTP_NOT_FOUND)
 def not_found(req):
+    """Not found example response."""
     buff = (
         "<html>",
         "<head>",
@@ -483,7 +507,7 @@ def not_found(req):
         "<body>",
         "<h1>404 - Page Not Found</h1>",
         get_crumbnav(req),
-        "<p>Your reqeuest <code>%s</code> was not found.</p>" % req.uri,
+        f"<p>Your reqeuest <code>{req.uri}</code> was not found.</p>",
     ) + get_footer()
 
     response = Response(status_code=state.HTTP_NOT_FOUND)
@@ -502,6 +526,8 @@ def value_error_handler(req, error):
 
 @app.route('/test/empty')
 def test_empty(req):
+    """No content response"""
+    assert req
     res = NoContentResponse()
     res.add_header("Super-Header", "SuperValue")
     return res
@@ -509,6 +535,7 @@ def test_empty(req):
 
 @app.route('/test/partial/unicodes')
 def test_partial_unicodes(req):
+    """Partial response test."""
     ranges = {}
     if 'Range' in req.headers:
         ranges = parse_range(req.headers['Range'])
@@ -516,14 +543,18 @@ def test_partial_unicodes(req):
     start = start or 100
     end = end or 199
     if end <= start:
-        start = end+100
-    res = PartialResponse(''.join(choices("ěščřžýáíé", k=end+1-start)))
+        start = end + 100
+    # ruff: noqa: S311
+    res = PartialResponse(''.join(
+        choices(  # nosec
+            "ěščřžýáíé", k=end + 1 - start)))
     res.make_range({(start, end)}, "unicodes")
     return res
 
 
 @app.route('/test/partial/empty')
 def test_partial_empty(req):
+    """Partial empty response test."""
     res = Response()
     ranges = {}
     if 'Range' in req.headers:
@@ -534,6 +565,8 @@ def test_partial_empty(req):
 
 @app.route('/test/partial/generator')
 def test_partial_generator(req):
+    """Partial response generator test."""
+
     def gen():
         for i in range(10):
             yield b"line %d\n" % i
@@ -547,18 +580,20 @@ def test_partial_generator(req):
 
 
 @app.route('/yield')
-def yielded(req):
+def yielded(_):
     """Simple response generator by yield."""
     for i in range(10):
         yield b"line %d\n" % i
 
 
 @app.route('/chunked')
-def chunked(req):
+def chunked(_):
     """Generator response with Response class."""
+
     def gen():
         for i in range(10):
             yield b"line %d\n" % i
+
     return GeneratorResponse(gen(), headers={'Transfer-Encoding': 'chanked'})
 
 
@@ -591,7 +626,9 @@ def simple(req):
 def simple_py(req):
     """Return simple.py with FileResponse"""
     last_modified = int(getctime(__file__))
-    weak = urlsafe_b64encode(md5(last_modified.to_bytes(4, "big")).digest())
+    weak = urlsafe_b64encode(
+        md5(  # nosec
+            last_modified.to_bytes(4, "big")).digest())
     etag = f'W/"{weak.decode()}"'
 
     if 'If-None-Match' in req.headers:
@@ -613,19 +650,21 @@ def simple_py(req):
 
 
 @app.after_response()
-def log_response(req, res):
+def log_response(_, res):
+    """Log after response created."""
     log.info("After response")
     return res
 
 
 @app.route('/internal-server-error')
-def method_raises_errror(req):
+def method_raises_errror(_):
+    """Own internal server error test"""
     raise RuntimeError('Test of internal server error')
 
 
 @app.route('/none-error')
-def none_error_handler(req):
-    return None
+def none_error_handler(_):
+    """Test for None response."""
 
 
 @app.route('/bad-request')
@@ -637,15 +676,18 @@ def bad_request(req):
 
 @app.route('/forbidden')
 def forbidden(req):
+    """Test forbiden exception."""
     raise HTTPException(state.HTTP_FORBIDDEN)
 
 
 @app.route('/not-implemented')
 def not_implemented(req):
+    """Test not implemented exception"""
     raise HTTPException(state.HTTP_NOT_IMPLEMENTED)
 
 
 if __name__ == '__main__':
     httpd = make_server('127.0.0.1', 8080, app)
     print("Starting to serve on http://127.0.0.1:8080")
+
     httpd.serve_forever()

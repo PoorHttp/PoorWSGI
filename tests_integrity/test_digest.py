@@ -2,10 +2,10 @@
 from os import environ
 from os.path import dirname, join, pardir
 
-from requests.auth import HTTPDigestAuth
 from pytest import fixture, mark
+from requests.auth import HTTPDigestAuth
 
-from . support import start_server, check_url
+from .support import check_url, start_server
 
 # pylint: disable=inconsistent-return-statements
 # pylint: disable=missing-function-docstring
@@ -46,6 +46,7 @@ def utf8_auth():
 
 class TestDigest:
     """Test http_digest example."""
+
     def test_unauthorized(self, url):
         check_url(url+'/admin_zone', status_code=401)
         check_url(url+'/user_zone', status_code=401)
@@ -54,22 +55,22 @@ class TestDigest:
 
     def test_admin(self, url, admin_auth):
         check_url(url+'/admin_zone', auth=admin_auth)
-        check_url(url+'/admin_zone', params=dict(arg=42), auth=admin_auth)
+        check_url(url+'/admin_zone', params={"arg": 42}, auth=admin_auth)
 
     def test_user(self, url, user_auth):
         check_url(url+'/user_zone', auth=user_auth)
-        check_url(url+'/user_zone', params=dict(param='text'), auth=user_auth)
+        check_url(url+'/user_zone', params={"param": 'text'}, auth=user_auth)
         check_url(url+'/user', auth=user_auth)
 
     @mark.skip("https://github.com/psf/requests/issues/6102")
     def test_utf8(self, url, utf8_auth):
         """Check UTF-8 characters in username."""
         check_url(url+'/user/utf-8', auth=utf8_auth)
-        check_url(url+'/user/utf-8', params=dict(param='text'), auth=utf8_auth)
+        check_url(url+'/user/utf-8', params={"param": 'text'}, auth=utf8_auth)
 
     def test_foo(self, url):
         auth = HTTPDigestAuth('foo', 'bar')
-        check_url(url+'/foo', params=dict(x=123), auth=auth)
+        check_url(url+'/foo', params={"x": 123}, auth=auth)
         check_url(url+'/foo', auth=auth)
 
         check_url(url+'/foo/passwd', method='POST', auth=auth,

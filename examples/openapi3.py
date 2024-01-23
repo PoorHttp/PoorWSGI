@@ -31,7 +31,7 @@ python_path.insert(0, path.abspath(
 from poorwsgi import Application, state  # noqa
 from poorwsgi.response import Response, abort, HTTPException, \
     JSONResponse  # noqa
-from poorwsgi.request import Request
+from poorwsgi.request import Request  # noqa
 from poorwsgi.openapi_wrapper import OpenAPIRequest, \
     OpenAPIResponse  # noqa
 from poorwsgi.session import PoorSession  # noqa
@@ -111,7 +111,7 @@ def after_each_response(req, res):
         return res
     except OpenAPIError as error:
         log.error("API output error: %s", str(error))
-        assert False, f"OpenAPI Error {str(error)}"
+        raise
     return res
 
 

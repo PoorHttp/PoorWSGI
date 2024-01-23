@@ -42,9 +42,9 @@ default_states: Dict[int, Dict] = {}
 # pylint: disable=consider-using-f-string
 
 
-def html_escape(s):
+def html_escape(text: str):
     """Escape to html entities."""
-    return ''.join(HTML_ESCAPE_TABLE.get(c, c) for c in s)
+    return ''.join(HTML_ESCAPE_TABLE.get(c, c) for c in text)
 
 
 def hbytes(val: float):
@@ -131,17 +131,17 @@ def internal_server_error(req, **kwargs):
         if req.uri_handler:
             handler["module"] = req.uri_handler.__module__
             handler["name"] = req.uri_handler.__name__
+        uri_rule = html_escape(req.uri_rule)
         res.write(
             "  <h2>Response detail</h2>\n"
-            "  remote host: <b><code>{req.remote_host}</code></b><br/>\n"
-            "  remote addr: <b><code>{req.remote_addr}</code></b><br/>\n"
-            "  method: <b><code>{req.method}</code></b><br/>\n"
-            "  uri: <b><code>{req.uri}</code></b><br/>\n"
-            "  uri_rule: <b><code>{req.uri_rule}</code></b><br/>\n"
+            f"  remote host: <b><code>{req.remote_host}</code></b><br/>\n"
+            f"  remote addr: <b><code>{req.remote_addr}</code></b><br/>\n"
+            f"  method: <b><code>{req.method}</code></b><br/>\n"
+            f"  uri: <b><code>{req.uri}</code></b><br/>\n"
+            f"  uri_rule: <b><code>{uri_rule}</code></b><br/>\n"
             "  uri_handler: <b><code>"
-            "{handler[module]}.{handler[name]}"
-            "</code></b><br/>\n"
-            "".format(req=req, handler=handler))
+            f"{handler['module']}.{handler['name']}"
+            "</code></b><br/>\n")
 
         res.write(
             "  <h2>Exception Traceback</h2>\n"

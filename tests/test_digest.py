@@ -1,6 +1,6 @@
 """Tests for digest functionality."""
-from os.path import join, dirname, pardir
 from collections import defaultdict
+from os.path import dirname, join, pardir
 
 from pytest import fixture
 
@@ -19,13 +19,21 @@ HEADER = '''
     response="0dcecfef979808a940c34af8a3bc7ee4",
     opaque="5af87f1f655f3e60b744462318d3bbcaae8079df107dbcb08168e1a93fd943d0",
     qop=auth, nc=00000002, cnonce="b636b6204f836fdc"'''
-DICT = dict(  # Dictionary from HEADER values
-    type='Digest', username='user', realm='User Zone',
-    nonce='1bcb61aa4910f2d462db474efd51a49018413d811536d746538715480e7e730a',
-    uri='/user', algorithm='MD5-sess',
-    response='0dcecfef979808a940c34af8a3bc7ee4',
-    opaque='5af87f1f655f3e60b744462318d3bbcaae8079df107dbcb08168e1a93fd943d0',
-    qop='auth', nc='00000002', cnonce='b636b6204f836fdc')
+DICT = {  # Dictionary from HEADER values
+    "type": 'Digest',
+    "username": 'user',
+    "realm": 'User Zone',
+    "nonce":
+    '1bcb61aa4910f2d462db474efd51a49018413d811536d746538715480e7e730a',
+    "uri": '/user',
+    "algorithm": 'MD5-sess',
+    "response": '0dcecfef979808a940c34af8a3bc7ee4',
+    "opaque":
+    '5af87f1f655f3e60b744462318d3bbcaae8079df107dbcb08168e1a93fd943d0',
+    "qop": 'auth',
+    "nc": '00000002',
+    "cnonce": 'b636b6204f836fdc'
+}
 
 # pylint: disable=missing-function-docstring
 # pylint: disable=no-self-use
@@ -55,6 +63,7 @@ def req(app):
 
 class TestMap():
     """Test for PasswordMap class."""
+
     def test_set(self, pmap):
         assert REALM in pmap
         assert USER in pmap[REALM]

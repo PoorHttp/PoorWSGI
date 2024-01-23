@@ -11,11 +11,12 @@ from . support import start_server, check_url
 # pylint: disable=redefined-outer-name
 # pylint: disable=no-self-use
 # pylint: disable=consider-using-f-string
+# pylint: disable=duplicate-code
 
 
 @fixture(scope="module")
 def server(request):
-    value = environ.get("TEST_SIMPLE_URL", "").strip('/')
+    value = environ.get("TEST_SIMPLE_JSON_URL", "").strip('/')
     if value:
         return value
 

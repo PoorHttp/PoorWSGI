@@ -1,4 +1,5 @@
 """Large file upload test."""
+# pylint: disable=duplicate-code
 
 from wsgiref.simple_server import make_server, WSGIServer
 from socketserver import ThreadingMixIn
@@ -14,11 +15,11 @@ EXAMPLES_PATH = os.path.dirname(__file__)
 sys.path.insert(0, os.path.abspath(
     os.path.join(EXAMPLES_PATH, os.path.pardir)))
 
-# pylint: disable=import-error, disable=wrong-import-position
+# pylint: disable=wrong-import-position
 from poorwsgi import Application, state  # noqa
 from poorwsgi.request import FieldStorage  # noqa
 from poorwsgi.response import HTTPException  # noqa
-from poorwsgi.results import hbytes # noqa
+from poorwsgi.results import hbytes  # noqa
 
 logger = log.getLogger()
 logger.setLevel("DEBUG")
@@ -31,6 +32,7 @@ app.auto_form = False
 
 class Blackhole:
     """Dummy File Object"""
+
     def __init__(self, filename):
         log.debug("Start uploading file: %s", filename)
         self.uploaded = 0
@@ -56,6 +58,7 @@ class Blackhole:
 
 class Temporary:
     """Temporary file"""
+
     def __init__(self, filename):
         log.debug("Start uploading file: %s", filename)
         self.uploaded = 0
@@ -152,11 +155,10 @@ def html_form(req, file_callback):
             hexdigest = form['file'].file.hexdigest()
 
         end = time() - start
-        args = (hbytes(bytes_read) +
-                (int(end),) +
-                hbytes(bytes_read / end) +
-                (hexdigest,))
-        stats = ("Upload: %.2f%s in %ds -> %.2f%sps SHA256: %s" % args)
+        size = hbytes(bytes_read)
+        speed = hbytes(bytes_read / end)
+        stats = (f"Upload: {size[0]:.2f}{size[1]} in {end}s -> "
+                 f"{speed[0]:.2f}{speed[1]}ps SHA256: {hexdigest}")
         log.info(stats)
 
         if bytes_read != req.content_length:

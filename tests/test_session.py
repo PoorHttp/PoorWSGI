@@ -46,6 +46,7 @@ def req_session():
 
 class TestSession:
     """Test PoorSession configuration options."""
+
     def test_default(self):
         session = PoorSession(SECRET_KEY)
         headers = session.header()
@@ -100,6 +101,7 @@ class TestSession:
              reason="SameSite is supported from Python 3.8")
 class TestSameSite:
     """Test for PoorSession same_site option."""
+
     def test_default(self):
         session = PoorSession(SECRET_KEY)
         headers = session.header()
@@ -123,6 +125,7 @@ class TestSameSite:
 
 class TestErrors:
     """Test exceptions"""
+
     def test_no_secret_key(self):
         with raises(SessionError):
             PoorSession(Empty)
@@ -145,6 +148,7 @@ class TestErrors:
 
 class TestLoadWrite:
     """Tests of load and write methods."""
+
     def test_compatibility_empty(self, req):
         session = PoorSession(req)
         assert session.data == {}

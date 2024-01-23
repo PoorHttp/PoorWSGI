@@ -467,7 +467,7 @@ class Request(SimpleRequest):
             self.__cookies = SimpleCookie()
             self.__cookies.load(self.__headers['Cookie'])
         else:
-            self.__cookies = tuple()
+            self.__cookies = None
 
         # variables for user use
         self.__user = None
@@ -655,7 +655,7 @@ class Request(SimpleRequest):
         """SimpleCookie iterable object of all cookies from Cookie header.
 
         This property was set if Application.auto_cookies is set to true,
-        which is default. Otherwise cookies was empty tuple.
+        which is default. Otherwise cookies is None.
         """
         return self.__cookies
 

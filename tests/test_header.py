@@ -5,15 +5,17 @@ from unittest import TestCase
 from poorwsgi.request import Headers
 
 # pylint: disable=missing-function-docstring
+# pylint: disable=no-self-use
 
 
 class TestSetValues(TestCase):
     """Adding headers and or setting header values."""
+
     def test_constructor_empty(self):
         Headers()
-        Headers([]) # list
+        Headers([])  # list
         Headers(tuple())
-        Headers({}) # dict
+        Headers({})  # dict
         Headers(set())
 
     def test_constructor_tuples(self):

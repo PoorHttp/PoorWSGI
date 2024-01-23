@@ -237,7 +237,7 @@ class PoorSession:
         if not isinstance(secret_key, (str, bytes)):  # backwards compatibility
             self.load(secret_key.cookies)
 
-    def load(self, cookies: Union[SimpleCookie, tuple]):
+    def load(self, cookies: Optional[SimpleCookie]):
         """Load session from request's cookie"""
         if not isinstance(cookies, SimpleCookie) or self.__sid not in cookies:
             return

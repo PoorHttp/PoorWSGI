@@ -82,6 +82,7 @@ def cors_response(req, res):
 @app.before_response()
 def before_each_response(req):
     """Check API before process each response."""
+    log.warn("BEFORE")
     req.api = OpenAPIRequest(req)
     try:
         unmarshal_request(req.api, app.openapi_spec)
@@ -100,9 +101,14 @@ def before_each_response(req):
 @app.after_response()
 def after_each_response(req, res):
     """Check if ansewer is valid by OpenAPI."""
+    log.warn("AFTER")
     if not hasattr(req, "api"):
         req.api = OpenAPIRequest(req)
     try:
+        log.error("X type of request: %s", type(req))
+        log.error("X mro of request: %s", type(req).__mro__)
+        log.error("X type of request: %s", type(req.api))
+        log.error("X mro of request: %s", type(req.api).__mro__)
         unmarshal_response(
                 req.api,
                 OpenAPIResponse(res),

@@ -6,6 +6,7 @@ https://github.com/p1c2u/openapi-core with version 0.13.0 or higher.
 :Classes:   OpenAPIRequest, OpenAPIResponse
 """
 from collections import OrderedDict
+import logging
 
 import re
 
@@ -13,7 +14,7 @@ from openapi_core.protocols import Request, Response
 from openapi_core.validation.request.datatypes import RequestParameters
 
 
-class OpenAPIRequest(Request):
+class OpenAPIRequest():
     """Wrapper of PoorWSGI request to OpenAPIRequest.
 
     Be careful with testing of big incoming request body property, which
@@ -29,21 +30,25 @@ class OpenAPIRequest(Request):
     @property
     def host_url(self):
         """Return host_url for validator."""
+        logging.warning("-> host_url")
         return self.request.construct_url('')
 
     @property
     def path(self):
         """Return method path"""
+        logging.warning("-> path")
         return self.request.path
 
     @property
     def method(self):
         """Return method in lower case for validator."""
+        logging.warning("-> method")
         return self.request.method.lower()
 
     @property
     def full_url_pattern(self):
         """Return full_url_pattern for validator."""
+        logging.warning("-> full_url_pattern")
         if self.request.uri_rule is None:
             return self.host_url+self.request.uri
         return self.host_url+OpenAPIRequest.re_pattern.sub(
@@ -52,6 +57,7 @@ class OpenAPIRequest(Request):
     @property
     def parameters(self):
         """Return RequestParameters object for validator."""
+        logging.warning("-> parameters")
         path_args = OrderedDict()
         for (key, val) in self.request.path_args.items():
             # allowed openapi core types...
@@ -70,11 +76,13 @@ class OpenAPIRequest(Request):
     @property
     def body(self):
         """Return request data for validator."""
+        logging.warning("-> body")
         return self.request.data
 
     @property
     def mimetype(self):
         """Return request mime_type for validator."""
+        logging.warning("-> mime_type")
         return self.request.mime_type
 
 

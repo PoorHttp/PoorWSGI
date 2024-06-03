@@ -85,6 +85,7 @@ class TestOpenAPI():
                         method="POST", json=data,
                         response_spec=SPEC)
         assert res.json()["request"] == data
+        assert False
 
     def test_json_post_unicode_struct(self, url):
         data = {"city": "Česká Lípa"}

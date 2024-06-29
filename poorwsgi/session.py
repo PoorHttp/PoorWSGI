@@ -1,21 +1,22 @@
 """PoorSession self-contained cookie class.
 
-:Classes:   NoCompress, PoorSession
-:Functions: hidden, get_token, check_token
+:Classes: PoorSession
+:Functions: get_token, check_token
+
+This module is depended to pyaes https://pypi.org/project/pyaes/
 """
-from hashlib import sha512, sha256
+import hmac
+from base64 import urlsafe_b64decode, urlsafe_b64encode
+from hashlib import sha256, sha3_256
+from http.cookies import SimpleCookie
 from json import dumps, loads
-from base64 import b64decode, b64encode
 from logging import getLogger
 from time import time
-from typing import Union, Dict, Any, Optional
+from typing import Any, Dict, Optional, Union
 
-import bz2
-
-from http.cookies import SimpleCookie
+from pyaes import AESModeOfOperationCTR  # type: ignore
 
 from poorwsgi.headers import Headers
-from poorwsgi.request import Request
 from poorwsgi.response import Response
 
 log = getLogger("poorwsgi")  # pylint: disable=invalid-name
@@ -26,38 +27,9 @@ log = getLogger("poorwsgi")  # pylint: disable=invalid-name
 # pylint: disable=consider-using-f-string
 
 
-def hidden(text: Union[str, bytes], passwd: Union[str, bytes]) -> bytes:
-    """(en|de)crypt text with sha hash of passwd via xor.
-
-    Arguments:
-        text : str or bytes
-            raw data to (en|de)crypt
-        passwd : str or bytes
-            password
-    """
-    if isinstance(passwd, bytes):
-        passwd = sha512(passwd).digest()
-    else:
-        passwd = sha512(passwd.encode("utf-8")).digest()
-    passlen = len(passwd)
-
-    # text must be bytes
-    if isinstance(text, str):
-        text = text.encode("utf-8")
-
-    if isinstance(text, str):       # if text is str
-        retval = ''
-        for i, val in enumerate(text):
-            retval += chr(ord(val) ^ ord(passwd[i % passlen]))
-    else:                           # if text is bytes
-        retval = bytearray()
-        for i, val in enumerate(text):
-            retval.append(val ^ passwd[i % passlen])
-
-    return retval
-
-
-def get_token(secret: str, client: str, timeout: Optional[int] = None,
+def get_token(secret: str,
+              client: str,
+              timeout: Optional[int] = None,
               expired: int = 0):
     """Create token from secret, and client string.
 
@@ -68,14 +40,16 @@ def get_token(secret: str, client: str, timeout: Optional[int] = None,
         text = "%s%s" % (secret, client)
     else:
         if expired == 0:
-            now = int(time() / timeout) * timeout   # shift to start time
+            now = int(time() / timeout) * timeout  # shift to start time
             expired = now + 2 * timeout
         text = "%s%s%s" % (secret, expired, client)
 
     return sha256(text.encode()).hexdigest()
 
 
-def check_token(token: str, secret: str, client: str,
+def check_token(token: str,
+                secret: str,
+                client: str,
                 timeout: Optional[int] = None):
     """Check token, if it is right.
 
@@ -100,31 +74,13 @@ class SessionError(RuntimeError):
     """Base Exception for Session"""
 
 
-class NoCompress:
-    """Fake compress class/module whith two static method for PoorSession.
-
-    If compress parameter is None, this class is use.
-    """
-
-    @staticmethod
-    def compress(data, compresslevel=0):  # pylint: disable=unused-argument
-        """Get two params, data, and compresslevel. Method only return data."""
-        return data
-
-    @staticmethod
-    def decompress(data):
-        """Get one parameter data, which returns."""
-        return data
-
-
 class PoorSession:
     """Self-contained cookie with session data.
 
     You cat store or read data from object via PoorSession.data variable which
-    must be dictionary. Data is stored to cookie by pickle dump, and next
-    hidden with app.secret_key. So it must be set on Application object or with
-    poor_SecretKey environment variable. Be careful with stored object. You can
-    add object with little python trick:
+    must be dictionary. Data is stored to cookie by json dump, and next encrypt
+    with by AES CTR method with `secret_key`. Session data are signed just like
+    JWT.
 
     .. code:: python
 
@@ -160,10 +116,15 @@ class PoorSession:
         obj.import(sess.data['dict'])
     """
 
-    def __init__(self, secret_key: Union[Request, str, bytes],
-                 expires: int = 0, max_age: Optional[int] = None,
-                 domain: str = '', path: str = '/', secure: bool = False,
-                 same_site: bool = False, compress=bz2, sid: str = 'SESSID'):
+    def __init__(self,
+                 secret_key: Union[str, bytes],
+                 expires: int = 0,
+                 max_age: Optional[int] = None,
+                 domain: str = '',
+                 path: str = '/',
+                 secure: bool = False,
+                 same_site: bool = False,
+                 sid: str = 'SESSID'):
         """Constructor.
 
         Arguments:
@@ -182,10 +143,6 @@ class PoorSession:
                 The ``SameSite`` attribute. When is set could be one of
                 ``Strict|Lax|None``. By default attribute is not set which is
                 ``Lax`` by browser.
-            compress : compress module or class.
-                Could be ``bz2``, ``gzip.zlib``, or any other, which have
-                standard compress and decompress methods. Or it could be
-                ``None`` to not use any compressing method.
             sid : str
                 Cookie key name.
 
@@ -198,7 +155,6 @@ class PoorSession:
                 'path': '/application',
                 ̈́'secure': True,
                 'same_site': True,
-                'compress': gzip,
                 'sid': 'MYSID'
             }
 
@@ -210,16 +166,18 @@ class PoorSession:
 
         *Changed in version 2.4.x*: use app.secret_key in constructor, and than
         call load method.
-        """
-        if not isinstance(secret_key, (str, bytes)):  # backwards compatibility
-            log.warning('Do not use request in PoorSession constructor, '
-                        'see new api and call load method manually.')
-            if secret_key.secret_key is None:
-                raise SessionError("poor_SecretKey is not set!")
-            self.__secret_key = secret_key.secret_key
-        else:
-            self.__secret_key = secret_key
 
+        *Changed in version 2.7.0*:
+            * Using AES encryption with signature just like in JWT.
+            * Removing compression
+            * Use secret key have to be string or bytes.
+        """
+        if not secret_key:
+            raise SessionError("Empty secret_key")
+        if isinstance(secret_key, str):
+            secret_key = secret_key.encode('utf-8')
+
+        self.__secret_key = sha3_256(secret_key).digest()
         self.__sid = sid
         self.__expires = expires
         self.__max_age = max_age
@@ -227,15 +185,11 @@ class PoorSession:
         self.__path = path
         self.__secure = secure
         self.__same_site = same_site
-        self.__cps = compress if compress is not None else NoCompress
 
         # data is session dictionary to store user data in cookie
         self.data: Dict[Any, Any] = {}
         self.cookie: SimpleCookie = SimpleCookie()
         self.cookie[sid] = ''
-
-        if not isinstance(secret_key, (str, bytes)):  # backwards compatibility
-            self.load(secret_key.cookies)
 
     def load(self, cookies: Optional[SimpleCookie]):
         """Load session from request's cookie"""
@@ -243,27 +197,41 @@ class PoorSession:
             return
         raw = cookies[self.__sid].value
 
-        if raw:
-            try:
-                self.data = loads(hidden(self.__cps.decompress
-                                         (b64decode(raw.encode())),
-                                         self.__secret_key))
-            except Exception as err:
-                log.info(repr(err))
-                raise SessionError("Bad session data.") from err
+        if not raw:
+            return
 
-            if not isinstance(self.data, dict):
-                raise SessionError("Cookie data is not dictionary!")
+        try:
+            # payload, signature = map(urlsafe_b64decode,
+            #                          raw.encode('utf-8').split(b'.'))
+            payload, signature = raw.encode('utf-8').split(b'.')
+            payload = urlsafe_b64decode(payload)
+            signature = urlsafe_b64decode(signature)
+
+            digest = hmac.digest(self.__secret_key, payload, digest=sha256)
+            if not hmac.compare_digest(digest, signature):
+                raise RuntimeError("Invalid Signature")
+
+            aes = AESModeOfOperationCTR(self.__secret_key)
+            self.data = loads(aes.decrypt(payload).decode('utf-8'))
+
+        except Exception as err:
+            log.info(repr(err))
+            raise SessionError("Bad session data.") from err
+
+        if not isinstance(self.data, dict):
+            raise SessionError("Cookie data is not dictionary!")
 
     def write(self):
         """Store data to cookie value.
 
         This method is called automatically in header method.
         """
-        raw = b64encode(self.__cps.compress(hidden(dumps(self.data),
-                                                   self.__secret_key), 9))
-        raw = raw if isinstance(raw, str) else raw.decode()
-        self.cookie[self.__sid] = raw
+        aes = AESModeOfOperationCTR(self.__secret_key)
+        payload = aes.encrypt(dumps(self.data))
+        digest = hmac.digest(self.__secret_key, payload, digest=sha256)
+        raw = urlsafe_b64encode(payload) + b'.' + urlsafe_b64encode(digest)
+
+        self.cookie[self.__sid] = raw.decode('utf-8')
         self.cookie[self.__sid]['HttpOnly'] = True
 
         if self.__domain:
@@ -306,8 +274,8 @@ class PoorSession:
         cookies = self.cookie.output().split('\r\n')
         retval = []
         for cookie in cookies:
-            var = cookie[:10]   # Set-Cookie
-            val = cookie[12:]   # SID=###; expires=###; Path=/
+            var = cookie[:10]  # Set-Cookie
+            val = cookie[12:]  # SID=###; expires=###; Path=/
             retval.append((var, val))
             if headers:
                 headers.add_header(var, val)

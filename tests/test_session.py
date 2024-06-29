@@ -22,11 +22,6 @@ class Request:
     cookies: Any = SimpleCookie()
 
 
-class Empty:
-    """Request mock without secret key."""
-    secret_key = None
-
-
 @fixture
 def req():
     """Instance of Request object."""
@@ -128,7 +123,7 @@ class TestErrors:
 
     def test_no_secret_key(self):
         with raises(SessionError):
-            PoorSession(Empty)
+            PoorSession(None)
 
     def test_bad_session(self):
         cookies = SimpleCookie()
@@ -138,24 +133,14 @@ class TestErrors:
         with raises(SessionError):
             session.load(cookies)
 
-    def test_bad_session_compatibility(self, req):
-        req.cookies = SimpleCookie()
-        req.cookies["SESSID"] = "\0"
-
-        with raises(SessionError):
-            PoorSession(req)
-
 
 class TestLoadWrite:
     """Tests of load and write methods."""
 
-    def test_compatibility_empty(self, req):
-        session = PoorSession(req)
+    def test_empty(self):
+        session = PoorSession(SECRET_KEY)
+        session.load(SimpleCookie())
         assert session.data == {}
-
-    def test_compatibility(self, req_session):
-        session = PoorSession(req_session)
-        assert session.data == {'test': True}
 
     def test_write_load(self, req_session):
         """Method write was called in fixture req_session."""

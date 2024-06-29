@@ -996,11 +996,16 @@ more times.
 
 Sessions
 ~~~~~~~~
-Like in mod_python, PoorSession is session class of PoorWSGI. It's
-self-contained cookie which has data dictionary. Data are sent to client in
-hidden, bzip2, base64 encoded format. PoorSession needs ``secret_key``,
+PoorWSGI has PoorSession is session class for self-contained cookie. Data
+are sent to client encrypted with AES CTR method, and signed just like JWT.
+Don't forget, that poorwsgi.session module needs ``pyaes`` module from
+https://pypi.org/project/pyaes/. PoorSession needs ``secret_key``,
 which can be set by ``poor_SecretKey`` environment variable to
 Application.secret_key property.
+
+*Be aware that sending password to cookie is anti-pattern, so avoid to that
+even if next example do it. For many situation, best practice is using JWT or
+some session ID, and data should be stored in cache database.*
 
 .. code:: python
 
@@ -1020,7 +1025,7 @@ Application.secret_key property.
         @wraps(fn)      # using wraps make right/better /debug-info page
         def handler(req):
             cookie = PoorSession(app.secret_key)
-            cookie.load()
+            cookie.load(req.cookies)
             if "passwd" not in cookie.data:         # expires or didn't set
                 log.info("Login cookie not found.")
                 redirect("/login", message=b"Login required")
@@ -1057,6 +1062,11 @@ Application.secret_key property.
         cookie.destroy()
         cookie.header(response)
         return response
+
+JSON Web Tokens
+```````````````
+
+
 
 HTTP Digest Auth
 ~~~~~~~~~~~~~~~~

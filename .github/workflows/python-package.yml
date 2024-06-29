@@ -28,7 +28,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -U flake8 setuptools
-        pip install -U openapi-core uwsgi simplejson WSocket
+        pip install -U openapi-core uwsgi simplejson WSocket pyaes
         pip install -U pytest pytest-doctestplus pytest-pylint pytest-mypy requests websocket-client
         pip install -U types-simplejson types-requests types-PyYAML
     - name: Lint with flake8

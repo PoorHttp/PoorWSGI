@@ -9,7 +9,11 @@ Current Contents:
 * response: Response classes and functions for creating HTTP responses.
 * results: Default result handlers for the connector, such as directory index,
   server errors, or debug output handlers.
-* session: A self-contained cookie-based session class.
+* session: Cookie session classes — ``Session`` (plain cookie wrapper) and
+  ``PoorSession`` (self-contained encrypted and authenticated dictionary
+  cookie; no external dependencies).
+* aes_session: ``AESSession`` — stronger self-contained encrypted session
+  cookie using AES-256-CTR + HMAC-SHA256 (requires ``pyaes``).
 * state: Constants like HTTP status codes and method types.
 * wsgi: The Application callable class, which is the main entry point for a
   PoorWSGI web application.

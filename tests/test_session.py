@@ -106,6 +106,21 @@ class TestPoorSession:
         headers = session.header()
         assert "; Secure" in headers[0][1]
 
+    def test_load_empty_cookie(self):
+        """Tests that load() with an empty SimpleCookie leaves data as {}."""
+        session = PoorSession(SECRET_KEY)
+        session.load(SimpleCookie())
+        assert session.data == {}
+
+    def test_load_missing_sid(self):
+        """Tests that load() with a cookie that has no matching SID leaves
+        data as {}."""
+        cookies = SimpleCookie()
+        cookies["OTHER"] = "value"
+        session = PoorSession(SECRET_KEY)
+        session.load(cookies)
+        assert session.data == {}
+
 
 @mark.skipif(version_info.minor < 8,
              reason="SameSite is supported from Python 3.8")

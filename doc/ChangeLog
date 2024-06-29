@@ -15,6 +15,11 @@
           cookies are rejected
         - Domain-separated key derivation for keystream, MAC and permutation
         - Users will be logged out after upgrading from a previous version
+    * AESSession - stronger self-contained session cookie (requires pyaes)
+        - AES-256-CTR encryption with a fresh random 16-byte nonce per write
+          (prevents CTR nonce-reuse attacks)
+        - HMAC-SHA256 authentication with domain-separated keys (Encrypt-then-MAC)
+        - Inherits from Session; same interface as PoorSession
 
 ==== 2.7.0 ====
     * Reserved Request.db attribute for usage

@@ -1178,6 +1178,39 @@ invalidates all existing cookies.
         cookie.header(response)
         return response
 
+AES Session
+```````````
+``AESSession`` is a stronger alternative to ``PoorSession`` that uses
+AES-256-CTR for confidentiality and HMAC-SHA256 for integrity.  It inherits
+from ``Session`` and lives in a separate module because it requires the
+``pyaes`` package:
+
+.. code:: sh
+
+    pip install pyaes
+
+Usage is identical to ``PoorSession``:
+
+.. code:: python
+
+    from poorwsgi.aes_session import AESSession
+
+    app.secret_key = urandom(32)
+
+    cookie = AESSession(app.secret_key)
+    cookie.data['user'] = username
+    cookie.header(response)
+
+The cookie format is ``base64(nonce + ciphertext).base64(hmac-sha256)``.
+A 16-byte random nonce is generated on every ``write()`` call to prevent
+CTR nonce reuse.  A missing or tampered signature causes ``SessionError``
+to be raised in ``load()``.
+
+JSON Web Tokens
+```````````````
+
+
+
 HTTP Digest Auth
 ~~~~~~~~~~~~~~~~
 

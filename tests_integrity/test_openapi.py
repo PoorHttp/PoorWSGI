@@ -142,6 +142,10 @@ class TestOpenAPI():
         check_api(url+"/check/login", method="GET", session=session,
                   response_spec=SPEC)
 
+    def test_secrets_no_cookie(self, url):
+        check_api(url+"/check/login", method="GET", status_code=401,
+                  response_spec=SPEC)
+
     def test_secrets_api_key(self, url):
         check_api(url+"/check/api-key", method="GET",
                   headers={"API-Key": "xxx"},

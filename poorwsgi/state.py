@@ -9,7 +9,7 @@ import warnings
 
 __author__ = "Ondrej Tuma (McBig) <mcbig@zeropage.cz>"
 __date__ = "8 Aug 2024"
-__version__ = "2.6.2"       # https://www.python.org/dev/peps/pep-0386/
+__version__ = "2.6.3"       # https://www.python.org/dev/peps/pep-0386/
 
 DECLINED = 0
 

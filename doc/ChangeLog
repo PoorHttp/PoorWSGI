@@ -1,6 +1,6 @@
-==== 2.6.2 ====
+==== 2.6.3 ====
     * HTTPException has status_code property
-    * Implicit value for not set cookie is None
+    * Implicit value for not set cookie is None or empty dict for OpenAPI
     * Fix Content-Length header when partial Response
 
 ==== 2.6.1 ====

@@ -64,7 +64,7 @@ class OpenAPIRequest(Request):
             path=path_args,
             query=self.request.args,
             header=self.request.headers,
-            cookie=self.request.cookies,
+            cookie=self.request.cookies or {},
         )
 
     @property

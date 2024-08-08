@@ -1,6 +1,7 @@
 ==== 2.7.0dev0 ====
     * HTTPException has status_code property
     * Implicit value for not set cookie is None
+    * Fix Content-Length header when partial Response
 
 ==== 2.6.1 ====
     * Fix OpenAPI Core wrappers

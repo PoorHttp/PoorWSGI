@@ -284,6 +284,9 @@ class BaseResponse:
                     if self._content_length:
                         self.status_code = HTTP_PARTIAL_CONTENT
                         self.__headers.add("Content-Range", str(content_range))
+                        # Content-Lenght header must be modified
+                        self.__headers["Content-Length"] = \
+                            str(self._content_length)
                     else:
                         content_range.start, content_range.end = self.ranges[0]
                         error = Response(

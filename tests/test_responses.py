@@ -206,7 +206,7 @@ class TestPartialResponse:
 class TestPartialGenerator:
     """Test for Partial Response via generators."""
 
-    def test_partial_know_length(self):
+    def test_partial_known_length(self):
         res = GeneratorResponse((str(x).encode("utf-8") for x in range(10)),
                                 content_length=10)
         res.make_partial([(7, None)])
@@ -215,7 +215,17 @@ class TestPartialGenerator:
         assert res.headers.get('Content-Range') == "bytes 7-9/10"
         assert b"".join(gen) == b"789"
 
-    def test_partial_know_length_blocks_start(self):
+    def test_partial_known_length_rewrite(self):
+        res = GeneratorResponse((str(x).encode("utf-8") for x in range(10)),
+                                content_length=10,
+                                headers={"Content-Length": "10"})
+        res.make_partial([(7, None)])
+        gen = res(start_response)
+        assert int(res.headers.get('Content-Length')) == 3
+        assert res.headers.get('Content-Range') == "bytes 7-9/10"
+        assert b"".join(gen) == b"789"
+
+    def test_partial_known_length_blocks_start(self):
         res = GeneratorResponse((str(x).encode("utf-8")*3 for x in range(10)),
                                 content_length=30)
         res.make_partial([(0, 6)])
@@ -224,7 +234,17 @@ class TestPartialGenerator:
         assert res.headers.get('Content-Range') == "bytes 0-6/30"
         assert b"".join(gen) == b"0001112"
 
-    def test_partial_know_length_blocks_range(self):
+    def test_partial_known_length_blocks_start_rewrite(self):
+        res = GeneratorResponse((str(x).encode("utf-8")*3 for x in range(10)),
+                                content_length=30,
+                                headers={"Content-Length": "30"})
+        res.make_partial([(0, 6)])
+        gen = res(start_response)
+        assert int(res.headers.get('Content-Length')) == 7
+        assert res.headers.get('Content-Range') == "bytes 0-6/30"
+        assert b"".join(gen) == b"0001112"
+
+    def test_partial_known_length_blocks_range(self):
         res = GeneratorResponse((str(x).encode("utf-8")*3 for x in range(10)),
                                 content_length=30)
         res.make_partial([(8, 16)])
@@ -233,7 +253,17 @@ class TestPartialGenerator:
         assert res.headers.get('Content-Range') == "bytes 8-16/30"
         assert b"".join(gen) == b"233344455"
 
-    def test_partial_know_length_blocks_range2(self):
+    def test_partial_known_length_blocks_range_rewrite(self):
+        res = GeneratorResponse((str(x).encode("utf-8")*3 for x in range(10)),
+                                content_length=30,
+                                headers={"Content-Length": "30"})
+        res.make_partial([(8, 16)])
+        gen = res(start_response)
+        assert int(res.headers.get('Content-Length')) == 9
+        assert res.headers.get('Content-Range') == "bytes 8-16/30"
+        assert b"".join(gen) == b"233344455"
+
+    def test_partial_known_length_blocks_range2(self):
         res = GeneratorResponse((b'01234' for x in range(5)),
                                 content_length=25)
         res.make_partial([(7, 8)])
@@ -242,9 +272,19 @@ class TestPartialGenerator:
         assert res.headers.get('Content-Range') == "bytes 7-8/25"
         assert b"".join(gen) == b"23"
 
-    def test_partial_know_length_blocks_end(self):
+    def test_partial_known_length_blocks_end(self):
         res = GeneratorResponse((str(x).encode("utf-8")*3 for x in range(10)),
                                 content_length=30)
+        res.make_partial([(None, 7)])
+        gen = res(start_response)
+        assert int(res.headers.get('Content-Length')) == 7
+        assert res.headers.get('Content-Range') == "bytes 23-29/30"
+        assert b"".join(gen) == b"7888999"
+
+    def test_partial_known_length_blocks_end_rewrite(self):
+        res = GeneratorResponse((str(x).encode("utf-8")*3 for x in range(10)),
+                                content_length=30,
+                                headers={"Content-Length": "30"})
         res.make_partial([(None, 7)])
         gen = res(start_response)
         assert int(res.headers.get('Content-Length')) == 7

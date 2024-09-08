@@ -894,7 +894,7 @@ empty tupple will be set.
 
 Application / User options
 --------------------------
-Like in mod_python Request, Poor WSGI Request have get_options method too.
+Like in mod_python Request, Poor WSGI Application have get_options method too.
 This method return dictionary of application options or variables, which start
 with ``app_`` prefix. This prefix is cut from options names.
 
@@ -910,18 +910,11 @@ And you can get these variables with get_options method:
 
 .. code:: python
 
-    config = None
-
-    @app.before_response()
-    def load_options(req):
-        global config
-        if config is None:
-            config = req.get_options()
-        req.config = config
+    config = app.get_options()
 
     @app.route('/options')
     def list_options(req):
-        return ("%s = %s" % (key, val) in req.config.items())
+        return ("%s = %s" % (key, val) in config.items())
 
 Output of application url /options looks like:
 
@@ -931,13 +924,15 @@ Output of application url /options looks like:
     tmp_path = tmp
     templ = templ
 
-As you can see, you can store your variables to request object. There are few
-reserved variables for you, which poorwsgi never use, and which are None by
-default:
+You can store your variables to request object too. There are few reserved
+variables for you, which poorwsgi never use, and which are None by default:
 
-:req.config: for your config object
-:req.user:   for user object, who is login
-:req.app\_:  as prefix for any your application variable
+:req.user:   For user object, who is login, check_digest decorator set this
+             variable.
+:req.api:    For API checking. OpenAPIRequest use this variable.
+:req.db:     For single database conection per request. You can store structure
+             with more databases if you need to this vairable.
+:req.app\_:  As prefix for any your application variable.
 
 So if you want to add any other variable, be careful to named it.
 

@@ -348,6 +348,11 @@ class SimpleRequest:
             app_db_server = localhost   # application variable db_server
             app_templates = app/templ   # application variable templates
         """
+        warnings.warn("Call to deprecated Request.get_options."
+                      "Use Application.get_options instead.",
+                      category=DeprecationWarning,
+                      stacklevel=1)
+
         options = {}
         for key, val in self.__poor_environ.items():
             key = key.strip()
@@ -472,6 +477,7 @@ class Request(SimpleRequest):
         # variables for user use
         self.__user = None
         self.__api = None
+        self.__db = None
 
         # ugly hack
         # pylint: disable=invalid-name
@@ -704,6 +710,15 @@ class Request(SimpleRequest):
     @api.setter
     def api(self, value):
         self.__api = value
+
+    @property
+    def db(self):
+        """For api request object, could be used for database connection(s)."""
+        return self.__db
+
+    @db.setter
+    def db(self, value):
+        self.__db = value
 
     # -------------------------- Methods --------------------------- #
     def __read(self, length: int = -1):

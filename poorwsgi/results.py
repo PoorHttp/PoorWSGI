@@ -88,11 +88,11 @@ def handlers_view(handlers, sort=True):
 def not_modified(req):
     """Return NotModifiedResponse.
 
-    Headers E-Tag, Content-Location is return from request.
+    Headers ETag, Content-Location is return from request.
     Date header will be set.
     """
     return NotModifiedResponse(
-            etag=req.headers.get('E-Tag'),
+            etag=req.headers.get('ETag'),
             content_location=req.headers.get('Content-Location'),
             date=time_to_http())
 

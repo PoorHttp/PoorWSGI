@@ -269,7 +269,7 @@ def style(_):
 @app.route('/test/static')
 def test_dynamic(req, variable=None):
     """Test dynamics values."""
-    if not variable and req.headers.get('E-Tag') == 'W/"0123"':
+    if not variable and req.headers.get('ETag') == 'W/"0123"':
         return not_modified(req)
 
     var_info = {
@@ -299,7 +299,7 @@ def test_dynamic(req, variable=None):
         ("</table>",) + \
         get_footer()
 
-    response = Response(headers={'E-Tag': 'W/"0123"'})
+    response = Response(headers={'ETag': 'W/"0123"'})
     for line in buff:
         response.write(line + '\n')
     return response
@@ -640,7 +640,7 @@ def simple_py(req):
         if last_modified <= if_modified:
             return NotModifiedResponse(date=time_to_http())
 
-    response = FileResponse(__file__, headers={'E-Tag': etag})
+    response = FileResponse(__file__, headers={'ETag': etag})
     ranges = {}
     if 'Range' in req.headers:
         ranges = parse_range(req.headers['Range'])

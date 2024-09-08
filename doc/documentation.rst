@@ -249,7 +249,7 @@ parameters or as constructor argument.
                 return NotModifiedResponse(date=time_to_http())
 
         return FileResponse(req.document_root+"/filename",
-                            headers={'E-Tag': etag})
+                            headers={'ETag': etag})
 
 Partial Content
 ```````````````

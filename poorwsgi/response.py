@@ -741,7 +741,7 @@ class NotModifiedResponse(NoContentResponse):
 
         super().__init__(status_code=HTTP_NOT_MODIFIED, headers=headers)
         if etag:
-            self.add_header('E-Tag', etag)
+            self.add_header('ETag', etag)
         if content_location:
             self.add_header('Content-Location', content_location)
         if isinstance(date, str) and date:

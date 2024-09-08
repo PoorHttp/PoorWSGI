@@ -24,7 +24,8 @@ def server(request):
 
     process = start_server(
         request,
-        join(dirname(__file__), pardir, 'examples/websocket.py'))
+        join(dirname(__file__), pardir, 'examples/websocket.py'),
+        close=False)
 
     yield "localhost:8080"  # server is running
     process.kill()

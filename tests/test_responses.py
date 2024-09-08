@@ -550,7 +550,7 @@ class TestNotModifiedResponse():
                                   content_location="content-location",
                                   date="22 Apr 2022",
                                   vary="yrav")
-        assert res.headers.get('E-Tag') == 'W/"etag"'
+        assert res.headers.get('ETag') == 'W/"etag"'
         assert res.headers.get('Content-Location') == "content-location"
         assert res.headers.get('Date') == "22 Apr 2022"
         assert res.headers.get('Vary') == "yrav"

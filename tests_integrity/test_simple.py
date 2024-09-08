@@ -53,7 +53,7 @@ class TestSimple():
     def test_static_not_modified(self, url):
         res = check_url(url+"/test/static")
         check_url(url+"/test/static", status_code=304,
-                  headers={'E-Tag': res.headers.get('E-Tag')})
+                  headers={'ETag': res.headers.get('ETag')})
 
     def test_variable_int(self, url):
         check_url(url+"/test/123")
@@ -116,7 +116,7 @@ class TestResponses():
 
     def test_file_response_304_etag(self, url):
         res = check_url(url+"/simple.py")
-        etag = res.headers.get('E-Tag')
+        etag = res.headers.get('ETag')
         res = check_url(url+"/simple.py",
                         headers={'If-None-Match': etag},
                         status_code=304)

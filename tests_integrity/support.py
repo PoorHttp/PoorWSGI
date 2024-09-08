@@ -19,7 +19,7 @@ class TestError(RuntimeError):
     """Support exception."""
 
 
-def start_server(request, example, env=None):
+def start_server(request, example, env=None, close=True):
     """Start web server with example."""
 
     process = None
@@ -27,10 +27,12 @@ def start_server(request, example, env=None):
     if request.config.getoption("--with-uwsgi"):
         env = env or {}
         env = [["--env", "=".join(items)] for items in env.items()]
-        env = list(chain.from_iterable(env))
+        params = list(chain.from_iterable(env))
+        if close:
+            params += ["--add-header", "Connection: Close"]
         process = Popen(["uwsgi", "--plugin", "python3",
-                         "--http-socket", "localhost:8080", "--wsgi-file",
-                         example] + env)
+                         "--http-socket", "localhost:8080",
+                         "--wsgi-file", example] + params)
     else:
         # pylint: disable=consider-using-with
         process = Popen([executable, example], env=env)

@@ -778,17 +778,17 @@ class HTTPException(Exception):
     HTTPException(401, {'stale': True}...)
     """
 
-    def __init__(self, arg: Union[int, Response], **kwargs):
+    def __init__(self, arg: Union[int, BaseResponse], **kwargs):
         """status_code is one of HTTP_* status code from state module.
 
         If response is set, that will use, otherwise the handler from
         Application will be call."""
-        assert isinstance(arg, (int, Response))
+        assert isinstance(arg, (int, BaseResponse))
         super().__init__(arg, kwargs)
 
     def make_response(self):
         """Return or make a response if is possible."""
-        if isinstance(self.args[0], Response):
+        if isinstance(self.args[0], BaseResponse):
             return self.args[0]
 
         status_code = self.args[0]
@@ -801,7 +801,7 @@ class HTTPException(Exception):
     @property
     def response(self):
         """Return response if it was set."""
-        if isinstance(self.args[0], Response):
+        if isinstance(self.args[0], BaseResponse):
             return self.args[0]
         return None
 
@@ -850,7 +850,7 @@ def redirect(location: str,
         RedirectResponse(location, status_code, message, headers, permanent))
 
 
-def abort(arg: Union[int, Response]):
+def abort(arg: Union[int, BaseResponse]):
     """Raise HTTPException with arg.
 
     Raise simple error exception:

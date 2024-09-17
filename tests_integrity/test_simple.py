@@ -2,10 +2,10 @@
 from os import environ
 from os.path import dirname, join, pardir
 
-from requests import Session
 from pytest import fixture
+from requests import Session
 
-from . support import start_server, check_url
+from .support import check_url, start_server
 
 # pylint: disable=inconsistent-return-statements
 # pylint: disable=missing-function-docstring
@@ -54,6 +54,9 @@ class TestSimple():
         res = check_url(url+"/test/static")
         check_url(url+"/test/static", status_code=304,
                   headers={'ETag': res.headers.get('ETag')})
+
+    def test_exception_not_modified(self, url):
+        check_url(url+"/not-modified", status_code=304)
 
     def test_variable_int(self, url):
         check_url(url+"/test/123")

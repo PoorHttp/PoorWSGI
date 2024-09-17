@@ -347,7 +347,7 @@ def method_not_allowed(req, error=None):
 # enddef
 
 
-def not_implemented(req, code=None, error=None):
+def not_implemented(req, code: int | None = None, error=None):
     """ 501 Not Implemented server error handler. """
     if error:
         log.error("501 - Not Implemented: %s", error)
@@ -372,7 +372,7 @@ def not_implemented(req, code=None, error=None):
         content += (
             "  <p>Your reqeuest <code>%s</code> returned not implemented\n"
             "   status code <code>%s</code>.</p>\n" % (req.uri, code))
-        log.error('Your reqeuest %s returned not implemented status code %d',
+        log.error('Your reqeuest %s returned not implemented status code %s',
                   req.uri, code)
     else:
         content += (

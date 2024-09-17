@@ -564,6 +564,10 @@ class TestNotModifiedResponse():
                 date=datetime.fromtimestamp(0, timezone.utc))
         assert res.headers.get('Date') == "Thu, 01 Jan 1970 00:00:00 GMT"
 
+    def test_etag_only(self):
+        res = NotModifiedResponse(etag='W/"cd04a47544"')
+        assert res.headers.get("ETag") == 'W/"cd04a47544"'
+
     def test_date_empty_string(self):
         res = NotModifiedResponse(date="")
         assert res.headers.get('Date') is None

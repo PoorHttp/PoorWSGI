@@ -680,6 +680,12 @@ def forbidden(req):
     raise HTTPException(state.HTTP_FORBIDDEN)
 
 
+@app.route('/not-modified')
+def not_modified_result(_):
+    """Test for raise not NotModifiedResponse"""
+    raise HTTPException(NotModifiedResponse(etag="012"))
+
+
 @app.route('/not-implemented')
 def not_implemented(req):
     """Test not implemented exception"""

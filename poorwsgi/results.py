@@ -97,15 +97,23 @@ def not_modified(req):
             date=time_to_http())
 
 
-def internal_server_error(req, **kwargs):
+def internal_server_error(req, *_):
     """ More debug 500 Internal Server Error server handler.
 
     It was be called automatically when no handlers are not defined
     in dispatch_table.errors. If poor_Debug variable is to On, Tracaback
     will be generated.
     """
-    log.exception("", exc_info=True)
-    assert kwargs is not None
+    handler = {"module": None, "name": None}
+    if req.uri_handler:
+        handler["module"] = req.uri_handler.__module__
+        handler["name"] = req.uri_handler.__name__
+        handler["args"] = ', '.join(req.uri_handler.__code__.co_varnames)
+
+    log.exception("Handler `%s.%s(%s)' for %s [%s]",
+                  handler["module"], handler["name"], handler["args"],
+                  req.uri, req.uri_rule, exc_info=True)
+
     exc_type, exc_value, exc_traceback = exc_info()
 
     res = Response(status_code=HTTP_INTERNAL_SERVER_ERROR)
@@ -127,10 +135,6 @@ def internal_server_error(req, **kwargs):
         "  <h1>500 - Internal Server Error</h1>\n")
 
     if req.debug:
-        handler = {"module": None, "name": None}
-        if req.uri_handler:
-            handler["module"] = req.uri_handler.__module__
-            handler["name"] = req.uri_handler.__name__
         uri = html_escape(req.uri)
         uri_rule = html_escape(req.uri_rule)
         res.write(
@@ -141,7 +145,7 @@ def internal_server_error(req, **kwargs):
             f"  uri: <b><code>{uri}</code></b><br/>\n"
             f"  uri_rule: <b><code>{uri_rule}</code></b><br/>\n"
             "  uri_handler: <b><code>"
-            f"{handler['module']}.{handler['name']}"
+            f"{handler['module']}.{handler['name']}({handler['args']})"
             "</code></b><br/>\n")
 
         res.write(

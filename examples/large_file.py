@@ -15,9 +15,9 @@ EXAMPLES_PATH = os.path.dirname(__file__)
 sys.path.insert(0, os.path.abspath(
     os.path.join(EXAMPLES_PATH, os.path.pardir)))
 
-# pylint: disable=wrong-import-position
+# pylint: disable=import-error, disable=wrong-import-position
 from poorwsgi import Application, state  # noqa
-from poorwsgi.request import FieldStorage  # noqa
+from poorwsgi.fieldstorage import FieldStorageParser  # noqa
 from poorwsgi.response import HTTPException  # noqa
 from poorwsgi.results import hbytes  # noqa
 
@@ -26,8 +26,6 @@ logger.setLevel("DEBUG")
 app = application = Application("large_file")
 app.debug = True
 app.auto_form = False
-
-# pylint: disable=consider-using-f-string
 
 
 class Blackhole:
@@ -54,6 +52,9 @@ class Blackhole:
     def hexdigest(self):
         """Return sha256 hexdigest of file."""
         return self.__hash.hexdigest()
+
+    def close(self):
+        """Dummy close"""
 
 
 class Temporary:
@@ -143,15 +144,19 @@ def html_form(req, file_callback):
                 to_download = min(req.content_length-bytes_read, 65365)
                 data = req.read(to_download)
         elif file_callback == original_factory:
-            form = FieldStorage(
-                    req, keep_blank_values=app.keep_blank_values,
+            parser = FieldStorageParser(
+                    req.input, req.headers,
+                    keep_blank_values=app.keep_blank_values,
                     strict_parsing=app.strict_parsing)
+            parser.parse()
         else:
-            form = FieldStorage(
-                    req, keep_blank_values=app.keep_blank_values,
+            parser = FieldStorageParser(
+                    req.input, req.headers,
+                    keep_blank_values=app.keep_blank_values,
                     strict_parsing=app.strict_parsing,
                     file_callback=file_callback(req))
-            bytes_read = form.bytes_read
+            form = parser.parse()
+            bytes_read = parser.bytes_read
             hexdigest = form['file'].file.hexdigest()
 
         end = time() - start
@@ -251,5 +256,5 @@ class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
 if __name__ == '__main__':
     ADDRESS = sys.argv[1] if len(sys.argv) > 1 else '127.0.0.1'
     httpd = make_server(ADDRESS, 8080, app, ThreadingWSGIServer)
-    print("Starting to serve on http://%s:8080" % ADDRESS)
+    print(f"Starting to serve on http://{ADDRESS}:8080")
     httpd.serve_forever()

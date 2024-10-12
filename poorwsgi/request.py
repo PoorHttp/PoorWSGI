@@ -4,24 +4,21 @@
 """
 # pylint: disable=too-many-lines
 
-# pylint: disable=deprecated-module
-from json import loads as json_loads
-from io import BytesIO
-from time import time
-from typing import Union, Callable, Any, Iterable, List, Tuple, Optional
-
 import os
 import re
 import warnings
-from logging import getLogger
-
-from urllib.parse import parse_qs, unquote
 from http.cookies import SimpleCookie
+from io import BytesIO
+from json import loads as json_loads
+from logging import getLogger
+from time import time
+from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
+from urllib.parse import parse_qs, unquote
 
 from poorwsgi import fieldstorage
-from poorwsgi.state import methods, HTTP_BAD_REQUEST
-from poorwsgi.headers import Headers, parse_negotiation, parse_header
+from poorwsgi.headers import Headers, parse_header, parse_negotiation
 from poorwsgi.response import HTTPException
+from poorwsgi.state import HTTP_BAD_REQUEST, methods
 
 log = getLogger("poorwsgi")
 
@@ -964,6 +961,11 @@ def FieldStorage(req=Request,  # noqa: N802
     """
     # pylint: disable=unused-argument
     # pylint: disable=invalid-name
+
+    warnings.warn("Call to deprecated FieldStorage parsing method."
+                  "Use fieldstorage.FieldStorageParser instead.",
+                  category=DeprecationWarning, stacklevel=1)
+
     form_parser = fieldstorage.FieldStorageParser(
                 req.input, req.headers,
                 keep_blank_values=keep_blank_values,

@@ -22,7 +22,8 @@ python_path.insert(
     0, os.path.abspath(os.path.join(EXAMPLES_PATH, os.path.pardir)))
 
 # pylint: disable=import-error, wrong-import-position
-from poorwsgi import Application, redirect, request, state  # noqa
+from poorwsgi import Application, redirect, state  # noqa
+from poorwsgi.fieldstorage import FieldStorageParser  # noqa
 from poorwsgi.headers import http_to_time, parse_range, time_to_http  # noqa
 from poorwsgi.response import FileResponse  # noqa
 from poorwsgi.response import HTTPException  # noqa
@@ -101,11 +102,12 @@ def auto_form(req):
     if req.is_body_request or req.server_protocol == "HTTP/0.9":
         factory = StorageFactory('./upload')
         try:
-            req.form = request.FieldStorage(
-                req,
-                keep_blank_values=app.keep_blank_values,
-                strict_parsing=app.strict_parsing,
-                file_callback=factory.create)
+            parser = FieldStorageParser(
+                    req.input, req.headers,
+                    keep_blank_values=app.keep_blank_values,
+                    strict_parsing=app.strict_parsing,
+                    file_callback=factory.create)
+            req.form = parser.parse()
         except Exception as err:  # pylint: disable=broad-except
             log.exception("Exception %s", str(err))
             raise

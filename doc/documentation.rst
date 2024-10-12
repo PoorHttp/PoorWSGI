@@ -625,16 +625,16 @@ EmptyForm instance, which is dict base class too with both of methods.
 
 Form arguments
 ~~~~~~~~~~~~~~
-Request form areguments are stored to FieldStorage class, define in
-poorwsgi.request module. This class is based on FieldStorage from standard
-cgi module. And variables are parsed every time, when poor_AutoForm is set to
-On, which is default, request method is POST, PUT or PATCH and request
+Request form arguments are stored in FieldStorage class, define in
+poorwsgi.fieldstorage module. This class is inspired by FieldStorage from
+legacy cgi module. Variables are parsed every time, when poor_AutoForm is set
+to On, which is default, request method is POST, PUT or PATCH and request
 mime type is one of `Application.form_mime_types`. You can call it
 on any other methods of course, but it must exist wsgi.input in request
 environment from wsgi server.
 
 req.form instance is create with poor_KeepBlankValues and poor_StrictParsing
-variables as Args class is create, but FieldStorage have file_callback
+variables as Args class is create, but FieldStorageParser have file_callback
 variable, which is configurable by Application.file_callback property.
 
 .. code:: python
@@ -645,7 +645,7 @@ variable, which is configurable by Application.file_callback property.
                                              # is convert to number with zero
                                              # as default
         name = req.form.getfirst('name')
-        colors = req.form.getlist('color', fce=int)
+        colors = req.form.getlist('color', func=int)
         return "Post arguments for id are %s" % (id, str(req.args))
 
 As like Args class, if poor_AutoForm is set to Off, or if method is no POST,
@@ -705,14 +705,13 @@ There are a few variants which req.json could be:
 
 File uploading
 ~~~~~~~~~~~~~~
-By default, python's FieldStorage, so poorwsgi.FieldStorage too, store files
-somewhere to ``/tmp`` directory. This is happened in FieldStorage, which calls
-``TemporaryFile``. Uploaded files are accessible like another form variables,
-but.
+By default, FieldStorage store files somewhere to ``/tmp`` directory. This is
+happened in FieldStorageParser, which calls ``TemporaryFile``. Uploaded files
+are accessible like another form variables, but.
 
 Any variables from FieldStorage is accessible with ``__getitem__`` method.
 So you can get variable by ``req.form[key]``, which gets FieldStorage
-instance. This instance has some another variables, which you can test,
+instance. This instance has some attributes, which you can test,
 what type of variable is it.
 
 .. code:: python
@@ -742,16 +741,16 @@ Application.file_callback property.
 As you can see, this example works, but it is so bad solution of your problem.
 Little bit better solution will be, if you store files only if exist and only
 to special separate dictionary, which could be configurable. That you need use
-factory to create file_callback. In next example is write own form parsering,
-which is not important, when `file_callback` could be set via Application
-property.
+to factory to create file_callback. In next example is written own form
+processing, which is not important, when `file_callback` could be set via
+Application property.
 
 .. code:: python
 
     from io import FileIO
     from os.path import exists
 
-    from poorwsgi import Application, state, request
+    from poorwsgi import Application, state, fieldstorage
 
     app = Application('test')
 
@@ -783,19 +782,21 @@ property.
         if req.method_number == state.METHOD_POST:
             factory = StorageFactory('./upload')
             try:
-                req.form = request.FieldStorage(
-                    req,
+                parser = FieldStorageParser(
+                    req.input, req.heades,
                     keep_blank_values=app.keep_blank_values,
                     strict_parsing=app.strict_parsing,
                     file_callback=factory.create)
+                req.form = parser.parser()
             except Exception as e:
                 req.log_error(e)
 
 CachedInput
 ~~~~~~~~~~~
 
-When HTTP Forms are base64 encoded, FieldStorage use readline on request input
-file. This is not so optimal. So there is CachedInput class, which is returned
+When HTTP Forms are base64 encoded, FieldStorageParser use readline on request
+input file. This is not so optimal. So there is CachedInput class, which
+is returned as wrapper around ``wsgi.input`` file.
 
 Proccess variables
 ~~~~~~~~~~~~~~~~~~
@@ -818,14 +819,14 @@ If auto_form is set to ``True``, which is default, Request object parse input
 arguments from request body at initialisation when request type is POST, PUT
 or PATCH. There will be ``Request.form`` property which is instance of
 ``FieldStorage`` class. If you want to off this functionality, set this property
-to ``False``. If form parsing is disabled, or json is detected, ``Request.form``
+to ``False``. If form parsing is disabled, or JSON is detected, ``Request.form``
 will be instance of ``EmptyForm`` with same interface and no data.
 
 Application.form_mime_types
 ``````````````````````````````
-List of mime types, which is paresed as input form by ``FieldStorage`` class.
-If input request does not have set one of these mime types, that form was not
-parsed.
+List of mime types, which is parsed as input form by ``FieldStorageParser``
+class. If input request does not have set one of these mime types, that form
+will not be parsed.
 
 Application.file_callback
 `````````````````````````
@@ -848,15 +849,15 @@ If input request does not have set one of these mime types, that
 Application.keep_blank_values
 `````````````````````````````
 This property is set for input parameters to automatically calling Args and
-FieldStorage classes, when auto_args resp. auto_form is set. By default this
-property is set to ``0``. If it set to ``1``, blank values should be interpret
-as empty strings.
+FieldStorageParser classes, when auto_args resp. auto_form is set. By default
+this property is set to ``0``. If it set to ``1``, blank values should be
+interpret as empty strings.
 
 Application.strict_parsing
 ``````````````````````````
 This property is set for input parameter to automatically calling Args and
-FieldStorage classes. when auto_args resp. auto_form is set. By default this
-variable is set to ``0``. If is set to ``1``, ValueError exception
+FieldStorageParser classes. When auto_args resp. auto_form is set. By default
+this variable is set to ``0``. If is set to ``1``, ValueError exception
 could raise on parsing error. I'm sure, that you never want to set this
 variable to ``1``. If so, use it in your own parsing.
 
@@ -878,10 +879,11 @@ variable to ``1``. If so, use it in your own parsing.
 
         if req.method_number == state.METHOD_POST:
             try:
-                req.form = request.FieldStorage(
-                    req,
+                parser = fieldstorage.FieldStorageParser(
+                    req.input, req.headers,
                     keep_blank_values=app.keep_blank_values,
                     strict_parsing=app.strict_parsing)
+                req.form = parser.parse()
             except Exception as e:
                 logging.error("Bad request body: %s", e)
 
@@ -1025,7 +1027,7 @@ Application.secret_key property.
     @app.route('/login', method=state.METHOD_GET_POST)
     def login(req):
         if req.method == 'POST':
-            passwd = req.form.getfirst('passwd', fce=str)
+            passwd = req.form.getfirst('passwd', func=str)
             if passwd != 'SecretPasswds':
                 log.info('Bad password')
                 redirect('/login', text='Bad password')

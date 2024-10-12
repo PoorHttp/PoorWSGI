@@ -6,9 +6,10 @@ from typing import Any, ClassVar
 from pytest import fixture, raises
 
 from poorwsgi import Application
+from poorwsgi.fieldstorage import FieldStorageParser
 from poorwsgi.headers import Headers
-from poorwsgi.request import (Args, EmptyForm, FieldStorage, JsonDict,
-                              JsonList, Request, parse_json_request)
+from poorwsgi.request import (Args, EmptyForm, JsonDict, JsonList, Request,
+                              parse_json_request)
 from poorwsgi.response import HTTPException
 
 # pylint: disable=missing-function-docstring
@@ -85,6 +86,72 @@ class TestArgs:
         assert args.get("no") is None
 
 
+class Empty:
+    """Empty Request class mock"""
+    environ: ClassVar[dict[str, Any]] = {}
+    headers: ClassVar[dict[str, str]] = {}
+    input = BytesIO(b"")
+
+
+@fixture
+def empty():
+    return Empty()
+
+
+class UrlEncoded:
+    """Request class with application/x-www-form-urlencoded content."""
+    environ: ClassVar[dict[str, Any]] = {}
+    headers = Headers({
+        "Content-Length": "60",
+        "Content-Type": "application/x-www-form-urlencoded",
+        })
+    input = BytesIO(b"pname=Ond%C5%99ej&psurname=T%C5%AFma"
+                    b"&px=8&px=7&px=6&btn=Send")
+
+
+@fixture
+def url_encoded():
+    yield UrlEncoded()
+    UrlEncoded.input.seek(0)
+
+
+class MultiPart:
+    """Request class with multipart/form-data content."""
+    environ: ClassVar[dict[str, Any]] = {}
+    headers = Headers({
+        "Content-Type":
+            ("multipart/form-data; "
+             "boundary=----WebKitFormBoundaryrUf888hx3XHjF3X4"),
+        "Content-Length": "2697"
+    })
+    input = BytesIO(
+        b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
+        b'Content-Disposition: form-data; name="fname"\r\n\r\n'
+        b'Ond\xc5\x99ej\r\n'
+        b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
+        b'Content-Disposition: form-data; name="fsurname"\r\n\r\n'
+        b'T\xc5\xafma\r\n'
+        b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
+        b'Content-Disposition: form-data; name="fx"\r\n\r\n8\r\n'
+        b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
+        b'Content-Disposition: form-data; name="fx"\r\n\r\n7\r\n'
+        b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
+        b'Content-Disposition: form-data; name="fx"\r\n\r\n6\r\n'
+        b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
+        b'Content-Disposition: form-data; name="fbody"\r\n\r\n\r\n'
+        b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
+        b'Content-Disposition: form-data; name="data"\r\n\r\n' +
+        b'#'*2000 +
+        b'\r\n'
+        b'------WebKitFormBoundaryrUf888hx3XHjF3X4--\r\n')
+
+
+@fixture
+def multipart():
+    yield MultiPart()
+    MultiPart.input.seek(0)
+
+
 class TxtFile:
     """Request class with bin file in multipart content."""
     environ: ClassVar[dict[str, Any]] = {}
@@ -112,54 +179,10 @@ def txt_file():
 
 class TestForm:
     """Tests for FieldStorage"""
-    class Empty:
-        """Empty Request class mock"""
-        environ: ClassVar[dict[str, Any]] = {}
-        headers: ClassVar[dict[str, str]] = {}
-        input = BytesIO(b"")
+    def test_empty(self, empty):
+        parser = FieldStorageParser(empty.input, empty.headers)
+        form = parser.parse()
 
-    class MutliPart:
-        """Request class with multipart/form-data content."""
-        environ: ClassVar[dict[str, Any]] = {}
-        headers = Headers({
-            "Content-Type":
-                ("multipart/form-data; "
-                 "boundary=----WebKitFormBoundaryrUf888hx3XHjF3X4"),
-            "Content-Length": "2697"
-        })
-        input = BytesIO(
-            b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
-            b'Content-Disposition: form-data; name="fname"\r\n\r\n'
-            b'Ond\xc5\x99ej\r\n'
-            b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
-            b'Content-Disposition: form-data; name="fsurname"\r\n\r\n'
-            b'T\xc5\xafma\r\n'
-            b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
-            b'Content-Disposition: form-data; name="fx"\r\n\r\n8\r\n'
-            b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
-            b'Content-Disposition: form-data; name="fx"\r\n\r\n7\r\n'
-            b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
-            b'Content-Disposition: form-data; name="fx"\r\n\r\n6\r\n'
-            b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
-            b'Content-Disposition: form-data; name="fbody"\r\n\r\n\r\n'
-            b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
-            b'Content-Disposition: form-data; name="data"\r\n\r\n' +
-            b'#'*2000 +
-            b'\r\n'
-            b'------WebKitFormBoundaryrUf888hx3XHjF3X4--\r\n')
-
-    class UrlEncoded:
-        """Request class with application/x-www-form-urlencoded content."""
-        environ: ClassVar[dict[str, Any]] = {}
-        headers = Headers({
-            "Content-Length": "60",
-            "Content-Type": "application/x-www-form-urlencoded",
-            })
-        input = BytesIO(b"pname=Ond%C5%99ej&psurname=T%C5%AFma"
-                        b"&px=8&px=7&px=6&btn=Send")
-
-    def test_empty(self):
-        form = FieldStorage(self.Empty())
         assert not form.keys()
         assert form.getvalue("no") is None
         assert form.getvalue("name", "PooWSGI") == "PooWSGI"
@@ -168,24 +191,30 @@ class TestForm:
         assert tuple(form.getlist("values", (3, 4), int)) == (3, 4)
         assert not tuple(form.getlist("values"))
 
-    def test_multipart(self):
-        form = FieldStorage(self.MutliPart())
+    def test_multipart(self, multipart):
+        parser = FieldStorageParser(multipart.input, multipart.headers)
+        form = parser.parse()
+
         assert list(form.keys()) == ["fname", "fsurname", "fx", "fbody",
                                      "data"]
         assert form.getvalue("fname") == "Ondřej"
         assert form.getvalue("fsurname") == "Tůma"
-        assert list(form.getlist("fx", fce=int)) == [8, 7, 6]
+        assert list(form.getlist("fx", func=int)) == [8, 7, 6]
         assert form.getvalue("data") == "#"*2000
 
-    def test_urlencoded(self):
-        form = FieldStorage(self.UrlEncoded())
+    def test_urlencoded(self, url_encoded):
+        parser = FieldStorageParser(url_encoded.input, url_encoded.headers)
+        form = parser.parse()
+
         assert list(form.keys()) == ["pname", "psurname", "px", "btn"]
         assert form.getvalue("pname") == "Ondřej"
         assert form.getvalue("psurname") == "Tůma"
         assert list(form.getlist("px", func=int)) == [8, 7, 6]
 
     def test_txtfile(self, txt_file):
-        form = FieldStorage(txt_file)
+        parser = FieldStorageParser(txt_file.input, txt_file.headers)
+        form = parser.parse()
+
         assert list(form.keys()) == ["file", "btn"]
         assert form.getvalue("btn") == "Upload"
         file = form["file"]
@@ -203,7 +232,9 @@ class TestForm:
             assert filename == "text_file.txt"
             return tmp
 
-        form = FieldStorage(txt_file, file_callback=file_callback)
+        parser = FieldStorageParser(txt_file.input, txt_file.headers,
+                                    file_callback=file_callback)
+        form = parser.parse()
         assert form.getvalue("btn") == "Upload"
         file = form["file"]
         assert file.file == tmp

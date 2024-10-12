@@ -7,11 +7,12 @@
 import re
 import tempfile
 import urllib.parse
+import warnings
 from email.parser import FeedParser
 from io import BytesIO, StringIO, TextIOWrapper
 from typing import Any, Callable, Optional, Union
 
-from .headers import parse_header
+from poorwsgi.headers import parse_header
 
 _RE_STR_BOUNDARY = re.compile("^[ -~]{0,200}[!-~]$")
 _RE_BIN_BOUNDARY = re.compile(b"^[ -~]{0,200}[!-~]$")
@@ -57,6 +58,13 @@ class FieldStorage:
                     of other fields.
 
     FieldStorage is create by FieldStorageParser.
+
+    FieldStorage has context methods, so you cat read files like this:
+    >>> field = FieldStorage("key")
+    >>> field.file = StringIO("value")
+    >>> with field:
+    ...     print(field.value)
+    value
     """
 
     name: Optional[str] = None
@@ -82,28 +90,73 @@ class FieldStorage:
         return self
 
     def __exit__(self, *args):
-        self.file.close()
+        if self.file:
+            self.file.close()
 
     def __repr__(self):
         """Return printable representation."""
-        return f"Field({self.name}, {self.value or self.file})"
+        return f"FieldStorage({self.name}, {self.value or self.file})"
 
     def __bool__(self):
+        """
+        >>> field = FieldStorage("key", "value")
+        >>> bool(field)
+        True
+        >>> field = FieldStorage()
+        >>> field.list = [FieldStorage("key")]
+        >>> bool(field)
+        True
+        >>> field = FieldStorage("key")
+        >>> bool(field)
+        False
+        """
         return bool(self.list or self.value)
 
     def __iter__(self):
+        """
+        >>> field = FieldStorage()
+        >>> field.list = [FieldStorage("key", "value")]
+        >>> for key in field:
+        ...     print(key, ":", field.get(key))
+        key : value
+        """
         return iter(self.keys())
 
     def __len__(self):
+        """
+        >>> field = FieldStorage()
+        >>> len(field)  # no fields in field storage
+        0
+        >>> field.list = [FieldStorage("k1", "value"), FieldStorage("k2", "K")]
+        >>> len(field)  # two different keys
+        2
+        >>> field = FieldStorage()
+        >>> field.list = [FieldStorage("k", "value"), FieldStorage("k", "K")]
+        >>> len(field)  # one key with two values
+        1
+        """
         return len(self.keys())
 
     def __contains__(self, key: str):
+        """
+        >>> field = FieldStorage()
+        >>> field.list = [FieldStorage("key", "value")]
+        >>> "key" in field
+        True
+        >>> "no-key" in field
+        False
+        """
         if not self.list:
             return False
         return any(item.name == key for item in self.list)
 
     def __getitem__(self, key: str):
-        """Returns field if exist."""
+        """Returns field if exist.
+        >>> field = FieldStorage()
+        >>> field.list = [FieldStorage("key", "value")]
+        >>> field["key"].value
+        'value'
+        """
         if not self.list:
             raise KeyError(key)
 
@@ -125,6 +178,24 @@ class FieldStorage:
         * If field is string value, return string.
         * If field is list of other fields (root FieldStorage), return that
           list.
+
+        >>> field = FieldStorage()
+        >>> print(field.value)
+        None
+        >>> field.list = [FieldStorage("key", "value")]
+        >>> field.value
+        [FieldStorage(key, value)]
+        >>> field = FieldStorage("key", "value")
+        >>> field.value
+        'value'
+        >>> field = FieldStorage("key")
+        >>> field.file = StringIO("string")
+        >>> field.value
+        'string'
+        >>> field = FieldStorage("key")
+        >>> field.file = BytesIO(b"bytes")
+        >>> field.value
+        b'bytes'
         """
         if self._value:
             return self._value
@@ -141,13 +212,26 @@ class FieldStorage:
         return value
 
     def keys(self):
-        """Dictionary like keys() method."""
+        """Dictionary like keys() method.
+
+        >>> field = FieldStorage()
+        >>> field.list = [FieldStorage("key", "value")]
+        >>> field.keys()
+        dict_keys(['key'])
+        """
         return dict.fromkeys(k.name for k in self.list).keys()
 
     def get(self, key: str, default: Any = None):
         """Compatibility methods with dict.
 
         Return value of list of values if exists.
+
+        >>> field = FieldStorage()
+        >>> field.list = [FieldStorage("key", "value")]
+        >>> field.get("key")
+        'value'
+        >>> field.get("zero", "0")
+        '0'
         """
         if key in self:
             value = self[key]
@@ -168,6 +252,11 @@ class FieldStorage:
             func : converter (lambda x: x)
                 Function or class which processed value. Default type of value
                 is bytes for files and string for others.
+
+        >>> field = FieldStorage()
+        >>> field.list = [FieldStorage("key", "42")]
+        >>> field.getvalue("key", func=int)
+        42
         """
         if key in self:
             value = self[key]
@@ -182,9 +271,16 @@ class FieldStorage:
         """Get first item from list for key or default.
 
         Use func converter just like getvalue.
-        fce : deprecated converter name.
+        :fce: deprecated converter name.
+
+        >>> field = FieldStorage()
+        >>> field.list = [FieldStorage("key", "1"), FieldStorage("key", "2")]
+        >>> field.getfirst("key", func=int)
+        1
         """
         if fce:
+            warnings.warn("Using deprecated fce argument. Use func instead.",
+                          category=DeprecationWarning, stacklevel=1)
             func = fce
         if key in self:
             value = self[key]
@@ -199,9 +295,20 @@ class FieldStorage:
         """Returns list of variable values for key or empty list.
 
         Use func converter just like getvalue.
-        fce : deprecated converter name
+        :fce: deprecated converter name
+
+        >>> field = FieldStorage()
+        >>> field.list = [FieldStorage("key", "1"), FieldStorage("key", "2")]
+        >>> field.getlist("key", func=int)
+        [1, 2]
+        >>> field.getlist("no-key")
+        []
+        >>> field.getlist("no-key", default=["empty"])
+        ['empty']
         """
         if fce:
+            warnings.warn("Using deprecated fce argument. Use func instead.",
+                          category=DeprecationWarning, stacklevel=1)
             func = fce
         value = self.getvalue(key, func=func)
         if isinstance(value, list):
@@ -221,8 +328,14 @@ class FieldStorageParser:
     It generate FieldStorage or Field in depennd on encoding. But it do it
     only from request body. FieldStorage has internal StringIO for all
     values which are not stored in file. Some small binary files can be stored
-    in BytesIO. Limit for storing fields in temporary files are configurable
-    via input initor argument.
+    in BytesIO. Limit for storing fields in temporary files is 8192 bytes.
+
+    .. code:: python
+
+        parser = FieldStorageParser(request.input, request.headers)
+        form = parser.parse()
+        assert isinstance(form, FieldStorage)
+
     """
     BUFSIZE = 8*1024  # buffering size for copy to file and storing StringIO
 
@@ -234,37 +347,38 @@ class FieldStorageParser:
 
         Arguments, all optional:
 
-        input_           : Request.input file object
-        headers         : header dictionary-like object
+        :input_:    Request.input file object
 
-        outerboundary   : terminating multipart boundary
+        :headers:   header dictionary-like object
+
+        :outerboundary: terminating multipart boundary
             (for internal use only)
 
-        keep_blank_values: flag indicating whether blank values in
+        :keep_blank_values: flag indicating whether blank values in
             percent-encoded forms should be treated as blank strings.
             A true value indicates that blanks should be retained as
             blank strings.  The default false value indicates that
             blank values are to be ignored and treated as if they were
             not included.
 
-        strict_parsing: flag indicating what to do with parsing errors.
+        :strict_parsing:    flag indicating what to do with parsing errors.
             If false (the default), errors are silently ignored.
             If true, errors raise a ValueError exception.
 
-        limit : used internally to read parts of multipart/form-data forms,
+        :limit: used internally to read parts of multipart/form-data forms,
             to exit from the reading loop when reached. It is the difference
             between the form content-length and the number of bytes already
             read
 
-        encoding, errors : the encoding and error handler used to decode the
+        :encoding, errors:  the encoding and error handler used to decode the
             binary stream to strings. Must be the same as the charset defined
             for the page sending the form (content-type : meta http-equiv or
             header)
 
-        max_num_fields: int. If set, then parse throws a ValueError
+        :max_num_fields:    int. If set, then parse throws a ValueError
             if there are more than n fields read by parse_qsl().
 
-        file_callback: function returns file class for own handling creating
+        :file_callback: function returns file class for own handling creating
             files for write operations. By this, you can write file from
             request direct to destionation without temporary files.
         """

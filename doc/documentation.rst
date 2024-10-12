@@ -122,7 +122,7 @@ You can use headers instead of `content_type` argument.
 .. code:: python
 
     @app.http_state(NOT_FOUND)
-    def not_found(req):
+    def not_found(req, *_):
         return make_response(b'Page not Found',
                              headers={"Content-Type": "text/plain"},
                              status_code=NOT_FOUND)
@@ -522,18 +522,20 @@ or METHOD_HEAD.
 
 HTTP state handlers
 ~~~~~~~~~~~~~~~~~~~
-There are some predefined HTTP state handlers, which is use when other
+There are some predefined HTTP state handlers, which are use when other
 HTTP state are raised via HTTPException or any other exception which ends with
 HTTP_INTERNAL_SERVER_ERROR status code.
 
 You can redefined your own handlers for any combination of status code and
-method type like routes handlers. Responsing from these handlers are same as in
+method type like routes handlers. Response from these handlers are same as in
 route handlers.
+
+Be sure, that some http_state handlers can add other keyword arguments.
 
 .. code:: python
 
     @app.http_state(state.HTTP_NOT_FOUND)
-    def page_not_found(req):
+    def page_not_found(req, *_):
         return "Your request %s not found." % req.path, "text/plain"
 
 If your http state (error) handler was crashed with error, internal server

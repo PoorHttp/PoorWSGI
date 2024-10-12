@@ -904,7 +904,7 @@ class Application():
         .. code:: python
 
             @app.http_state(state.HTTP_NOT_FOUND)
-            def page_not_found(req):
+            def page_not_found(req, *_):
                 return "Your page %s was not found." % req.path, "text/plain"
         """
         def wrapper(fun):
@@ -938,7 +938,8 @@ class Application():
         .. code:: python
 
             @app.error_handler(ValueError)
-            def value_error(req):
+            def value_error(req, error):
+                log.exception("ValueError %s", error)
                 return "Values %s are not correct." % req.args, "text/plain"
         """
         def wrapper(fun):
@@ -991,7 +992,7 @@ class Application():
         else:
             return not_implemented(req, status_code)
 
-    def error_from_table(self, req: SimpleRequest, error: Exception, **kwargs):
+    def error_from_table(self, req: SimpleRequest, error: Exception):
         """Internal method, which is called when exception was raised."""
 
         handler = None
@@ -1004,7 +1005,7 @@ class Application():
         if handler:
             try:
                 req.error_handler = handler
-                return handler(req, error, **kwargs)
+                return handler(req, error)
 
             except HTTPException as http_err:
                 response = http_err.make_response()

@@ -510,7 +510,7 @@ def test_upload(req):
 
 
 @app.http_state(state.HTTP_NOT_FOUND)
-def not_found(req):
+def not_found(req, *_):
     """Not found example response."""
     buff = (
         "<html>",

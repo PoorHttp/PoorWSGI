@@ -12,7 +12,7 @@ from os import path, access, R_OK, environ
 from collections import OrderedDict
 from logging import getLogger
 from hashlib import md5, sha256
-from typing import List, Union, Callable, Optional, Type
+from typing import Union, Callable, Optional, Type, ClassVar
 from time import time
 
 import re
@@ -61,9 +61,8 @@ class Application():
     and have methods for it's using and of course __call__ method for use
     as WSGI application.
     """
-    # pylint: disable=too-many-instance-attributes
     # pylint: disable=too-many-public-methods
-    __instances: List[str] = []
+    __instances: ClassVar[list[str]] = []
 
     def __init__(self, name="__main__"):
         """Application class is per name singleton.
@@ -874,7 +873,6 @@ class Application():
         This method is internally use, when groups are found in static route,
         adding by route or set_route method.
         """
-        # pylint: disable=too-many-arguments
         r_uri = re.compile(uri, re.U)
         if r_uri not in self.__rhandlers:
             self.__rhandlers[r_uri] = {}

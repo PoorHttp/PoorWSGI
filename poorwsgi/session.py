@@ -20,8 +20,6 @@ from poorwsgi.response import Response
 
 log = getLogger("poorwsgi")  # pylint: disable=invalid-name
 
-# pylint: disable=too-many-arguments
-# pylint: disable=too-many-instance-attributes
 # pylint: disable=unsubscriptable-object
 # pylint: disable=consider-using-f-string
 

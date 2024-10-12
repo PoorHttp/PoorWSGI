@@ -1,16 +1,13 @@
 """Classes, which is used for managing requests.
 
-:Classes:   Headers, Request, EmptyForm, Args, Json, FieldStorage
-:Functions: parse_negotiation
+:Classes:   SimpleRequest, Request, EmptyForm, Args, Json
 """
 # pylint: disable=too-many-lines
 
 # pylint: disable=deprecated-module
-from cgi import FieldStorage as CgiFieldStorage, parse_header
 from json import loads as json_loads
 from io import BytesIO
 from time import time
-from tempfile import TemporaryFile
 from typing import Union, Callable, Any, Iterable, List, Tuple, Optional
 
 import os
@@ -21,8 +18,9 @@ from logging import getLogger
 from urllib.parse import parse_qs, unquote
 from http.cookies import SimpleCookie
 
+from poorwsgi import fieldstorage
 from poorwsgi.state import methods, HTTP_BAD_REQUEST
-from poorwsgi.headers import Headers, parse_negotiation
+from poorwsgi.headers import Headers, parse_negotiation, parse_header
 from poorwsgi.response import HTTPException
 
 log = getLogger("poorwsgi")
@@ -37,7 +35,6 @@ RE_AUTHORIZATION = re.compile(r'(\w+\*?)[=] ?("[^"]+"|[\w\-\'%]+)')
 class SimpleRequest:
     """Request proxy properties implementation - for internal use only."""
     # pylint: disable=too-many-public-methods
-    # pylint: disable=too-many-instance-attributes
     def __init__(self, environ, app):
         self.__environ = environ
         self.__app = app
@@ -385,7 +382,6 @@ class Request(SimpleRequest):
     It could be compatible as soon as possible with mod_python.apache.request.
     Special variables for user use are prefixed with ``app_``.
     """
-    # pylint: disable=too-many-instance-attributes,
     # pylint: disable=too-many-public-methods
 
     def __init__(self, environ, app):
@@ -459,10 +455,12 @@ class Request(SimpleRequest):
         elif app.auto_form and \
                 (self.is_body_request or self.server_protocol == "HTTP/0.9") \
                 and self.__mime_type in app.form_mime_types:
-            self.__form = FieldStorage(
-                self, keep_blank_values=app.keep_blank_values,
+            form_parser = fieldstorage.FieldStorageParser(
+                self.input, self.headers,
+                keep_blank_values=app.keep_blank_values,
                 strict_parsing=app.strict_parsing,
                 file_callback=app.file_callback)
+            self.__form = form_parser.parse()
             self.__json = EmptyForm()
         else:
             self.__form = EmptyForm()
@@ -638,7 +636,7 @@ class Request(SimpleRequest):
         return self.__form
 
     @form.setter
-    def form(self, value: 'FieldStorage'):
+    def form(self, value: fieldstorage.FieldStorage):
         if isinstance(self.__form, EmptyForm):
             self.__form = value
 
@@ -955,6 +953,29 @@ def parse_json_request(raw: bytes, charset: str = "utf-8"):
         raise HTTPException(HTTP_BAD_REQUEST, error=err) from err
 
 
+def FieldStorage(req=Request,  # noqa: N802
+                 headers=None,
+                 keep_blank_values=0, strict_parsing=0,
+                 encoding='utf-8', errors='replace',
+                 max_num_fields=None, separator='&', file_callback=None):
+    """Deprecated back compatibility function.
+
+    Use direct FieldStorageParser instead of this!.
+    """
+    # pylint: disable=unused-argument
+    # pylint: disable=invalid-name
+    form_parser = fieldstorage.FieldStorageParser(
+                req.input, req.headers,
+                keep_blank_values=keep_blank_values,
+                strict_parsing=strict_parsing,
+                encoding=encoding,
+                errors=errors,
+                max_num_fields=max_num_fields,
+                separator=separator,
+                file_callback=file_callback)
+    return form_parser.parse()
+
+
 class CachedInput:
     """
     Wrapper around wsgi.input file, which reads data block by block.
@@ -1037,168 +1058,3 @@ class CachedInput:
 
         # no end-of-line found
         return line
-
-
-class FieldStorage(CgiFieldStorage):
-    """Class based of cgi.FieldStorage.
-
-    Instead of FieldStorage from cgi module, can have better getfirst
-    and getlist methods which can call function on values and can set
-    file_callback.
-
-    Constructor post special environment to base class, which do POST emulation
-    for any request, because base cgi.FieldStorage know only GET, HEAD and POST
-    methods an read from all variables, which we don't want.
-
-    There are some usable variables, which you can use, if you want to test
-    what variable it is:
-
-    :name:      variable name, the same name from input attribute.
-    :type:      mime-type of variable. All variables have internal
-                mime-type, if that is no file, mime-type is text/plain.
-    :filename:  if variable is file, filename is its name from form.
-    :file:      file type instance, from you can read variable. This instance
-                could be TemporaryFile as default for files, StringIO for
-                normal variables or instance of your own file type class,
-                create from file_callback.
-    :lists:     if variable is list of variables, this contains instances of
-                FieldStorage.
-    """
-
-    def __init__(self, req, headers=None, outerboundary=b'',  # noqa: C901
-                 environ=None, keep_blank_values=0, strict_parsing=0,
-                 limit=None, encoding='utf-8', errors='replace',
-                 max_num_fields=None, separator='&', file_callback=None):
-        """Constructor of FieldStorage.
-
-        Many of input parameters are need only for next internal use, because
-        FieldStorage parse variables recursive. You need add only:
-
-        req : Request
-            Input request.
-        keep_blank_values : int (0)
-            If you want to parse blank values as right empty values.
-        strict_parsing : int (0)
-            If you want to raise exception on parsing error.
-        file_callback : callback
-            Callback for creating instance of uploading files.
-        """
-        # pylint: disable=too-many-arguments
-        # pylint: disable=too-many-function-args
-
-        if isinstance(req, Request):
-            if req.environ.get('wsgi.input', None) is None:
-                raise ValueError('No wsgi input File in request environment.')
-
-            environ = {'REQUEST_METHOD': 'POST'}
-            if 'CONTENT_TYPE' in req.environ:
-                environ['CONTENT_TYPE'] = req.environ['CONTENT_TYPE']
-            if 'CONTENT_LENGTH' in req.environ:
-                environ['CONTENT_LENGTH'] = req.environ['CONTENT_LENGTH']
-            if file_callback:
-                environ['wsgi.file_callback'] = file_callback
-
-            headers = req.headers
-            req = req.input
-        if environ is None:
-            environ = {}
-
-        self.environ = environ
-        # pylint: disable=bad-option-value,unused-private-member
-        self.__file = None
-        try:
-            # new interface from some 3.6 to 3.9
-            super().__init__(req, headers, outerboundary, environ,
-                             keep_blank_values, strict_parsing, limit,
-                             encoding, errors, max_num_fields, separator)
-        except TypeError:
-            # old interface from some 3.6 to some 3.9
-            try:
-                super().__init__(req, headers, outerboundary, environ,
-                                 keep_blank_values, strict_parsing, limit,
-                                 encoding, errors, max_num_fields)
-            except TypeError:
-                # really old interface from some 3.6 to some 3.7
-                super().__init__(req, headers, outerboundary, environ,
-                                 keep_blank_values, strict_parsing, limit,
-                                 encoding, errors)
-
-    def make_file(self):
-        """Return readable and writable temporary file."""
-        if self._binary_file and 'wsgi.file_callback' in self.environ:
-            return self.environ['wsgi.file_callback'](self.filename)
-        return TemporaryFile("wb+")  # pylint: disable=consider-using-with
-
-    def read_lines(self):
-        """Internal: read lines until EOF or outerboundary."""
-        if self._binary_file and 'wsgi.file_callback' in self.environ:
-            self.file = self.make_file()
-            if self.outerboundary:
-                self.read_lines_to_outerboundary()
-            else:
-                self.read_lines_to_eof()
-        else:
-            super().read_lines()
-
-    def get(self, key: str, default: Any = None):
-        """Compatibility methods with dict, alias for getvalue."""
-        return self.getvalue(key, default)
-
-    def getfirst(self, key: str, default: Any = None, fce: Callable = str):
-        """Returns first variable value for key or default, if key not exist.
-
-        Arguments:
-            key : str
-                key name
-            default : None
-                default value if key not found
-            fce : convertor (str)
-                Function or class which processed value.
-        """
-        # pylint: disable=arguments-differ
-        val = CgiFieldStorage.getfirst(self, key, default)
-        if val is None:
-            return None
-        return fce(val)
-
-    def getlist(self, key: str, default: Optional[List] = None,
-                fce: Callable = str):
-        """Returns list of variable values for key or empty list.
-
-        Arguments:
-            key : str
-                key name
-            default : list
-                List of values when key was not sent.
-            fce : convertor (str)
-                Function or class which processed value.
-        """
-        # pylint: disable=arguments-differ
-        if key in self:
-            val = CgiFieldStorage.getlist(self, key)
-        else:
-            val = default or []
-        for item in val:
-            yield fce(item)
-
-    def __getitem__(self, key: str):
-        """Dictionary like [] operator."""
-        if self.list is None:
-            raise KeyError(key)
-        return super().__getitem__(key)
-
-    def __contains__(self, key: str):
-        """Dictionary like in operator."""
-        if self.list is None:
-            return False
-        return super().__contains__(key)
-
-    def __bool__(self):
-        """Bool operator."""
-        return bool(self.list)
-
-    def keys(self):
-        """Dictionary like keys() method."""
-        if self.list is None:
-            return tuple()
-        return super().keys()

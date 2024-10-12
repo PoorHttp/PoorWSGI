@@ -1,13 +1,14 @@
 """Test for request module fuctionality."""
 from io import BytesIO
 from time import time
-from typing import Dict, Any
+from typing import Any, ClassVar
 
 from pytest import fixture, raises
 
 from poorwsgi import Application
-from poorwsgi.request import JsonDict, JsonList, parse_json_request, \
-    EmptyForm, Args, FieldStorage, Request
+from poorwsgi.headers import Headers
+from poorwsgi.request import (Args, EmptyForm, FieldStorage, JsonDict,
+                              JsonList, Request, parse_json_request)
 from poorwsgi.response import HTTPException
 
 # pylint: disable=missing-function-docstring
@@ -71,7 +72,7 @@ class TestArgs:
         """Request class mock"""
         app = None
         query = ''
-        environ: Dict[str, Any] = {}
+        environ: ClassVar[dict[str, Any]] = {}
 
     def test_empty(self):
         args = Args(self.Req())
@@ -84,20 +85,131 @@ class TestArgs:
         assert args.get("no") is None
 
 
+class TxtFile:
+    """Request class with bin file in multipart content."""
+    environ: ClassVar[dict[str, Any]] = {}
+    headers = Headers({
+        "Content-Length": "293",
+        "Content-Type": "multipart/form-data; "
+                        "boundary=----WebKitFormBoundaryNbcDXbbrawsQmAuL"
+        })
+    input = BytesIO(
+        b'------WebKitFormBoundaryNbcDXbbrawsQmAuL\r\n'
+        b'Content-Disposition: form-data; name="file"; '
+        b'filename="text_file.txt"\r\nContent-Type: text/plain\r\n\r\n'
+        b'\xc4\x8ce\xc5\xa1tina\n\r\n'
+        b'------WebKitFormBoundaryNbcDXbbrawsQmAuL\r\n'
+        b'Content-Disposition: form-data; name="btn"\r\n\r\nUpload\r\n'
+        b'------WebKitFormBoundaryNbcDXbbrawsQmAuL--\r\n'
+    )
+
+
+@fixture
+def txt_file():
+    yield TxtFile()
+    TxtFile.input.seek(0)
+
+
 class TestForm:
     """Tests for FieldStorage"""
-    class Req:
-        """Request class mock"""
-        environ: Dict[str, Any] = {}
+    class Empty:
+        """Empty Request class mock"""
+        environ: ClassVar[dict[str, Any]] = {}
+        headers: ClassVar[dict[str, str]] = {}
+        input = BytesIO(b"")
+
+    class MutliPart:
+        """Request class with multipart/form-data content."""
+        environ: ClassVar[dict[str, Any]] = {}
+        headers = Headers({
+            "Content-Type":
+                ("multipart/form-data; "
+                 "boundary=----WebKitFormBoundaryrUf888hx3XHjF3X4"),
+            "Content-Length": "2697"
+        })
+        input = BytesIO(
+            b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
+            b'Content-Disposition: form-data; name="fname"\r\n\r\n'
+            b'Ond\xc5\x99ej\r\n'
+            b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
+            b'Content-Disposition: form-data; name="fsurname"\r\n\r\n'
+            b'T\xc5\xafma\r\n'
+            b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
+            b'Content-Disposition: form-data; name="fx"\r\n\r\n8\r\n'
+            b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
+            b'Content-Disposition: form-data; name="fx"\r\n\r\n7\r\n'
+            b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
+            b'Content-Disposition: form-data; name="fx"\r\n\r\n6\r\n'
+            b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
+            b'Content-Disposition: form-data; name="fbody"\r\n\r\n\r\n'
+            b'------WebKitFormBoundaryrUf888hx3XHjF3X4\r\n'
+            b'Content-Disposition: form-data; name="data"\r\n\r\n' +
+            b'#'*2000 +
+            b'\r\n'
+            b'------WebKitFormBoundaryrUf888hx3XHjF3X4--\r\n')
+
+    class UrlEncoded:
+        """Request class with application/x-www-form-urlencoded content."""
+        environ: ClassVar[dict[str, Any]] = {}
+        headers = Headers({
+            "Content-Length": "60",
+            "Content-Type": "application/x-www-form-urlencoded",
+            })
+        input = BytesIO(b"pname=Ond%C5%99ej&psurname=T%C5%AFma"
+                        b"&px=8&px=7&px=6&btn=Send")
 
     def test_empty(self):
-        form = FieldStorage(self.Req())
+        form = FieldStorage(self.Empty())
+        assert not form.keys()
         assert form.getvalue("no") is None
         assert form.getvalue("name", "PooWSGI") == "PooWSGI"
         assert form.getfirst("no") is None
-        assert form.getfirst("age", "23", int) == 23
-        assert tuple(form.getlist("values", ("3", "4"), int)) == (3, 4)
+        assert form.getfirst("age", 23, int) == 23
+        assert tuple(form.getlist("values", (3, 4), int)) == (3, 4)
         assert not tuple(form.getlist("values"))
+
+    def test_multipart(self):
+        form = FieldStorage(self.MutliPart())
+        assert list(form.keys()) == ["fname", "fsurname", "fx", "fbody",
+                                     "data"]
+        assert form.getvalue("fname") == "Ondřej"
+        assert form.getvalue("fsurname") == "Tůma"
+        assert list(form.getlist("fx", fce=int)) == [8, 7, 6]
+        assert form.getvalue("data") == "#"*2000
+
+    def test_urlencoded(self):
+        form = FieldStorage(self.UrlEncoded())
+        assert list(form.keys()) == ["pname", "psurname", "px", "btn"]
+        assert form.getvalue("pname") == "Ondřej"
+        assert form.getvalue("psurname") == "Tůma"
+        assert list(form.getlist("px", func=int)) == [8, 7, 6]
+
+    def test_txtfile(self, txt_file):
+        form = FieldStorage(txt_file)
+        assert list(form.keys()) == ["file", "btn"]
+        assert form.getvalue("btn") == "Upload"
+        file = form["file"]
+        assert file.filename == "text_file.txt"
+        assert file.type == "text/plain"
+        assert file.file.read() == "Čeština\n".encode("utf-8")
+        file.file.seek(0)
+        print(type(form.getvalue("file")), form.getvalue("file"))
+        assert isinstance(form.getvalue("file"), bytes)
+
+    def test_txtfile_callback(self, txt_file):
+        tmp = BytesIO()
+
+        def file_callback(filename: str):
+            assert filename == "text_file.txt"
+            return tmp
+
+        form = FieldStorage(txt_file, file_callback=file_callback)
+        assert form.getvalue("btn") == "Upload"
+        file = form["file"]
+        assert file.file == tmp
+        assert file.filename == "text_file.txt"
+        assert file.type == "text/plain"
+        assert file.file.read() == "Čeština\n".encode("utf-8")
 
 
 class TestParseJson:

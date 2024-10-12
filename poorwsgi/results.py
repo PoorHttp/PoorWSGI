@@ -13,7 +13,7 @@ from sys import version, exc_info
 from inspect import cleandoc
 from logging import getLogger
 from hashlib import sha256
-from typing import Dict, Callable
+from typing import Dict, Callable, Optional
 
 import os
 import mimetypes
@@ -347,7 +347,7 @@ def method_not_allowed(req, error=None):
 # enddef
 
 
-def not_implemented(req, code: int | None = None, error=None):
+def not_implemented(req, code: Optional[int] = None, error=None):
     """ 501 Not Implemented server error handler. """
     if error:
         log.error("501 - Not Implemented: %s", error)

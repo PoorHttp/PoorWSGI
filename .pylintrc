@@ -1,2 +1,7 @@
 [MAIN]
 load-plugins=pylint.extensions.no_self_use
+
+[MESSAGES CONTROL]
+disable = too-many-instance-attributes,
+          too-many-arguments,
+          too-many-positional-arguments

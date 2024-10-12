@@ -89,6 +89,7 @@ app.auto_form = False
 def log_request(req):
     """Log each request before processing."""
     log.info("Before response")
+    log.info("Headers: %s", req.headers)
     log.info("Data: %s", req.data)
 
 
@@ -395,15 +396,27 @@ def test_form(req):
          '<input type="text" name="gx" value="3"><br/>',
          '<input type="submit" name="btn" value="Send">'
          '</form>',
-         "<h2>Post Form</h2>",
-         '<form method="post">',
+         "<h2>Post Form multipart/form-data</h2>",
+         '<form method="post" enctype="multipart/form-data">',
+         '<input type="text" name="fname" value="Ondřej"><br/>',
+         '<input type="text" name="fsurname" value="Tůma"><br/>',
+         '<input type="text" name="fx" value="8">'
+         '<input type="text" name="fx" value="7">'
+         '<input type="text" name="fx" value="6"><br/>',
+         '<textarea name="fbody">Some\ntext</textarea><br/>'
+         '<input type="submit" name="btn" value="Send">'
+         '</form>',
+         "<h2>Post Form application/x-www-form-urlencoded</h2>",
+         '<form method="post" enctype="application/x-www-form-urlencoded">',
          '<input type="text" name="pname" value="Ondřej"><br/>',
          '<input type="text" name="psurname" value="Tůma"><br/>',
          '<input type="text" name="px" value="8">'
          '<input type="text" name="px" value="7">'
          '<input type="text" name="px" value="6"><br/>',
+         '<textarea name="fbody">Some\ntext</textarea><br/>'
          '<input type="submit" name="btn" value="Send">'
          '</form>',
+
          "<h2>Variables</h2>",
          "<table>") + \
         tuple("<tr><td>%s:</td><td>%s</td></tr>" %
@@ -517,10 +530,9 @@ def not_found(req):
 
 
 @app.error_handler(ValueError)
-def value_error_handler(req, error):
+def value_error_handler(*_):
     """ValueError exception handler example."""
-    assert req
-    print("ValueError: ", error)
+    log.exception("ValueError")
     raise HTTPException(state.HTTP_BAD_REQUEST)
 
 

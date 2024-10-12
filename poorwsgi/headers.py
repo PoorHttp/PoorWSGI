@@ -24,6 +24,44 @@ HeadersList = Union[List, Tuple, set, dict]
 RangeList = List[Tuple[Optional[int], Optional[int]]]
 
 
+def _parseparam(s):
+    while s[:1] == ';':
+        s = s[1:]
+        end = s.find(';')
+        while end > 0 and (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
+            end = s.find(';', end + 1)
+        if end < 0:
+            end = len(s)
+        f = s[:end]
+        yield f.strip()
+        s = s[end:]
+
+
+def parse_header(line):
+    """Parse a Content-type like header.
+
+    Return the main content-type and a dictionary of options.
+
+    >>> parse_header("text/html; charset=latin-1")
+    ('text/html', {'charset': 'latin-1'})
+    >>> parse_header("text/plain")
+    ('text/plain', {})
+    """
+    parts = _parseparam(';' + line)
+    key = parts.__next__()
+    pdict = {}
+    for p in parts:
+        i = p.find('=')
+        if i >= 0:
+            name = p[:i].strip().lower()
+            value = p[i+1:].strip()
+            if len(value) >= 2 and value[0] == value[-1] == '"':
+                value = value[1:-1]
+                value = value.replace('\\\\', '\\').replace('\\"', '"')
+            pdict[name] = value
+    return key, pdict
+
+
 def parse_negotiation(value: str):
     """Parse content negotiation headers to list of value, quality tuples.
 
@@ -126,7 +164,7 @@ def time_to_http(value: Optional[Union[int, float]] = None):
     if value is not None:
         return datetime_to_http(datetime.fromtimestamp(int(value),
                                 timezone.utc))
-    return datetime_to_http(datetime.utcnow())
+    return datetime_to_http(datetime.now(timezone.utc))
 
 
 def http_to_datetime(value: str):

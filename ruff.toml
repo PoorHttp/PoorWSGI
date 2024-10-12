@@ -1,4 +1,6 @@
-select = [
+line-length = 79
+
+lint.select = [
     "F",    # pyflakes
     "E",    # pycodestyle
     "W",    # pycodestyle
@@ -49,7 +51,7 @@ select = [
     "RUF",  # Ruff-specific rules
 ]
 
-ignore = [
+lint.ignore = [
     "Q000",     # [*] Single quotes found but double quotes preferred
     "I001",     # [*] Import block is un-sorted or un-formatted
     "COM812",   # [*] Trailing comma missing

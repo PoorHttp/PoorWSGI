@@ -167,6 +167,27 @@ This response returned these data with status code 418:
         "numbers": [0, 1, 2, 3, 4]
     }
 
+Or you can simple return dictionary or list. It will be automatically convert
+to JSONResponse by make_response function. So it is similar to return text or
+bytes.
+
+Be careful that your dict or list **have to be convertible** to JSON by
+json.dumps function.
+
+.. code:: python
+
+    @app.route('/dict')
+    def get_dict(_):
+        """Return dictionary"""
+        return {"route": "/dict", "type": "dict"}
+
+    @app.route('/list')
+    def get_list(_):
+        """Return list"""
+        return [["key", "value"], ["route", "/list"], ["type", "list"]]
+
+
+
 JSONGeneratorResponse
 `````````````````````
 There is JSONGeneratorResponse class too, which could return JSON, but

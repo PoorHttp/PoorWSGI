@@ -406,7 +406,7 @@ class JSONResponse(Response):
     """Simple application/json response.
 
      Arguments:
-        data_ : Any
+        data\\_ : Any
             Alternative way to add any data to json response.
         charset : str
             ``charset`` value for ``Content-Type`` header. ``utf-8`` by
@@ -808,17 +808,85 @@ class HTTPException(Exception):
         return self.args[0].status_code
 
 
-def make_response(data: Union[str, bytes],
+def make_response(data: Union[str, bytes, dict, Iterable[bytes]],
                   content_type: str = "text/html; charset=utf-8",
                   headers: Optional[Union[Headers, HeadersList]] = None,
                   status_code: int = HTTP_OK):
     """Create response from values.
 
+    If data are:
+
+    :str, bytes:    Response is returned.
+    :list, dict:    JSONResponse is returned. List can't be list of bytes,
+                    otherwise GeneratorResponse is returned.
+    :Iterable:      GeneratorResponse is returned
+
     Data could be string, bytes, or bytes returns iterable object like file.
+
+    Response from string:
+
+    >>> res = make_response("Hello world!")
+    >>> res
+    <poorwsgi.response.Response object at ...>
+    >>> res.data
+    b'Hello world!'
+    >>> res.content_type
+    'text/html; charset=utf-8'
+    >>> res.status_code
+    200
+
+    Response from bytes:
+
+    >>> res = make_response(b"\x32", "application/octet-stream", {}, 412)
+    >>> res.data
+    b'2'
+    >>> res.content_type
+    'application/octet-stream'
+    >>> res.status_code
+    412
+
+    Own response header field:
+
+    >>> res = make_response("OK", headers={"Ok-Header": "OK"})
+    >>> res.headers["OK-Header"]
+    'OK'
+
+    JSONResponse from dictionary:
+
+    >>> res = make_response({"key": "value"})
+    >>> res
+    <poorwsgi.response.JSONResponse object at ...>
+    >>> res.data
+    b'{"key": "value"}'
+    >>> res.content_type
+    'application/json; charset=utf-8'
+
+    JSONResponse from list:
+
+    >>> res = make_response([["key", "value"]])
+    >>> res
+    <poorwsgi.response.JSONResponse object at ...>
+    >>> res.data
+    b'[["key", "value"]]'
+
+    GeneratorResponse from iterable of bytes:
+
+    >>> res = make_response([b"key", b"value"])
+    >>> res
+    <poorwsgi.response.GeneratorResponse object at ...>
+    >>> res.__end_of_response__()
+    <generator object GeneratorResponse.__range_generator__ at ...>
+    >>> list(res.__end_of_response__())
+    [b'key', b'value']
+
     """
     try:
         if isinstance(data, (str, bytes)):      # "hello world"
             return Response(data, content_type, headers, status_code)
+        if isinstance(data, dict):
+            return JSONResponse(data)
+        if isinstance(data, list) and not isinstance(data[0], bytes):
+            return JSONResponse(data)
 
         iter(data)  # try iter data
         return GeneratorResponse(data, content_type, headers, status_code)
@@ -828,7 +896,8 @@ def make_response(data: Union[str, bytes],
                       type(status_code))
 
     raise ResponseError(
-        "Returned data must by: <bytes|str>, <str>, <Headers|None>, <int>")
+        "Returned data must by: <bytes|str|dict|list|iterable[bytes]>,"
+        " <str>, <Headers|None>, <int>")
 
 
 def redirect(location: str,

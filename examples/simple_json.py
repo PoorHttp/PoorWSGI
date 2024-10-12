@@ -87,6 +87,18 @@ def get_unicode(_):
                         encoder_kwargs={"ensure_ascii": False})
 
 
+@app.route('/dict')
+def get_dict(_):
+    """Return dictionary"""
+    return {"route": "/dict", "type": "dict"}
+
+
+@app.route('/list')
+def get_list(_):
+    """Return list"""
+    return [["key", "value"], ["route", "/list"], ["type", "list"]]
+
+
 @app.route('/test/headers')
 def test_headers(req):
     """Request headers response."""

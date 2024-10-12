@@ -126,6 +126,15 @@ class TestResponse:
         assert res.text == data
         assert int(res.headers['Content-Length']) == len(data.encode("utf-8"))
 
+    def test_dict(self, server):
+        res = check_url(server+"/dict")
+        assert res.json() == {"route": "/dict", "type": "dict"}
+
+    def test_list(self, server):
+        res = check_url(server+"/list")
+        assert res.json() == [["key", "value"], ["route", "/list"],
+                              ["type", "list"]]
+
     def test_bad_json_response(self, server):
         check_url(server+"/test/json", status_code=400,
                   method="POST", data=b"abraka crash",

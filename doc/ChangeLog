@@ -12,6 +12,7 @@
         - all default values are not convert now
     * Some old classes, functions, attributes and parameters are notified
       as deprecated, and will be deleted in next major version.
+    * Automatic JSONResponse from dict or list, just like from text.
 
 ==== 2.6.3 ====
     * HTTPException has status_code property

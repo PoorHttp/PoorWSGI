@@ -424,7 +424,7 @@ class FieldStorageParser:
 
         Arguments, all optional:
 
-        :input_:    Request.input file object
+        :input\\_:    Request.input file object
 
         :headers:   header dictionary-like object
 

@@ -617,7 +617,7 @@ poor_AutoArgs is set to On, which is default.
     @app.route('/test/get')
     def test_get(req)
         name = req.args.getfirst('name')
-        colors = req.args.getlist('color', fce=int)
+        colors = req.args.getlist('color', func=int)
         return "Get arguments are %s" % str(req.args)
 
 If no arguments are parsed, or if poor_AutoArgs is set to Off, req.args is

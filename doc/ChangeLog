@@ -1,3 +1,18 @@
+==== 2.7.0 dev ====
+    * Reserved Request.db attribute for usage
+    * Right HTTPException type annotation
+    * Fix ETag header
+    * FieldStorage and FieldStorageParser implementation based on legacy
+      cgi.FieldStorage
+        - that means Python 3.13 support
+    * Stop Python 3.8 support - some mypy annotation didn't work
+    * Field refactoring - ! possible break change ! - sorry for that
+        - FieldStorageInterface - getvalue, getfist, getlist methods
+        - new func converter name, and no default converter
+        - all default values are not convert now
+    * Some old classes, functions, attributes and parameters are notified
+      as deprecated, and will be deleted in next major version.
+
 ==== 2.6.3 ====
     * HTTPException has status_code property
     * Implicit value for not set cookie is None or empty dict for OpenAPI

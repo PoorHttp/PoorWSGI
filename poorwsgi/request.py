@@ -12,7 +12,7 @@ from io import BytesIO
 from json import loads as json_loads
 from logging import getLogger
 from time import time
-from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Optional
 from urllib.parse import parse_qs, unquote
 
 from poorwsgi import fieldstorage
@@ -753,30 +753,34 @@ class Request(SimpleRequest):
         log.debug("Request: Hasta la vista, baby.")
 
 
-class EmptyForm(dict):
+class EmptyForm(dict, fieldstorage.FieldStorageInterface):
     """Compatibility class as fallback."""
     # pylint: disable=unused-argument
-    @staticmethod
-    def getvalue(key: str, default: Any = None):
+    def getvalue(self, key: str, default: Any = None,
+                 func: Callable = lambda x: x):
         """Just return default."""
         return default
 
-    @staticmethod
-    def getfirst(key: str, default: Any = None, fce: Callable = str):
-        """Just return fce(default) if default is not None."""
-        return fce(default) if default is not None else default
+    def getfirst(self, key: str, default: Any = None,
+                 func: Callable = lambda x: x,
+                 fce: Optional[Callable] = None):
+        """Just return default."""
+        if fce:
+            warnings.warn("Using deprecated fce argument. Use func instead.",
+                          category=DeprecationWarning, stacklevel=1)
+        return default
 
-    @staticmethod
-    def getlist(key: str, default: Any = None, fce: Callable = str):
-        """Just yield fce(default) or iter default."""
-        if isinstance(default, (list, set, tuple)):
-            for item in default:
-                yield fce(item)
-        elif default is not None:
-            yield fce(default)
+    def getlist(self, key: str, default: Any = None,
+                func: Callable = lambda x: x,
+                fce: Optional[Callable] = None):
+        """Just return default or empty list."""
+        if fce:
+            warnings.warn("Using deprecated fce argument. Use func instead.",
+                          category=DeprecationWarning, stacklevel=1)
+        return default or []
 
 
-class Args(dict):
+class Args(dict, fieldstorage.FieldStorageInterface):
     """Compatibility class for read values from QUERY_STRING.
 
     Class is based on dictionary. It has getfirst and getlist methods,
@@ -789,88 +793,26 @@ class Args(dict):
         dict.__init__(self, ((key, val[0] if len(val) < 2 else val)
                              for key, val in args.items()))
 
-        self.getvalue = self.get
 
-    def getfirst(self, key: str,
-                 default: Optional[Union[List, Tuple]] = None,
-                 fce: Callable = str):
-        """Returns first variable value for key or default.
-
-        fce : convertor (str)
-            function which processed value.
-        """
-        val = self.get(key, default)
-        if val is None:
-            return None
-
-        if isinstance(val, (list, tuple)):
-            return fce(val[0])
-        return fce(val)
-
-    def getlist(self, key: str, default: Optional[Iterable] = None,
-                fce: Callable = str):
-        """Returns list of variable values for key or empty list.
-
-        fce : convertor (str)
-            function which processed value.
-        default : list
-            Default value, when argument was not set.
-        """
-        val = self.get(key, default)
-        if val is None:
-            return
-
-        if isinstance(val, (list, set, tuple)):
-            for item in val:
-                yield fce(item)
-        else:
-            yield fce(val)
-
-
-class JsonDict(dict):
+class JsonDict(dict, fieldstorage.FieldStorageInterface):
     """Compatibility class for read values from JSON POST, PUT or PATCH
     request.
 
     It has getfirst and getlist methods, which can call function on values.
+
+    **Deprecated:** this class will be deleted in next major version.
+
+    >>> json = JsonDict({"key": "42"})
+    >>> json.getvalue("key", func=int)
+    42
+
+    >>> json = JsonDict({"key": ["42", "15"]})
+    >>> json.getlist("key", func=int)
+    [42, 15]
+
+    >>> json.getfirst("key", func=int)
+    42
     """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.getvalue = self.get
-
-    def getfirst(self, key: str, default: Any = None, fce: Callable = str):
-        """Returns first variable value for key or default, if key not exist.
-
-        default : any
-            Default value if key not exists.
-        fce : convertor
-            Function which processed value.
-        """
-        val = self.get(key, default)
-        if val is None:
-            return None
-
-        if isinstance(val, (list, tuple)):
-            return fce(val[0])
-        return fce(val)
-
-    def getlist(self, key: str, default: Optional[Iterable] = None,
-                fce: Callable = str):
-        """Returns generator of variable values for key.
-
-        default : list
-            Default value, when value not set.
-        fce : convertor (str)
-            Function which processed value.
-        """
-        val = self.get(key, default)
-        if val is None:
-            return
-
-        if isinstance(val, (list, set, tuple)):
-            for item in val:
-                yield fce(item)
-        else:
-            yield fce(val)
 
 
 class JsonList(list):
@@ -878,51 +820,68 @@ class JsonList(list):
     request.
 
     It has getfirst and getlist methods, which can call function on values.
+
+    **Deprecated:** this class will be deleted in next major version.
     """
+
     # pylint: disable=unused-argument
-    def getvalue(self, key=None, default: Any = None):
+    def getvalue(self, key=None, default: Any = None,
+                 func: Callable = lambda x: x):
         """Returns first item or defualt if no exists.
 
         key : None
             Compatibility parametr is ignored.
         default : any
             Default value if key not exists.
+        func : converter (lambda x: x)
+                Function or class which processed value. Default type of value
+                is bytes for files and string for others.
         """
-        return self[0] if self else default
+        return func(self[0]) if self else default
 
-    # pylint: disable=inconsistent-return-statements
-    def getfirst(self, key: Optional[str] = None, default: Any = None,
-                 fce: Callable = str):
+    def getfirst(self, key=None, default: Any = None,
+                 func: Callable = lambda x: x,
+                 fce: Optional[Callable] = None):
         """Returns first variable value or default, if no one exist.
 
         key : None
             Compatibility parametr is ignored.
         default : any
             Default value if key not exists.
-        fce : convertor
+        func : converter
             Function which processed value.
+        fce : deprecated converter name
+            Use func converter just like getvalue.
         """
-        val = self.getvalue(default=default)
-        if val is not None:
-            return fce(val)
+        if fce:
+            warnings.warn("Using deprecated fce argument. Use func instead.",
+                          category=DeprecationWarning, stacklevel=1)
+            func = fce
 
-    def getlist(self, key: Optional[str] = None,
-                default: Optional[Iterable] = None, fce: Callable = str):
-        """Returns generator of values.
+        return self.getvalue(default=default, func=func)
+
+    def getlist(self, key: str, default: Optional[list] = None,
+                func: Callable = lambda x: x,
+                fce: Optional[Callable] = None):
+        """Returns list of values
 
         key : None
             Compatibility parametr is ignored.
-        fce : convertor (str)
-            Function which processed value.
         default : list
             Default value when self is empty.
+        func : converter
+            Function which processed value.
+        fce : deprecated converter name
+            Use func converter just like getvalue.
         """
+        if fce:
+            warnings.warn("Using deprecated fce argument. Use func instead.",
+                          category=DeprecationWarning, stacklevel=1)
+            func = fce
+
         if not self:
-            for item in (default or []):
-                yield fce(item)
-        else:
-            for item in self:
-                yield fce(item)
+            return default or []
+        return [func(x) for x in self]
 
 
 # pylint: disable=inconsistent-return-statements
@@ -936,6 +895,7 @@ def parse_json_request(raw: bytes, charset: str = "utf-8"):
     * Other based types from json.loads function like str, int, float, bool
       or None.
     * None when parsing of JSON fails. That is logged with WARNING log level.
+
     """
     # pylint: disable=inconsistent-return-statements
     try:
@@ -955,7 +915,9 @@ def FieldStorage(req=Request,  # noqa: N802
                  keep_blank_values=0, strict_parsing=0,
                  encoding='utf-8', errors='replace',
                  max_num_fields=None, separator='&', file_callback=None):
-    """Deprecated back compatibility function.
+    """**Deprecated:**  back compatibility function.
+
+    This function will be deleted in next major version.
 
     Use direct FieldStorageParser instead of this!.
     """

@@ -30,8 +30,8 @@ class TestEmpty:
         assert form.getvalue("name") is None
         assert form.getvalue("name", "PooWSGI") == "PooWSGI"
         assert form.getfirst("name") is None
-        assert form.getfirst("age", "23", int) == 23
-        assert tuple(form.getlist("values", ("3", "4"), int)) == (3, 4)
+        assert form.getfirst("age", 23) == 23
+        assert tuple(form.getlist("values", (3, 4))) == (3, 4)
         assert not tuple(form.getlist("values"))
 
 
@@ -43,10 +43,10 @@ class TestJSON:
         assert json.getvalue("name", "PooWSGI") == "PooWSGI"
         assert json.getvalue("age") == 23
         assert json.getfirst("no") is None
-        assert json.getfirst("age") == "23"
-        assert json.getfirst("items") == "1"
-        assert tuple(json.getlist("items", fce=str)) == ("1", "2")
-        assert tuple(json.getlist("values", ("3", "4"), int)) == (3, 4)
+        assert json.getfirst("age") == 23
+        assert json.getfirst("items", func=str) == "1"
+        assert tuple(json.getlist("items", func=str)) == ("1", "2")
+        assert tuple(json.getlist("values", (3, 4))) == (3, 4)
         assert not tuple(json.getlist("values"))
 
     def test_json_list_empty(self):
@@ -55,16 +55,16 @@ class TestJSON:
         assert json.getvalue("name", "PooWSGI") == "PooWSGI"
         assert json.getvalue("age", 23) == 23
         assert json.getfirst("no") is None
-        assert json.getfirst("age", 23) == "23"
-        assert json.getfirst("name", "2", int) == 2
-        assert tuple(json.getlist("ages", ["1", "2"], int)) == (1, 2)
+        assert json.getfirst("age", 23) == 23
+        assert json.getfirst("name", 2, int) == 2
+        assert tuple(json.getlist("ages", [1, 2])) == (1, 2)
         assert not tuple(json.getlist("ages"))
 
     def test_json_list(self):
         json = JsonList([1, 2])
         assert json.getvalue("age") == 1
-        assert json.getfirst("age") == "1"
-        assert tuple(json.getlist("items", fce=str)) == ("1", "2")
+        assert json.getfirst("age") == 1
+        assert tuple(json.getlist("items", func=str)) == ("1", "2")
 
 
 class TestArgs:
@@ -80,8 +80,8 @@ class TestArgs:
         assert args.getvalue("no") is None
         assert args.getvalue("name", "PooWSGI") == "PooWSGI"
         assert args.getfirst("no") is None
-        assert args.getfirst("age", "23", int) == 23
-        assert tuple(args.getlist("values", ("3", "4"), int)) == (3, 4)
+        assert args.getfirst("age", 23, int) == 23
+        assert tuple(args.getlist("values", (3, 4))) == (3, 4)
         assert not tuple(args.getlist("values"))
         assert args.get("no") is None
 

@@ -8,6 +8,7 @@ import re
 import tempfile
 import urllib.parse
 import warnings
+from abc import ABCMeta, abstractmethod
 from email.parser import FeedParser
 from io import BytesIO, StringIO, TextIOWrapper
 from typing import Any, Callable, Optional, Union
@@ -31,7 +32,83 @@ def valid_boundary(data):
     return bool(_RE_STR_BOUNDARY.match(data))
 
 
-class FieldStorage:
+class FieldStorageInterface(metaclass=ABCMeta):
+    """FieldStorage Interface
+
+    Implements methods getvalue, getfirst and getlist
+    """
+
+    @abstractmethod
+    def __contains__(self, key: str) -> bool: ...
+
+    @abstractmethod
+    def __getitem__(self, key: str): ...
+
+    def getvalue(self, key: str, default: Any = None,
+                 func: Callable = lambda x: x):
+        """Get but func is called for all values.
+
+        Arguments:
+            key : str
+                key name
+            default : None
+                default value if key not found
+            func : converter (lambda x: x)
+                Function or class which processed value. Default type of value
+                is bytes for files and string for others.
+        """
+        if key in self:
+            return func(self[key])
+        return default
+
+    def getfirst(self, key: str, default: Any = None,
+                 func: Callable = lambda x: x,
+                 fce: Optional[Callable] = None):
+        """Get first item from list for key or default.
+
+        default : any
+            Default value if key not exists.
+        func : converter
+            Function which processed value.
+        fce : deprecated converter name
+            Use func converter just like getvalue.
+        """
+        if fce:
+            warnings.warn("Using deprecated fce argument. Use func instead.",
+                          category=DeprecationWarning, stacklevel=1)
+            func = fce
+        if key in self:
+            value = self[key]
+            if isinstance(value, list):
+                return func(value[0])
+            return func(value)
+        return default
+
+    def getlist(self, key: str, default: Optional[list] = None,
+                func: Callable = lambda x: x,
+                fce: Optional[Callable] = None):
+        """Returns list of variable values for key or empty list.
+
+        default : list or None
+            Default list if key not exists.
+        func : converter
+            Function which processed each value.
+        fce : deprecated converter name
+            Use func converter just like getvalue.
+        """
+        if fce:
+            warnings.warn("Using deprecated fce argument. Use func instead.",
+                          category=DeprecationWarning, stacklevel=1)
+            func = fce
+        if key in self:
+            value = self[key]
+            if isinstance(value, list):
+                return [func(x) for x in value]
+            return [func(value)]
+        return default or []
+
+
+class FieldStorage(FieldStorageInterface):
     """Class inspired by cgi.FieldStorage.
 
     Instead of FieldStorage from cgi module, this is only storage for fields,

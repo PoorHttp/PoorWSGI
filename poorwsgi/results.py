@@ -131,13 +131,14 @@ def internal_server_error(req, **kwargs):
         if req.uri_handler:
             handler["module"] = req.uri_handler.__module__
             handler["name"] = req.uri_handler.__name__
+        uri = html_escape(req.uri)
         uri_rule = html_escape(req.uri_rule)
         res.write(
             "  <h2>Response detail</h2>\n"
             f"  remote host: <b><code>{req.remote_host}</code></b><br/>\n"
             f"  remote addr: <b><code>{req.remote_addr}</code></b><br/>\n"
             f"  method: <b><code>{req.method}</code></b><br/>\n"
-            f"  uri: <b><code>{req.uri}</code></b><br/>\n"
+            f"  uri: <b><code>{uri}</code></b><br/>\n"
             f"  uri_rule: <b><code>{uri_rule}</code></b><br/>\n"
             "  uri_handler: <b><code>"
             f"{handler['module']}.{handler['name']}"
@@ -201,7 +202,7 @@ def bad_request(req, error=None):
         "  <hr>\n"
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
-        "</html>" % (req.method, req.uri, req.server_admin))
+        "</html>" % (req.method, html_escape(req.uri), req.server_admin))
     return Response(content, status_code=HTTP_BAD_REQUEST)
 
 
@@ -253,7 +254,7 @@ def unauthorized(req, realm=None, stale='', error=None):
         "  <hr>\n"
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
-        "</html>" % (req.method, req.uri, req.server_admin))
+        "</html>" % (req.method, html_escape(req.uri), req.server_admin))
 
     return Response(content, headers=headers, status_code=HTTP_UNAUTHORIZED)
 
@@ -283,7 +284,7 @@ def forbidden(req, error=None):
         "  <hr>\n"
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
-        "</html>" % (req.uri, req.server_admin))
+        "</html>" % (html_escape(req.uri), req.server_admin))
     return Response(content, status_code=HTTP_FORBIDDEN)
 # enddef
 
@@ -312,7 +313,7 @@ def not_found(req, error=None):
         "  <hr>\n"
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
-        "</html>" % (req.uri, req.server_admin))
+        "</html>" % (html_escape(req.uri), req.server_admin))
     return Response(content, status_code=HTTP_NOT_FOUND)
 # enddef
 
@@ -342,7 +343,7 @@ def method_not_allowed(req, error=None):
         "  <hr>\n"
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
-        "</html>" % (req.method, req.uri, req.server_admin))
+        "</html>" % (req.method, html_escape(req.uri), req.server_admin))
     return Response(content, status_code=HTTP_METHOD_NOT_ALLOWED)
 # enddef
 
@@ -371,13 +372,14 @@ def not_implemented(req, code: Optional[int] = None, error=None):
     if code:
         content += (
             "  <p>Your reqeuest <code>%s</code> returned not implemented\n"
-            "   status code <code>%s</code>.</p>\n" % (req.uri, code))
+            "   status code <code>%s</code>.</p>\n" % (html_escape(req.uri),
+                                                       code))
         log.error('Your reqeuest %s returned not implemented status code %s',
-                  req.uri, code)
+                  html_escape(req.uri), code)
     else:
         content += (
             " <p>Response for Your reqeuest <code>%s</code>\n"
-            "  is not implemented</p>" % req.uri)
+            "  is not implemented</p>" % html_escape(req.uri))
     # endif
 
     content += (
@@ -407,7 +409,7 @@ def directory_index(req, path):  # noqa: C901
 
     index.sort()
 
-    diruri = req.uri.rstrip('/')
+    diruri = html_escape(req.uri.rstrip('/'))
     content = (
         "<!DOCTYPE html>\n"
         "<html>\n"
@@ -498,7 +500,8 @@ def debug_info(req, app):
     shandlers_html += "\n".join(
         ('   <tr><td colspan="2"><a href="%s">%s</a></td>'
          '<td>%s</td><td>%s</td></tr>' %
-         (u, u, human_methods_(m), f.__module__+'.'+f.__name__)
+         (html_escape(u), html_escape(u), human_methods_(m),
+          f.__module__+'.'+f.__name__)
          for u, m, f in handlers_view(app.routes)))
 
     # regular expression handlers
@@ -560,17 +563,18 @@ def debug_info(req, app):
     # filters
     filters_html = "\n".join(
         "   <tr><td>%s</td><td>%s</td><td>%s</td></tr>" %
-        (f, r, c.__name__) for f, (r, c) in app.filters.items())
+        (f, html_escape(str(r)), c.__name__)
+        for f, (r, c) in app.filters.items())
 
     # transform actual request headers to hml
     headers_html = "\n".join((
         "   <tr><td>%s:</td><td>%s</td></tr>" %
-        (key, val) for key, val in req.headers.items()))
+        (key, html_escape(val)) for key, val in req.headers.items()))
 
     # transform some poor wsgi variables to html
     poor_html = "\n".join((
         "   <tr><td>%s:</td><td>%s</td></tr>" %
-        (key, val) for key, val in (
+        (key, html_escape(str(val))) for key, val in (
             ('Debug', req.debug),
             ('Version', "%s (%s)" % (__version__, __date__)),
             ('Python Version', version),
@@ -593,7 +597,7 @@ def debug_info(req, app):
     # tranform application variables to html
     app_html = "\n".join((
         "   <tr><td>%s:</td><td>%s</td></tr>" %
-        (key, val) for key, val in req.get_options().items()))
+        (key, html_escape(val)) for key, val in req.get_options().items()))
 
     environ = req.environ.copy()
     if hasattr(os, 'getgid'):

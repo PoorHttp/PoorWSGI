@@ -808,7 +808,7 @@ class HTTPException(Exception):
         return self.args[0].status_code
 
 
-def make_response(data: Union[str, bytes, dict, Iterable[bytes]],
+def make_response(data: Optional[Union[str, bytes, dict, Iterable[bytes]]],
                   content_type: str = "text/html; charset=utf-8",
                   headers: Optional[Union[Headers, HeadersList]] = None,
                   status_code: int = HTTP_OK):
@@ -851,17 +851,19 @@ def make_response(data: Union[str, bytes, dict, Iterable[bytes]],
     >>> res.headers["OK-Header"]
     'OK'
 
-    JSONResponse from dictionary:
+    JSONResponse from dictionary, content_type argument is ignored:
 
-    >>> res = make_response({"key": "value"})
+    >>> res = make_response({"key": "value"}, "text/plain", status_code=201)
     >>> res
     <poorwsgi.response.JSONResponse object at ...>
     >>> res.data
     b'{"key": "value"}'
     >>> res.content_type
     'application/json; charset=utf-8'
+    >>> res.status_code
+    201
 
-    JSONResponse from list:
+    JSONResponse from list, content_type argument is ignored:
 
     >>> res = make_response([["key", "value"]])
     >>> res
@@ -879,14 +881,31 @@ def make_response(data: Union[str, bytes, dict, Iterable[bytes]],
     >>> list(res.__end_of_response__())
     [b'key', b'value']
 
+    NoContentResponse from None, content_type argument is ignored. If
+    status_code is leave 200 OK, then status will be 204 No Content:
+
+    >>> res = make_response(None)
+    >>> res
+    <poorwsgi.response.NoContentResponse object at ...>
+    >>> res.status_code
+    204
+
+    >>> res = make_response(None, status_code=201)
+    >>> res.status_code
+    201
+
     """
     try:
         if isinstance(data, (str, bytes)):      # "hello world"
             return Response(data, content_type, headers, status_code)
         if isinstance(data, dict):
-            return JSONResponse(data)
+            return JSONResponse(data, headers=headers, status_code=status_code)
         if isinstance(data, list) and not isinstance(data[0], bytes):
-            return JSONResponse(data)
+            return JSONResponse(data, headers=headers, status_code=status_code)
+        if data is None:
+            if status_code == HTTP_OK:
+                status_code = HTTP_NO_CONTENT
+            return NoContentResponse(headers=headers, status_code=status_code)
 
         iter(data)  # try iter data
         return GeneratorResponse(data, content_type, headers, status_code)

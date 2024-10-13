@@ -106,8 +106,15 @@ make_response function.
                       headers=None, status_code=HTTP_OK)
 
 
-data : str, bytes, generator
-    Returned value as response body.
+data : str, bytes, dict, list, None or generator
+    Returned value as response body. Each type of data returns different
+    response type:
+
+        - str, bytes - Response
+        - dict, list - JSONResponse
+        - None - NoContentReponse
+        - generator - GeneratorResponse
+
 content_type : str
     The ``Content-Type`` header which is set, if this header is not set
     in headers.
@@ -126,6 +133,23 @@ You can use headers instead of `content_type` argument.
         return make_response(b'Page not Found',
                              headers={"Content-Type": "text/plain"},
                              status_code=NOT_FOUND)
+
+If you return just simple type, or tuple of arguments, PoorWSGI automatically
+call make_response function to create response for you.
+
+.. code:: python
+
+    @app.route("/json")
+    def not_found(req):
+        """Return JSONResponse"""
+        return {"msg": "Message", "type": "object"}
+
+
+    @app.route('/gone')
+    def gone(req):
+        """Return NoContentResponse"""
+        return None, "", None, HTTP_GONE
+
 
 Response
 ````````

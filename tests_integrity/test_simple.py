@@ -124,6 +124,10 @@ class TestResponses():
                         headers={'If-None-Match': etag},
                         status_code=304)
 
+    def test_none_no_content(self, url):
+        """Test debug output - which handler crash on none result."""
+        check_url(url+"/none", status_code=204)
+
 
 class TestPartialResponse():
     """Tests for Partial Responses"""
@@ -218,11 +222,6 @@ class TestErrors():
 
     def test_internal_server_error(self, url):
         check_url(url+"/internal-server-error", status_code=500)
-
-    def test_none_error(self, url):
-        """Test debug output - which handler crash on none result."""
-        res = check_url(url+"/none-error", status_code=500)
-        assert "none_error_handler" in res.text
 
     def test_bad_request(self, url):
         check_url(url+"/bad-request", status_code=400)

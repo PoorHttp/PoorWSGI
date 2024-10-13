@@ -676,8 +676,8 @@ def method_raises_errror(_):
     raise RuntimeError('Test of internal server error')
 
 
-@app.route('/none-error')
-def none_error_handler(_):
+@app.route('/none')
+def none_no_content(_):
     """Test for None response."""
 
 

@@ -1,9 +1,9 @@
-==== 2.7.0 dev ====
+==== 2.7.0 ====
     * Reserved Request.db attribute for usage
     * Right HTTPException type annotation
     * Fix ETag header
     * FieldStorage and FieldStorageParser implementation based on legacy
-      cgi.FieldStorage (#22 )
+      cgi.FieldStorage (#22)
         - that means Python 3.13 support (#36)
     * Stop Python 3.8 support - some mypy annotation didn't work
     * Field refactoring - ! possible break change ! - sorry for that

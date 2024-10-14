@@ -11,10 +11,12 @@
     :alt: Development Status
 
 .. image:: https://img.shields.io/github/actions/workflow/status/PoorHTTP/PoorWSGI/python-package.yml?branch=master
-   :alt: GitHub Build Workflow Status
+    :target: https://github.com/PoorHttp/PoorWSGI/actions/workflows/python-package.yml
+    :alt: GitHub Build Workflow Status
 
 .. image:: https://img.shields.io/github/actions/workflow/status/PoorHTTP/PoorWSGI/codeql-analysis.yml?branch=master&label=CodeQL
-   :alt: GitHub CodeQL Workflow Status
+    :target: https://github.com/PoorHttp/PoorWSGI/actions/workflows/codeql-analysis.yml
+    :alt: GitHub CodeQL Workflow Status
 
 .. image:: https://img.shields.io/pypi/l/PoorWSGI.svg
     :target: https://pypi.python.org/pypi/poorwsgi/

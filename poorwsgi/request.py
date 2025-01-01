@@ -1092,7 +1092,8 @@ class FieldStorage(CgiFieldStorage):
     """
     def __init__(self, req, headers=None, outerboundary=b'', environ={},
                  keep_blank_values=0, strict_parsing=0, limit=None,
-                 encoding='utf-8', errors='replace', file_callback=None):
+                 encoding='utf-8', errors='replace', max_num_fields=None,
+                 separator='&', file_callback=None):
         """Constructor of FieldStorage.
 
         Many of input parameters are need only for next internal use, because
@@ -1105,6 +1106,8 @@ class FieldStorage(CgiFieldStorage):
                 file_callback   - callback for creating instance of uploading
                                  files.
         """
+        # pylint: disable=too-many-arguments
+        # pylint: disable=too-many-function-args
 
         if isinstance(req, Request):
             if req.environ.get('wsgi.input', None) is None:
@@ -1122,15 +1125,32 @@ class FieldStorage(CgiFieldStorage):
             req = req.environ.get('wsgi.input')
 
         self.environ = environ
-        if version_info[0] < 3:
-            CgiFieldStorage.__init__(self, req, headers, outerboundary,
-                                     environ, keep_blank_values,
-                                     strict_parsing)
-        else:
-            CgiFieldStorage.__init__(self, req, headers, outerboundary,
-                                     environ, keep_blank_values,
-                                     strict_parsing, limit, encoding, errors)
-    # enddef
+        try:
+            # new interface from some 3.6 to 3.9
+            CgiFieldStorage.__init__(self,
+                             req, headers, outerboundary, environ,
+                             keep_blank_values, strict_parsing, limit,
+                             encoding, errors, max_num_fields, separator)
+        except TypeError:
+            # old interface from some 3.6 to some 3.9
+            try:
+                CgiFieldStorage.__init__(self,
+                                req, headers, outerboundary, environ,
+                                keep_blank_values, strict_parsing, limit,
+                                encoding, errors, max_num_fields)
+            except TypeError:
+                # really old inteface in from some 3.6 to some 3.7
+                try:
+                    CgiFieldStorage.__init__(self,
+                                req, headers, outerboundary, environ,
+                                keep_blank_values, strict_parsing, limit,
+                                encoding, errors)
+                except TypeError:
+                    # Old (new) Python 2.7 version
+                    CgiFieldStorage.__init__(self,
+                                req, headers, outerboundary, environ,
+                                keep_blank_values, strict_parsing,
+                                max_num_fields, separator)
 
     def make_file(self, binary=None):
         """Return readable and writable temporary file.

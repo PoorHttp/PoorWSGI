@@ -869,7 +869,7 @@ class JsonList(list):
     def getvalue(
         self, key=None, default: Any = None, func: Callable = lambda x: x
     ):
-        """Returns first item or defualt if no exists.
+        """Returns first item or default if no exists.
 
         key : None
             Compatibility parametr is ignored.

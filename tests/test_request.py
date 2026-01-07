@@ -351,3 +351,37 @@ class TestRequest:
         assert req.is_body_request is False
         assert req.mime_type in app.form_mime_types
         assert isinstance(req.form, EmptyForm)
+
+
+def test_bad_path_info_triggers_400(app):
+    """Test that bad PATH_INFO encoding is handled and returns 400."""
+    captured_status = None
+    captured_headers = None
+
+    def start_response(status, headers):
+        nonlocal captured_status, captured_headers
+        captured_status = status
+        captured_headers = headers
+
+    # This char in iso-8859-1 is 0xc0, an invalid start byte in utf-8
+    bad_char = 'À'
+    bad_path = f'/foo{bad_char}bar'
+
+    environ = {
+        'PATH_INFO': bad_path,
+        'REQUEST_METHOD': 'GET',
+        'SERVER_NAME': 'localhost',
+        'SERVER_PORT': '80',
+        'wsgi.url_scheme': 'http',
+        'REQUEST_STARTTIME': time()
+    }
+
+    # The app.__call__ should catch the HTTPException and generate a 400
+    response_body = app(environ, start_response)
+
+    assert captured_status == '400 Bad Request'
+    # Also check body content
+    body_str = b''.join(response_body).decode()
+    assert '400' in body_str
+    assert 'Bad Request' in body_str
+    assert 'Invalid PATH_INFO encoding' in body_str

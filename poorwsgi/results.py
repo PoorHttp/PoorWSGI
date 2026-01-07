@@ -104,7 +104,7 @@ def internal_server_error(req, *_):
     in dispatch_table.errors. If poor_Debug variable is to On, Tracaback
     will be generated.
     """
-    handler = {"module": None, "name": None}
+    handler = {"module": None, "name": None, "args": None}
     if req.uri_handler:
         handler["module"] = req.uri_handler.__module__
         handler["name"] = req.uri_handler.__name__
@@ -187,6 +187,12 @@ def bad_request(req, error=None):
     """ 400 Bad Request server error handler. """
     if error:
         log.warning("400 - Bad Request: %s", error)
+    path = "[ NOT PARSED ]"
+    try:
+        path = req.path
+    except HTTPException:
+        pass
+
     content = (
         "<!DOCTYPE html>\n"
         "<html>\n"
@@ -203,10 +209,12 @@ def bad_request(req, error=None):
         " <body>\n"
         "  <h1>400 - Bad Request</h1>\n"
         "  <p>Method %s for %s uri.</p>\n"
+        "  <pre>%s</pre>\n"
         "  <hr>\n"
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
-        "</html>" % (req.method, html_escape(req.uri), req.server_admin))
+        "</html>" % (req.method, html_escape(path), error or "",
+                     req.server_admin))
     return Response(content, status_code=HTTP_BAD_REQUEST)
 
 

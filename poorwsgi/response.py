@@ -375,6 +375,7 @@ class Response(BaseResponse):
         if self._end:
             return IBytesIO(self.__buffer.read(self._end - self._start + 1))
         # Return a new IBytesIO to prevent the original buffer from being closed
+        # After seeking to self._start, read() reads from current position to EOF
         return IBytesIO(self.__buffer.read())
 
 
@@ -529,7 +530,7 @@ class FileObjResponse(BaseResponse):
             if self._end:
                 return IBytesIO(self.__file.read(self._end - self._start + 1))
         # Return the file directly to allow WSGI server to use sendfile optimization
-        # Note: The file will be closed by the WSGI server after iteration
+        # Note: When returning the file directly, it will be closed by the WSGI server
         return self.__file
 
 

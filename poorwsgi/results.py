@@ -191,6 +191,7 @@ def bad_request(req, error=None):
     try:
         path = req.path
     except HTTPException:
+        # If obtaining req.path fails, keep the default placeholder value.
         pass
 
     content = (

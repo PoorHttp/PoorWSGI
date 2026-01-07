@@ -1,4 +1,4 @@
-"""Unit test for bad request."""
+"""Unit test for unicode decode error propagation."""
 from io import BytesIO
 from time import time
 

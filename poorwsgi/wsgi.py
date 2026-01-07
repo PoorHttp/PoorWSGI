@@ -34,6 +34,7 @@ log = getLogger("poorwsgi")
 re_filter = re.compile(r'<(\w+)(:[^>]+)?>')
 
 # check for invalid route definitions with spaces
+# Matches: <{space}name, <name{space}: , <name{space}> , <name:{space}word, <name:filter{space}>
 re_invalid_filter = re.compile(r'<\s+\w+|<\w+\s+[:|>]|<\w+:\s+\w+|<\w+:[^>]+\s+>')
 
 # Supported authorization algorithms

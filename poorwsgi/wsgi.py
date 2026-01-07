@@ -33,6 +33,9 @@ log = getLogger("poorwsgi")
 # check, if there is define filter in uri
 re_filter = re.compile(r'<(\w+)(:[^>]+)?>')
 
+# check for invalid route definitions with spaces
+re_invalid_filter = re.compile(r'<\s+\w+|<\w+\s+[:|>]|<\w+:\s+\w+|<\w+:[^>]+\s+>')
+
 # Supported authorization algorithms
 AUTH_DIGEST_ALGORITHMS = {
     'MD5': md5,
@@ -792,6 +795,15 @@ class Application():
 
             app.set_route('/use/post', user_create, METHOD_POST)
         """
+        # Check for invalid spaces in route filter definitions
+        if re_invalid_filter.search(uri):
+            raise ValueError(
+                f"Invalid route definition '{uri}': "
+                "Route filter definitions must not contain spaces. "
+                "Use '<name:filter>' format without any spaces. "
+                "Examples: '<id:int>', '<name:word>', '<value:float>'"
+            )
+        
         if re_filter.search(uri):
             r_uri = re_filter.sub(self.__regex, uri) + '$'
             converters = tuple((g[0], self.__converter(g[1]))

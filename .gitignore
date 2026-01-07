@@ -3,3 +3,5 @@ dist/
 build/
 .eggs/
 tags
+__pycache__/
+*.pyc

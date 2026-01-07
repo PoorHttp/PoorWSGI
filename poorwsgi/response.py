@@ -528,6 +528,8 @@ class FileObjResponse(BaseResponse):
             self.__file.seek(self._start)
             if self._end:
                 return IBytesIO(self.__file.read(self._end - self._start + 1))
+        # Return the file directly to allow WSGI server to use sendfile optimization
+        # Note: The file will be closed by the WSGI server after iteration
         return self.__file
 
 

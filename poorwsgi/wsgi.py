@@ -399,7 +399,7 @@ class Application():
         return self.__config['secret_key']
 
     @secret_key.setter
-    def secret_key(self, value: str):
+    def secret_key(self, value: Union[str, bytes]):
         self.__config['secret_key'] = value
 
     @property

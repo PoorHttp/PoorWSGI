@@ -1209,6 +1209,11 @@ class Application():
         except HTTPException as http_err:  # HTTP_RANGE_NOT_SATISFIABLE case
             response = http_err.make_response()
             return response(start_response)
+        except (BrokenPipeError, ConnectionResetError,
+                ConnectionAbortedError) as err:
+            # Client disconnected before or during response sending
+            log.info("Client disconnected: %s", str(err))
+            return ()
 
     def __call__(self, env, start_response):
         """Callable define for Application instance.

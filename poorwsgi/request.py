@@ -31,6 +31,7 @@ RE_AUTHORIZATION = re.compile(r'(\w+\*?)[=] ?("[^"]+"|[\w\-\'%]+)')
 
 class SimpleRequest:
     """Request proxy properties implementation - for internal use only."""
+
     # pylint: disable=too-many-public-methods
     def __init__(self, environ, app):
         self.__environ = environ
@@ -47,18 +48,18 @@ class SimpleRequest:
         self.__error_handler = None
 
         # uwsgi do not sent environ variables to apps environ
-        if 'uwsgi.version' in self.__environ or 'poor.Version' in os.environ:
+        if "uwsgi.version" in self.__environ or "poor.Version" in os.environ:
             self.__poor_environ = os.environ
         else:
             self.__poor_environ = self.__environ
 
-        var = self.__poor_environ.get('poor_Debug')
+        var = self.__poor_environ.get("poor_Debug")
         if var:
-            self.__debug = var.lower() == 'on'
+            self.__debug = var.lower() == "on"
         else:
             self.__debug = app.debug
 
-        self.__start_time = environ['REQUEST_STARTTIME']
+        self.__start_time = environ["REQUEST_STARTTIME"]
         self.__end_time = time()
 
     @property
@@ -140,29 +141,30 @@ class SimpleRequest:
     @property
     def hostname(self):
         """Host, as set by full URI or Host: header without port."""
-        return self.__environ.get('HTTP_HOST',
-                                  self.server_hostname).split(':')[0]
+        return self.__environ.get("HTTP_HOST", self.server_hostname).split(
+            ":"
+        )[0]
 
     @property
     def host_port(self):
         """Port, as set by full URI or Host."""
-        host = self.__environ.get('HTTP_HOST', '')
-        if ':' in host:
-            return int(host.split(':')[1])
-        if self.server_scheme == 'https':
+        host = self.__environ.get("HTTP_HOST", "")
+        if ":" in host:
+            return int(host.split(":")[1])
+        if self.server_scheme == "https":
             return 443
         return 80
 
     @property
     def method(self):
         """String containing the method, ``GET, HEAD, POST``, etc."""
-        return self.__environ.get('REQUEST_METHOD')
+        return self.__environ.get("REQUEST_METHOD")
 
     @property
     def method_number(self):
         """Method number constant from state module."""
         if self.method not in methods:
-            return methods['GET']
+            return methods["GET"]
         return methods[self.method]
 
     @property
@@ -173,77 +175,76 @@ class SimpleRequest:
     @property
     def path(self):
         """Path part of url."""
-        return self.__environ.get('PATH_INFO').encode('iso-8859-1').decode()
+        return self.__environ.get("PATH_INFO").encode("iso-8859-1").decode()
 
     @property
     def query(self):
         """The QUERY_STRING environment variable."""
-        return self.__environ.get('QUERY_STRING', '').strip()
+        return self.__environ.get("QUERY_STRING", "").strip()
 
     @property
     def full_path(self):
         """Path with query, if it exist, from url."""
         query = self.query
-        return self.path + ('?'+query if query else '')
+        return self.path + ("?" + query if query else "")
 
     @property
     def remote_host(self):
         """Remote hostname."""
-        return self.__environ.get('REMOTE_HOST', '')
+        return self.__environ.get("REMOTE_HOST", "")
 
     @property
     def remote_addr(self):
         """Remote address."""
-        return self.__environ.get('REMOTE_ADDR')
+        return self.__environ.get("REMOTE_ADDR")
 
     @property
     def referer(self):
         """Request referer if is available or None."""
-        return self.__environ.get('HTTP_REFERER')
+        return self.__environ.get("HTTP_REFERER")
 
     @property
     def user_agent(self):
         """Browser user agent string."""
-        return self.__environ.get('HTTP_USER_AGENT')
+        return self.__environ.get("HTTP_USER_AGENT")
 
     @property
     def server_scheme(self):
         """Request scheme, typical ``http`` or ``https``."""
-        return self.__environ.get('wsgi.url_scheme')
+        return self.__environ.get("wsgi.url_scheme")
 
     @property
     def scheme(self):
         """Alias for server_scheme property."""
-        return self.__environ.get('wsgi.url_scheme')
+        return self.__environ.get("wsgi.url_scheme")
 
     @property
     def server_software(self):
         """Server software."""
-        soft = self.__environ.get('SERVER_SOFTWARE', 'Unknown')
-        if soft == 'Unknown' and 'uwsgi.version' in self.__environ:
-            soft = 'uWsgi'
+        soft = self.__environ.get("SERVER_SOFTWARE", "Unknown")
+        if soft == "Unknown" and "uwsgi.version" in self.__environ:
+            soft = "uWsgi"
         return soft
 
     @property
     def server_admin(self):
         """Server admin if set, or ``webmaster@hostname``."""
-        return self.__environ.get('SERVER_ADMIN',
-                                  f'webmaster@{self.hostname}')
+        return self.__environ.get("SERVER_ADMIN", f"webmaster@{self.hostname}")
 
     @property
     def server_hostname(self):
         """Server name variable."""
-        return self.__environ.get('SERVER_NAME')
+        return self.__environ.get("SERVER_NAME")
 
     @property
     def server_port(self):
         """Server port."""
-        return int(self.__environ.get('SERVER_PORT'))
+        return int(self.__environ.get("SERVER_PORT"))
 
     @property
     def port(self):
         """Alias for ``server_port`` property."""
-        return int(self.__environ.get('SERVER_PORT'))
+        return int(self.__environ.get("SERVER_PORT"))
 
     @property
     def server_protocol(self):
@@ -251,43 +252,43 @@ class SimpleRequest:
 
         In ``HTTP/0.9``. cgi ``SERVER_PROTOCOL`` value.
         """
-        return self.__environ.get('SERVER_PROTOCOL')
+        return self.__environ.get("SERVER_PROTOCOL")
 
     @property
     def protocol(self):
         """Alias for ``server_protocol`` property"""
-        return self.__environ.get('SERVER_PROTOCOL')
+        return self.__environ.get("SERVER_PROTOCOL")
 
     @property
     def forwarded_for(self):
         """``X-Forward-For`` http header if exists."""
-        return self.__environ.get('HTTP_X_FORWARDED_FOR')
+        return self.__environ.get("HTTP_X_FORWARDED_FOR")
 
     @property
     def forwarded_host(self):
         """``X-Forward-Host`` http header without port if exists."""
-        host = self.__environ.get('HTTP_X_FORWARDED_HOST')
+        host = self.__environ.get("HTTP_X_FORWARDED_HOST")
         if host:
-            host = host.split(':')[0]
+            host = host.split(":")[0]
         return host
 
     @property
     def forwarded_port(self):
         """Port from ``X-Forward-Host`` or ``X-Forward-Proto`` header."""
-        host = self.__environ.get('HTTP_X_FORWARDED_HOST')
-        if host and ':' in host:
-            return int(host.split(':')[1])
+        host = self.__environ.get("HTTP_X_FORWARDED_HOST")
+        if host and ":" in host:
+            return int(host.split(":")[1])
         proto = self.forwarded_proto
-        if proto == 'https':
+        if proto == "https":
             return 443
-        if proto == 'http':
+        if proto == "http":
             return 80
         return None
 
     @property
     def forwarded_proto(self):
         """``X-Forward-Proto`` http header if exists."""
-        return self.__environ.get('HTTP_X_FORWARDED_PROTO')
+        return self.__environ.get("HTTP_X_FORWARDED_PROTO")
 
     @property
     def secret_key(self):
@@ -297,9 +298,7 @@ class SimpleRequest:
         some server variables, and the best way is set programmatically
         by Application.secret_key from random data.
         """
-        return self.__poor_environ.get(
-            'poor_SecretKey',
-            self.__app.secret_key)
+        return self.__poor_environ.get("poor_SecretKey", self.__app.secret_key)
 
     @property
     def document_index(self):
@@ -308,17 +307,17 @@ class SimpleRequest:
         Variable is used to generate index html page, when poor_DocumentRoot
         is set.
         """
-        var = self.__poor_environ.get('poor_DocumentIndex')
+        var = self.__poor_environ.get("poor_DocumentIndex")
         if var:
-            return var.lower() == 'on'
+            return var.lower() == "on"
         return self.__app.document_index
 
     @property
     def document_root(self):
         """Returns DocumentRoot setting."""
         return self.__poor_environ.get(
-            'poor_DocumentRoot',
-            self.__app.document_root)
+            "poor_DocumentRoot", self.__app.document_root
+        )
 
     @property
     def start_time(self):
@@ -342,15 +341,17 @@ class SimpleRequest:
             app_db_server = localhost   # application variable db_server
             app_templates = app/templ   # application variable templates
         """
-        warnings.warn("Call to deprecated Request.get_options."
-                      "Use Application.get_options instead.",
-                      category=DeprecationWarning,
-                      stacklevel=1)
+        warnings.warn(
+            "Call to deprecated Request.get_options."
+            "Use Application.get_options instead.",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
 
         options = {}
         for key, val in self.__poor_environ.items():
             key = key.strip()
-            if key[:4].lower() == 'app_':
+            if key[:4].lower() == "app_":
                 options[key[4:].lower()] = val.strip()
         return options
 
@@ -366,8 +367,10 @@ class SimpleRequest:
             scheme = self.forwarded_proto or self.server_scheme
             host = self.forwarded_host or self.hostname
             port = self.forwarded_port or self.host_port
-            if not ((port == 80 and scheme == 'http') or
-                    (port == 443 and scheme == 'https')):
+            if not (
+                (port == 80 and scheme == "http")
+                or (port == 443 and scheme == "https")
+            ):
                 return f"{scheme}://{host}:{port}{uri}"
             return f"{scheme}://{host}{uri}"
         return uri
@@ -379,6 +382,7 @@ class Request(SimpleRequest):
     It could be compatible as soon as possible with mod_python.apache.request.
     Special variables for user use are prefixed with ``app_``.
     """
+
     # pylint: disable=too-many-public-methods
 
     def __init__(self, environ, app):
@@ -390,27 +394,28 @@ class Request(SimpleRequest):
         # pylint: disable=too-many-branches, too-many-statements
         super().__init__(environ, app)
 
-        if environ.get('PATH_INFO') is None:
+        if environ.get("PATH_INFO") is None:
             raise ConnectionError(
-                "PATH_INFO not set, probably bad HTTP protocol used.")
+                "PATH_INFO not set, probably bad HTTP protocol used."
+            )
 
         # A table object containing headers sent by the client.
         tmp = []
         for key, val in environ.items():
-            if key[:5] == 'HTTP_':
-                key = '-'.join(map(lambda x: x.capitalize(),
-                                   key[5:].split('_')))
+            if key[:5] == "HTTP_":
+                key = "-".join(
+                    map(lambda x: x.capitalize(), key[5:].split("_"))
+                )
                 tmp.append((key, val))
             elif key in ("CONTENT_LENGTH", "CONTENT_TYPE"):
-                key = '-'.join(map(lambda x: x.capitalize(),
-                                   key.split('_')))
+                key = "-".join(map(lambda x: x.capitalize(), key.split("_")))
                 tmp.append((key, val))
 
         self.__headers = Headers(tmp, False)  # do not convert to iso-8859-1
 
-        ctype, pdict = parse_header(self.__headers.get('Content-Type', ''))
+        ctype, pdict = parse_header(self.__headers.get("Content-Type", ""))
         self.__mime_type = ctype
-        self.__charset = pdict.get('charset', 'utf-8')
+        self.__charset = pdict.get("charset", "utf-8")
 
         self.__content_length = int(self.__headers.get("Content-Length") or -1)
         # will be set with first property call
@@ -423,8 +428,7 @@ class Request(SimpleRequest):
         self.__file = environ.get("wsgi.input")
         self._errors = environ.get("wsgi.errors")
 
-        if app.auto_data and \
-                0 <= self.__content_length <= app.data_size:
+        if app.auto_data and 0 <= self.__content_length <= app.data_size:
             self.__file = BytesIO(self.__file.read(self.__content_length))
             self.__file.seek(0)
 
@@ -437,35 +441,40 @@ class Request(SimpleRequest):
 
         # args
         if app.auto_args:
-            self.__args = Args(self, app.keep_blank_values,
-                               app.strict_parsing)
+            self.__args = Args(self, app.keep_blank_values, app.strict_parsing)
         else:
             self.__args = EmptyForm()
 
         # test auto json parsing
-        if app.auto_json and \
-                (self.is_body_request or self.server_protocol == "HTTP/0.9") \
-                and self.__mime_type in app.json_mime_types:
+        if (
+            app.auto_json
+            and (self.is_body_request or self.server_protocol == "HTTP/0.9")
+            and self.__mime_type in app.json_mime_types
+        ):
             self.__json = parse_json_request(self.read(), self.__charset)
             self.__form = EmptyForm()
         # test auto form parsing
-        elif app.auto_form and \
-                (self.is_body_request or self.server_protocol == "HTTP/0.9") \
-                and self.__mime_type in app.form_mime_types:
+        elif (
+            app.auto_form
+            and (self.is_body_request or self.server_protocol == "HTTP/0.9")
+            and self.__mime_type in app.form_mime_types
+        ):
             form_parser = fieldstorage.FieldStorageParser(
-                self.input, self.headers,
+                self.input,
+                self.headers,
                 keep_blank_values=app.keep_blank_values,
                 strict_parsing=app.strict_parsing,
-                file_callback=app.file_callback)
+                file_callback=app.file_callback,
+            )
             self.__form = form_parser.parse()
             self.__json = EmptyForm()
         else:
             self.__form = EmptyForm()
             self.__json = EmptyForm()
 
-        if app.auto_cookies and 'Cookie' in self.__headers:
+        if app.auto_cookies and "Cookie" in self.__headers:
             self.__cookies = SimpleCookie()
-            self.__cookies.load(self.__headers['Cookie'])
+            self.__cookies.load(self.__headers["Cookie"])
         else:
             self.__cookies = None
 
@@ -477,6 +486,7 @@ class Request(SimpleRequest):
         # ugly hack
         # pylint: disable=invalid-name
         self._SimpleRequest__end_time = time()
+
     # enddef
 
     # -------------------------- Properties --------------------------- #
@@ -504,52 +514,56 @@ class Request(SimpleRequest):
     def accept(self) -> tuple:
         """Tuple of client supported mime types from Accept header."""
         if self.__accept is None:
-            self.__accept = tuple(parse_negotiation(
-                self.__headers.get("Accept", '')))
+            self.__accept = tuple(
+                parse_negotiation(self.__headers.get("Accept", ""))
+            )
         return self.__accept
 
     @property
     def accept_charset(self) -> tuple:
         """Tuple of client supported charset from Accept-Charset header."""
         if self.__accept_charset is None:
-            self.__accept_charset = tuple(parse_negotiation(
-                self.__headers.get("Accept-Charset", '')))
+            self.__accept_charset = tuple(
+                parse_negotiation(self.__headers.get("Accept-Charset", ""))
+            )
         return self.__accept_charset
 
     @property
     def accept_encoding(self) -> tuple:
         """Tuple of client supported charset from Accept-Encoding header."""
         if self.__accept_encoding is None:
-            self.__accept_encoding = tuple(parse_negotiation(
-                self.__headers.get("Accept-Encoding", '')))
+            self.__accept_encoding = tuple(
+                parse_negotiation(self.__headers.get("Accept-Encoding", ""))
+            )
         return self.__accept_encoding
 
     @property
     def accept_language(self) -> tuple:
         """List of client supported languages from Accept-Language header."""
         if self.__accept_language is None:
-            self.__accept_language = tuple(parse_negotiation(
-                self.__headers.get("Accept-Language", '')))
+            self.__accept_language = tuple(
+                parse_negotiation(self.__headers.get("Accept-Language", ""))
+            )
         return self.__accept_language
 
     @property
     def accept_html(self) -> bool:
         """Return true if ``text/html`` mime type is in accept negotiations
-           values.
+        values.
         """
         return "text/html" in dict(self.accept)
 
     @property
     def accept_xhtml(self) -> bool:
         """Return true if ``text/xhtml`` mime type is in accept negotiations
-           values.
+        values.
         """
         return "text/xhtml" in dict(self.accept)
 
     @property
     def accept_json(self) -> bool:
         """Return true if ``application/json`` mime type is in accept
-           negotiations values.
+        negotiations values.
         """
         return "application/json" in dict(self.accept)
 
@@ -557,21 +571,22 @@ class Request(SimpleRequest):
     def authorization(self) -> dict:
         """Return Authorization header parsed to dictionary."""
         if self.__authorization is None:
-            auth = self.__headers.get('Authorization', '').strip()
+            auth = self.__headers.get("Authorization", "").strip()
             self.__authorization = dict(
-                (key, Headers.utf8(val.strip('"'))) for key, val in
-                RE_AUTHORIZATION.findall(auth))
-            self.__authorization['type'] = auth[:auth.find(' ')].capitalize()
-            username_ = self.__authorization.get('username*')
+                (key, Headers.utf8(val.strip('"')))
+                for key, val in RE_AUTHORIZATION.findall(auth)
+            )
+            self.__authorization["type"] = auth[: auth.find(" ")].capitalize()
+            username_ = self.__authorization.get("username*")
             if username_ and username_.startswith("UTF-8''"):
-                self.__authorization['username'] = unquote(username_[7:])
+                self.__authorization["username"] = unquote(username_[7:])
         return self.__authorization.copy()
 
     @property
     def is_xhr(self) -> bool:
         """If ``X-Requested-With`` header is set with ``XMLHttpRequest`` value.
         """
-        return self.__headers.get('X-Requested-With') == 'XMLHttpRequest'
+        return self.__headers.get("X-Requested-With") == "XMLHttpRequest"
 
     @property
     def is_body_request(self) -> bool:
@@ -581,15 +596,16 @@ class Request(SimpleRequest):
     @property
     def is_chunked(self) -> bool:
         """True if has set Transfer-Encoding is chunked."""
-        return self.__headers.get('Transfer-Encoding') == 'chunked'
+        return self.__headers.get("Transfer-Encoding") == "chunked"
 
     @property
     def is_chunked_request(self):
         """Compatibility alias for is_chunked."""
-        warnings.warn("Call to deprecated is_chunked_request, "
-                      "use is_chunked instead",
-                      category=DeprecationWarning,
-                      stacklevel=1)
+        warnings.warn(
+            "Call to deprecated is_chunked_request, use is_chunked instead",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
         return self.is_chunked
 
     @property
@@ -598,7 +614,7 @@ class Request(SimpleRequest):
         return (self.__path_args or {}).copy()
 
     @path_args.setter
-    def path_args(self, value: str):
+    def path_args(self, value: dict):
         if self.__path_args is None:
             self.__path_args = value
 
@@ -615,7 +631,7 @@ class Request(SimpleRequest):
         return self.__args
 
     @args.setter
-    def args(self, value: 'Args'):
+    def args(self, value: "Args"):
         if isinstance(self.__args, EmptyForm):
             self.__args = value
 
@@ -682,10 +698,12 @@ class Request(SimpleRequest):
             return self.__cached_input
         if not self.__cached_size or isinstance(self.__file, BytesIO):
             return self.__file
-        self.__cached_input = CachedInput(self.__file,
-                                          self.content_length,
-                                          self.__cached_size,
-                                          self.__read_timeout)
+        self.__cached_input = CachedInput(
+            self.__file,
+            self.content_length,
+            self.__cached_size,
+            self.__read_timeout,
+        )
         return self.__cached_input
 
     @property
@@ -727,7 +745,7 @@ class Request(SimpleRequest):
         """
         if not self.is_body_request and self.server_protocol != "HTTP/0.9":
             log.error("No Content-Length found, read was failed!")
-            return b''
+            return b""
         if -1 < length < self.__content_length:
             self.read = self.__read
             return self.read(length)
@@ -755,28 +773,44 @@ class Request(SimpleRequest):
 
 class EmptyForm(dict, fieldstorage.FieldStorageInterface):
     """Compatibility class as fallback."""
+
     # pylint: disable=unused-argument
-    def getvalue(self, key: str, default: Any = None,
-                 func: Callable = lambda x: x):
+    def getvalue(
+        self, key: str, default: Any = None, func: Callable = lambda x: x
+    ):
         """Just return default."""
         return default
 
-    def getfirst(self, key: str, default: Any = None,
-                 func: Callable = lambda x: x,
-                 fce: Optional[Callable] = None):
+    def getfirst(
+        self,
+        key: str,
+        default: Any = None,
+        func: Callable = lambda x: x,
+        fce: Optional[Callable] = None,
+    ):
         """Just return default."""
         if fce:
-            warnings.warn("Using deprecated fce argument. Use func instead.",
-                          category=DeprecationWarning, stacklevel=1)
+            warnings.warn(
+                "Using deprecated fce argument. Use func instead.",
+                category=DeprecationWarning,
+                stacklevel=1,
+            )
         return default
 
-    def getlist(self, key: str, default: Any = None,
-                func: Callable = lambda x: x,
-                fce: Optional[Callable] = None):
+    def getlist(
+        self,
+        key: str,
+        default: Any = None,
+        func: Callable = lambda x: x,
+        fce: Optional[Callable] = None,
+    ):
         """Just return default or empty list."""
         if fce:
-            warnings.warn("Using deprecated fce argument. Use func instead.",
-                          category=DeprecationWarning, stacklevel=1)
+            warnings.warn(
+                "Using deprecated fce argument. Use func instead.",
+                category=DeprecationWarning,
+                stacklevel=1,
+            )
         return default or []
 
 
@@ -786,12 +820,19 @@ class Args(dict, fieldstorage.FieldStorageInterface):
     Class is based on dictionary. It has getfirst and getlist methods,
     which can call function on values.
     """
+
     def __init__(self, req: Request, keep_blank_values=0, strict_parsing=0):
         query = req.query
-        args = parse_qs(
-            query, keep_blank_values, strict_parsing) if query else {}
-        dict.__init__(self, ((key, val[0] if len(val) < 2 else val)
-                             for key, val in args.items()))
+        args = (
+            parse_qs(query, keep_blank_values, strict_parsing) if query else {}
+        )
+        dict.__init__(
+            self,
+            (
+                (key, val[0] if len(val) < 2 else val)
+                for key, val in args.items()
+            ),
+        )
 
 
 class JsonDict(dict, fieldstorage.FieldStorageInterface):
@@ -825,8 +866,9 @@ class JsonList(list):
     """
 
     # pylint: disable=unused-argument
-    def getvalue(self, key=None, default: Any = None,
-                 func: Callable = lambda x: x):
+    def getvalue(
+        self, key=None, default: Any = None, func: Callable = lambda x: x
+    ):
         """Returns first item or defualt if no exists.
 
         key : None
@@ -839,9 +881,13 @@ class JsonList(list):
         """
         return func(self[0]) if self else default
 
-    def getfirst(self, key=None, default: Any = None,
-                 func: Callable = lambda x: x,
-                 fce: Optional[Callable] = None):
+    def getfirst(
+        self,
+        key=None,
+        default: Any = None,
+        func: Callable = lambda x: x,
+        fce: Optional[Callable] = None,
+    ):
         """Returns first variable value or default, if no one exist.
 
         key : None
@@ -854,15 +900,22 @@ class JsonList(list):
             Use func converter just like getvalue.
         """
         if fce:
-            warnings.warn("Using deprecated fce argument. Use func instead.",
-                          category=DeprecationWarning, stacklevel=1)
+            warnings.warn(
+                "Using deprecated fce argument. Use func instead.",
+                category=DeprecationWarning,
+                stacklevel=1,
+            )
             func = fce
 
         return self.getvalue(default=default, func=func)
 
-    def getlist(self, key: str, default: Optional[list] = None,
-                func: Callable = lambda x: x,
-                fce: Optional[Callable] = None):
+    def getlist(
+        self,
+        key: str,
+        default: Optional[list] = None,
+        func: Callable = lambda x: x,
+        fce: Optional[Callable] = None,
+    ):
         """Returns list of values
 
         key : None
@@ -875,8 +928,11 @@ class JsonList(list):
             Use func converter just like getvalue.
         """
         if fce:
-            warnings.warn("Using deprecated fce argument. Use func instead.",
-                          category=DeprecationWarning, stacklevel=1)
+            warnings.warn(
+                "Using deprecated fce argument. Use func instead.",
+                category=DeprecationWarning,
+                stacklevel=1,
+            )
             func = fce
 
         if not self:
@@ -910,11 +966,17 @@ def parse_json_request(raw: bytes, charset: str = "utf-8"):
         raise HTTPException(HTTP_BAD_REQUEST, error=err) from err
 
 
-def FieldStorage(req=Request,  # noqa: N802
-                 headers=None,
-                 keep_blank_values=0, strict_parsing=0,
-                 encoding='utf-8', errors='replace',
-                 max_num_fields=None, separator='&', file_callback=None):
+def FieldStorage(  # noqa: N802
+    req=Request,  # noqa: N802
+    headers=None,
+    keep_blank_values=0,
+    strict_parsing=0,
+    encoding="utf-8",
+    errors="replace",
+    max_num_fields=None,
+    separator="&",
+    file_callback=None,
+):
     """**Deprecated:**  back compatibility function.
 
     This function will be deleted in next major version.
@@ -924,19 +986,24 @@ def FieldStorage(req=Request,  # noqa: N802
     # pylint: disable=unused-argument
     # pylint: disable=invalid-name
 
-    warnings.warn("Call to deprecated FieldStorage parsing method."
-                  "Use fieldstorage.FieldStorageParser instead.",
-                  category=DeprecationWarning, stacklevel=1)
+    warnings.warn(
+        "Call to deprecated FieldStorage parsing method."
+        "Use fieldstorage.FieldStorageParser instead.",
+        category=DeprecationWarning,
+        stacklevel=1,
+    )
 
     form_parser = fieldstorage.FieldStorageParser(
-                req.input, req.headers,
-                keep_blank_values=keep_blank_values,
-                strict_parsing=strict_parsing,
-                encoding=encoding,
-                errors=errors,
-                max_num_fields=max_num_fields,
-                separator=separator,
-                file_callback=file_callback)
+        req.input,
+        req.headers,
+        keep_blank_values=keep_blank_values,
+        strict_parsing=strict_parsing,
+        encoding=encoding,
+        errors=errors,
+        max_num_fields=max_num_fields,
+        separator=separator,
+        file_callback=file_callback,
+    )
     return form_parser.parse()
 
 
@@ -947,10 +1014,12 @@ class CachedInput:
     timeout : float
         how long to wait for new bytes in seconds
     """
-    def __init__(self, file, size, block_size=32768,
-                 timeout: Optional[float] = 10.):
+
+    def __init__(
+        self, file, size, block_size=32768, timeout: Optional[float] = 10.0
+    ):
         self.__file = file
-        self.__buffer = b''
+        self.__buffer = b""
         self.__todo = size
         self.__timeout = timeout
         self.block_size = block_size
@@ -971,7 +1040,7 @@ class CachedInput:
             size = size - b_size
             self.__todo -= size
             retval = self.__buffer + self.__file.read(size)
-            self.__buffer = b''
+            self.__buffer = b""
             return retval
 
         size = min(self.__todo, size)
@@ -988,15 +1057,15 @@ class CachedInput:
             self.__todo -= size
             self.__buffer = self.__file.read(size)
 
-        line = b''
+        line = b""
         l_size = 0
         if self.__timeout is not None:
             times_out_at = time() + self.__timeout
             seen_data = False
 
         while l_size < size:
-            max_size = size-l_size
-            pos = self.__buffer.find(b'\r\n', 0, max_size)
+            max_size = size - l_size
+            pos = self.__buffer.find(b"\r\n", 0, max_size)
             if pos >= 0:
                 line += self.__buffer[:pos + 2]
                 self.__buffer = self.__buffer[pos + 2:]

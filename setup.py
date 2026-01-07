@@ -20,11 +20,11 @@ def find_data_files(directory, target_folder=""):
     for root, _, files in walk(directory):
         if target_folder:
             retval.append((target_folder,
-                           list(root + '/' + f for f in files
+                           list(path.join(root, f) for f in files
                                 if f[0] != '.' and f[-1] != '~')))
         else:
             retval.append((root,
-                           list(root + '/' + f for f in files
+                           list(path.join(root, f) for f in files
                                 if f[0] != '.' and f[-1] != '~')))
     return retval
 
@@ -179,7 +179,7 @@ setup(name="PoorWSGI",
           'doc/ChangeLog', 'doc/licence.txt', 'README.rst', 'CONTRIBUTION.rst'
       ])] + find_data_files("examples", "share/poorwsgi/examples"),
       license="BSD",
-      license_files='doc/licence.txt',
+      license_files=['doc/licence.txt'],
       long_description=doc(),
       long_description_content_type="text/x-rst",
       keywords='web wsgi development',

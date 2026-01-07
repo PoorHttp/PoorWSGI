@@ -797,13 +797,14 @@ class Application():
         """
         # Check for invalid spaces in route filter definitions
         if re_invalid_filter.search(uri):
-            raise ValueError(
+            msg = (
                 f"Invalid route definition '{uri}': "
                 "Route filter definitions must not contain spaces. "
                 "Use '<name:filter>' format without any spaces. "
                 "Examples: '<id:int>', '<name:word>', '<value:float>'"
             )
-        
+            raise ValueError(msg)
+
         if re_filter.search(uri):
             r_uri = re_filter.sub(self.__regex, uri) + '$'
             converters = tuple((g[0], self.__converter(g[1]))

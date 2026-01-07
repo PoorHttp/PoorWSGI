@@ -175,7 +175,15 @@ class SimpleRequest:
     @property
     def path(self):
         """Path part of url."""
-        return self.__environ.get("PATH_INFO").encode("iso-8859-1").decode()
+        try:
+            return (
+                self.__environ.get("PATH_INFO").encode("iso-8859-1").decode()
+            )
+        except (UnicodeDecodeError, UnicodeEncodeError) as err:
+            log.warning("Invalid PATH_INFO encoding: %s", err)
+            raise HTTPException(
+                HTTP_BAD_REQUEST, error="Invalid PATH_INFO encoding"
+            ) from err
 
     @property
     def query(self):

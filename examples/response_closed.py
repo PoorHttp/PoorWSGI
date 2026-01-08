@@ -8,7 +8,7 @@ app = Application("response_closed")
 
 
 @app.route("/test")
-def test_handler(req):  # pylint: disable=unused-argument
+def test_handler(_):
     """Simple test handler that returns a Response."""
     res = Response("Test data")
     # After response is sent, the buffer will be closed by WSGI server
@@ -17,7 +17,7 @@ def test_handler(req):  # pylint: disable=unused-argument
 
 
 @app.route("/test-after-response")
-def test_after_response(req):  # pylint: disable=unused-argument
+def test_after_response(_):
     """Handler that tries to access response data after creation."""
     res = Response("Test data")
     # Try to access data property immediately (should work)

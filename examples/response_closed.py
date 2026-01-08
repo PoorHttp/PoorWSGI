@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 """Example demonstrating Response with closed buffer scenario."""
+from sys import path as python_path
 
-from poorwsgi import Application
-from poorwsgi.response import Response
+import os
+
+EXAMPLES_PATH = os.path.dirname(__file__)
+python_path.insert(0, os.path.abspath(
+    os.path.join(EXAMPLES_PATH, os.path.pardir)))
+
+# pylint: disable=wrong-import-position
+from poorwsgi import Application  # noqa
+from poorwsgi.response import Response  # noqa
 
 app = application = Application("response_closed")
 

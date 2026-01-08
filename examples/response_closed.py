@@ -4,7 +4,7 @@
 from poorwsgi import Application
 from poorwsgi.response import Response
 
-app = Application("response_closed")
+app = application = Application("response_closed")
 
 
 @app.route("/test")

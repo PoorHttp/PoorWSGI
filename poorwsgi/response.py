@@ -357,6 +357,8 @@ class Response(BaseResponse):
     @property
     def data(self):
         if self.__buffer.closed:
+            log.warning("Attempt to access data from closed buffer. "
+                       "Response has likely been sent already.")
             return b''
         self.__buffer.seek(0)
         return self.__buffer.read()
@@ -370,13 +372,13 @@ class Response(BaseResponse):
 
     def __end_of_response__(self):
         if self.__buffer.closed:
+            log.error("Buffer is closed in __end_of_response__. "
+                     "This should not happen.")
             return IBytesIO(b'')
         self.__buffer.seek(self._start)
         if self._end:
             return IBytesIO(self.__buffer.read(self._end - self._start + 1))
-        # Return a new IBytesIO to prevent the original buffer from being closed
-        # After seeking to self._start, read() reads from current position to EOF
-        return IBytesIO(self.__buffer.read())
+        return self.__buffer
 
 
 class PartialResponse(Response):
@@ -509,6 +511,8 @@ class FileObjResponse(BaseResponse):
         This property works only if file_obj is seekable.
         """
         if self.__file.closed:
+            log.warning("Attempt to access data from closed file. "
+                       "Response has likely been sent already.")
             return b''
         if self.__file.seekable():
             self.__file.seek(self.__pos)
@@ -524,13 +528,13 @@ class FileObjResponse(BaseResponse):
         for returning right value to wsgi server.
         """
         if self.__file.closed:
+            log.error("File is closed in __end_of_response__. "
+                     "This should not happen.")
             return IBytesIO(b'')
         if self.__file.seekable():
             self.__file.seek(self._start)
             if self._end:
                 return IBytesIO(self.__file.read(self._end - self._start + 1))
-        # Return the file directly to allow WSGI server to use sendfile optimization
-        # Note: When returning the file directly, it will be closed by the WSGI server
         return self.__file
 
 

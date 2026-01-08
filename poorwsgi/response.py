@@ -356,9 +356,9 @@ class Response(BaseResponse):
 
     @property
     def data(self):
-        if self.__buffer.closed:
+        if self.__buffer.closed:  # pylint: disable=using-constant-test
             log.warning("Attempt to access data from closed buffer. "
-                       "Response has likely been sent already.")
+                        "Response has likely been sent already.")
             return b''
         self.__buffer.seek(0)
         return self.__buffer.read()
@@ -371,9 +371,9 @@ class Response(BaseResponse):
         self.__buffer.write(data)
 
     def __end_of_response__(self):
-        if self.__buffer.closed:
+        if self.__buffer.closed:  # pylint: disable=using-constant-test
             log.error("Buffer is closed in __end_of_response__. "
-                     "This should not happen.")
+                      "This should not happen.")
             return IBytesIO(b'')
         self.__buffer.seek(self._start)
         if self._end:
@@ -512,7 +512,7 @@ class FileObjResponse(BaseResponse):
         """
         if self.__file.closed:
             log.warning("Attempt to access data from closed file. "
-                       "Response has likely been sent already.")
+                        "Response has likely been sent already.")
             return b''
         if self.__file.seekable():
             self.__file.seek(self.__pos)
@@ -529,7 +529,7 @@ class FileObjResponse(BaseResponse):
         """
         if self.__file.closed:
             log.error("File is closed in __end_of_response__. "
-                     "This should not happen.")
+                      "This should not happen.")
             return IBytesIO(b'')
         if self.__file.seekable():
             self.__file.seek(self._start)

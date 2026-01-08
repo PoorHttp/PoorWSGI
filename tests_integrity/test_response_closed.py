@@ -2,7 +2,6 @@
 from os.path import dirname, join, pardir
 
 from pytest import fixture
-from requests import Session
 
 from .support import check_url, start_server
 

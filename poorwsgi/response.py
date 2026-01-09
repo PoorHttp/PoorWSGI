@@ -356,6 +356,10 @@ class Response(BaseResponse):
 
     @property
     def data(self):
+        if self.__buffer.closed:  # pylint: disable=using-constant-test
+            log.warning("Attempt to access data from closed buffer. "
+                        "Response has likely been sent already.")
+            return b''
         self.__buffer.seek(0)
         return self.__buffer.read()
 
@@ -367,6 +371,10 @@ class Response(BaseResponse):
         self.__buffer.write(data)
 
     def __end_of_response__(self):
+        if self.__buffer.closed:  # pylint: disable=using-constant-test
+            log.error("Buffer is closed in __end_of_response__. "
+                      "This should not happen.")
+            return IBytesIO(b'')
         self.__buffer.seek(self._start)
         if self._end:
             return IBytesIO(self.__buffer.read(self._end - self._start + 1))
@@ -502,6 +510,10 @@ class FileObjResponse(BaseResponse):
 
         This property works only if file_obj is seekable.
         """
+        if self.__file.closed:
+            log.warning("Attempt to access data from closed file. "
+                        "Response has likely been sent already.")
+            return b''
         if self.__file.seekable():
             self.__file.seek(self.__pos)
             return self.__file.read()
@@ -515,6 +527,10 @@ class FileObjResponse(BaseResponse):
         This method was called from Application object at the end of request
         for returning right value to wsgi server.
         """
+        if self.__file.closed:
+            log.error("File is closed in __end_of_response__. "
+                      "This should not happen.")
+            return IBytesIO(b'')
         if self.__file.seekable():
             self.__file.seek(self._start)
             if self._end:

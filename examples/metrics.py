@@ -17,7 +17,7 @@ app = application = Application('metrics')
 
 
 class Metrics:
-    """Simple metrics class."""
+    """A simple metrics class."""
     requests = 0
     response_time = 0
     best_time = float('inf')
@@ -25,14 +25,14 @@ class Metrics:
 
     @staticmethod
     def avg():
-        """Return average response time."""
+        """Returns the average response time."""
         if Metrics.requests:
             return Metrics.response_time / Metrics.requests
         return 0
 
     @staticmethod
     def measure(start_time):
-        """Do measure."""
+        """Performs a measurement."""
         Metrics.requests += 1
         response_time = time() - start_time
         Metrics.response_time += response_time
@@ -42,14 +42,14 @@ class Metrics:
 
 @app.after_response()
 def metrics_end(req, res):
-    """End measuring response time."""
+    """Ends measuring response time."""
     Metrics.measure(req.start_time)
     return res
 
 
 @app.route('/metrics')
 def metrics(req):
-    """Return response metrics:"""
+    """Returns response metrics."""
     assert req
     return JSONResponse(
         requests=Metrics.requests,
@@ -60,14 +60,14 @@ def metrics(req):
 
 @app.route('/')
 def root(req):
-    """Simple hello world response."""
+    """A simple hello world response."""
     assert req
     return "Hello World", "text/plain"
 
 
 @app.route('/json', method=state.METHOD_POST)
 def test_json(req):
-    """Simple POST method."""
+    """A simple POST method."""
     return JSONResponse(status_code=418, message="I'm teapot :-)",
                         request=req.json)
 

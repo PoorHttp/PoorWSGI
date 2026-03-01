@@ -1,4 +1,4 @@
-"""Integrity test for profiling JSON test/example application."""
+"""Integrity tests for profiling the JSON test/example application."""
 from os import environ
 from os.path import dirname, join, pardir
 
@@ -16,6 +16,7 @@ from . support import start_server, check_url
 
 @fixture(scope="module")
 def server(request):
+    """Fixture for starting the profiling JSON example server."""
     value = environ.get("TEST_SIMPLE_JSON_URL", "").strip('/')
     if value:
         return value
@@ -31,9 +32,10 @@ def server(request):
 
 
 class TestRequest:
-    """Request has some attributes."""
+    """Tests various request attributes related to profiling."""
     # pylint: disable=too-few-public-methods
 
     def test_profile(self, server):
+        """Tests the /profile endpoint."""
         res = check_url(server+"/profile")
         assert res.json()["PROFILE"] == "1"

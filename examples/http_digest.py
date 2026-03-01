@@ -35,7 +35,7 @@ app.auth_map.load()
 
 
 def get_header(title):
-    """Return HTML header list of lines."""
+    """Returns an HTML header as a list of lines."""
     return (
         "<html>", "<head>",
         '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>',
@@ -44,14 +44,14 @@ def get_header(title):
 
 
 def get_footer():
-    """Return HTML footer list of lines."""
+    """Returns an HTML footer as a list of lines."""
     return ("<hr>", "<small>Copyright (c) 2020 Ondřej Tůma. See ",
             '<a href="http://poorhttp.zeropage.cz">poorhttp.zeropage.cz</a>'
             '</small>.', "</body>", "</html>")
 
 
 def get_link(href, text=None, title=None):
-    """Return HTML anchor."""
+    """Returns an HTML anchor."""
     text = text or title or href
     title = title or text
     return f'<a href="{href}" title="{title}">{text}</a>'
@@ -59,7 +59,7 @@ def get_link(href, text=None, title=None):
 
 @app.route('/')
 def root(req):
-    """Return Root (Index) page."""
+    """Returns the Root (Index) page."""
     body = ('<ul>', "<li>" + get_link('/admin_zone') +
             " - admin zone (admin/admin)</li>", "<li>" +
             get_link('/user_zone') + " - user zone (user/looser;sha/sha)</li>",
@@ -79,7 +79,7 @@ def root(req):
 @app.route('/admin_zone')
 @check_digest(ADMIN)
 def admin_zone(req):
-    """Page only for ADMIN realm."""
+    """Page accessible only by the ADMIN realm."""
     body = (f'<h2>{ADMIN} test for {app.auth_algorithm} algorithm.</h2>',
             '<ul>', '<li>' + get_link('/', 'Root') + '</li>',
             '<li>' + get_link('/admin_zone?arg=42', 'one more time') + '</li>',
@@ -92,7 +92,7 @@ def admin_zone(req):
 @app.route('/user_zone')
 @check_digest(USER)
 def user_zone(req):
-    """Page for USER realm."""
+    """Page for the USER realm."""
     body = (f'<h2>{USER} test for {app.auth_algorithm} algorithm.</h2>',
             f'User: {req.user}', '<ul>',
             '<li>' + get_link('/', 'Root') + '</li>', '<li>' +
@@ -106,7 +106,7 @@ def user_zone(req):
 @app.route('/user')
 @check_digest(USER, 'user')
 def user_only(req):
-    """Page for user only."""
+    """Page accessible only by a specific user."""
     body = (f'<h2>User test for {app.auth_algorithm} algorithm.</h2>',
             f'User: {req.user}', '<ul>',
             '<li>' + get_link('/', 'Root') + '</li>', '<li>' +
@@ -119,7 +119,7 @@ def user_only(req):
 @app.route('/foo')
 @check_digest(USER, 'foo')
 def foo_only(req):
-    """Page for foo user only."""
+    """Page accessible only by the 'foo' user."""
     body = (f'<h2>Foo test for {app.auth_algorithm} algorithm.</h2>',
             f'User: {req.user}', '<ul>', '<li>' + get_link('/', 'Root') +
             '</li>', '</ul>', '<form method="post" action="/foo/passwd">',
@@ -134,7 +134,7 @@ def foo_only(req):
 @app.route('/user/utf-8')
 @check_digest(USER, 'Ondřej')
 def utf8_chars(req):
-    """Page for user only."""
+    """Page accessible only by a specific user."""
     body = (f'<h2>User test for {app.auth_algorithm} algorithm.</h2>',
             f'User: {req.user}', '<ul>',
             '<li>' + get_link('/', 'Root') + '</li>', '<li>' +
@@ -148,7 +148,7 @@ def utf8_chars(req):
 @app.route('/foo/passwd', method=state.METHOD_POST)
 @check_digest(USER, 'foo')
 def foo_password(req):
-    """Change foo's password."""
+    """Changes the 'foo' user's password."""
     digest = hexdigest(req.user, USER, req.form.get('password'), app.auth_hash)
     app.auth_map.set(USER, req.user, digest)
     redirect('/foo')
@@ -157,12 +157,12 @@ def foo_password(req):
 @app.route('/unknown')
 @check_digest(USER, 'unknown')
 def unknown_endpoint(req):
-    """Page for digest test."""
+    """Page for digest authentication testing."""
     return EmptyResponse()
 
 
 def generic_response(url, user):
-    """Return generic response"""
+    """Returns a generic response."""
     body = (f'<h2>{USER} test for {app.auth_algorithm} algorithm.</h2>',
             f'User: {user}', '<ul>', '<li>' + get_link('/', 'Root') + '</li>',
             '<li>' + get_link(url + '?param=text', 'one more time') + '</li>',
@@ -175,21 +175,21 @@ def generic_response(url, user):
 @app.route('/spaces in url')
 @check_digest(USER)
 def spaces_in_url(req):
-    """URL with spaces in path."""
+    """URL with spaces in the path."""
     return generic_response(req.path, req.user)
 
 
 @app.route('/čeština v url')
 @check_digest(USER)
 def diacritics_in_url(req):
-    """URL with diacritics in path."""
+    """URL with diacritics in the path."""
     return generic_response(req.path, req.user)
 
 
 @app.route('/crazy in url 🤪')
 @check_digest(USER)
 def crazy_in_url(req):
-    """URL with unicode in path."""
+    """URL with Unicode characters in the path."""
     return generic_response(req.path, req.user)
 
 

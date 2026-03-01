@@ -7,7 +7,7 @@ Reporting Bugs
 --------------
 If you encounter a bug, please ensure that you:
 
-1.  Search the existing `issues <https://github.com/PoorHttp/PoorWSGI/issues>`_ to make sure the bug has not already been reported.
+1.  Search the existing `issues <https://github.com/PoorHttp/PoorWSGI/issues>`_ to ensure the bug has not already been reported.
 2.  If you cannot find the bug, create a new issue.
 3.  In the description, provide as much information as possible:
 

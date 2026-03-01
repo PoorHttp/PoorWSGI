@@ -1,4 +1,4 @@
-"""Unit test for unicode decode error propagation."""
+"""Unit test for Unicode decode error propagation."""
 from io import BytesIO
 from time import time
 
@@ -9,13 +9,14 @@ from poorwsgi.wsgi import Application
 
 
 def test_keyerror_on_internal_error(monkeypatch):
-    """Test for KeyError: 'args' on unicode decode error in path."""
+    """Tests for KeyError: 'args' on Unicode decode error in the path."""
     app = Application()
 
     def mock_path(self):
-        """Mock of old Request.path property."""
+        """Mock of the old Request.path property."""
         # We are mocking the old behavior, where UnicodeDecodeError was not
-        # caught inside path property and propagated to __request__ method.
+        # caught inside the path property and propagated to the __request__
+        # method.
         raise UnicodeDecodeError("utf-8", b"\xc0", 0, 1, "invalid start byte")
 
     monkeypatch.setattr(Request, "path", property(mock_path))

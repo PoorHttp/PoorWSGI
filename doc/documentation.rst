@@ -1,16 +1,16 @@
 Responses
 ---------
-The main goal of all WSGI middleware is return response corresponding to HTTP,
-resp. WSGI request. Responding in PoorWSGI is just like other knows frameworks.
+The main goal of all WSGI middleware is to return a response corresponding to an HTTP
+or WSGI request. Responding in PoorWSGI is just like other known frameworks.
 
 Returning values
 ~~~~~~~~~~~~~~~~
 
 Just value
 ``````````
-The easiest way is return string or bytes. String values are automatically
-convert to bytes, because it's WSGI internal. HTTP Response is 200 OK with
-``text/html; character=utf-8"`` content type and default X-Powered-By header.
+The easiest way is to return a string or bytes. String values are automatically
+converted to bytes, because it is WSGI internal. The HTTP Response is 200 OK with
+``text/html; charset=utf-8`` content type and a default X-Powered-By header.
 
 .. code:: python
 
@@ -18,7 +18,7 @@ convert to bytes, because it's WSGI internal. HTTP Response is 200 OK with
    def some_path(req):
       return 'This is content for some path'
 
-This examples returns the same values.
+These examples return the same values.
 
 .. code:: python
 
@@ -28,9 +28,9 @@ This examples returns the same values.
 
 Generator
 `````````
-Second way is return generator. You can return any iterable object, but it must
-be always as first parameter, resp. that can't be tuple!
-*See Returned parameters*. Generator must always return bytes!
+The second way is to return a generator. You can return any iterable object, but it must
+always be the first parameter; specifically, it cannot be a tuple!
+*See Returned parameters*. A generator must always return bytes!
 
 .. code:: python
 
@@ -39,7 +39,7 @@ be always as first parameter, resp. that can't be tuple!
         return [b'Hello ',
                 b'world!']
 
-Or you can return any function which is generator.
+Or you can return any function that is a generator.
 
 .. code:: python
 
@@ -50,7 +50,7 @@ Or you can return any function which is generator.
                 yield b'%d -> %x\n' % (i, i)
         return generator()
 
-Or the handler could be generator.
+Or the handler could be a generator.
 
 .. code:: python
 
@@ -61,9 +61,9 @@ Or the handler could be generator.
 
 Returned parameters
 ```````````````````
-In fact, you can return more then one value. You can returned content type,
-headers and status code next parameters. Python return all parameters as one
-tuple. That is not need to append brackets around them.
+In fact, you can return more than one value. You can return the content type,
+headers, and status code as additional parameters. Python returns all parameters
+as one tuple. There is no need to wrap them in brackets.
 
 .. code:: python
 
@@ -71,7 +71,7 @@ tuple. That is not need to append brackets around them.
     def text_message(req):
         return "Hello world!", "text/plain"
 
-The first argument can be still generator.
+The first argument can still be a generator.
 
 .. code:: python
 
@@ -82,7 +82,7 @@ The first argument can be still generator.
                 yield b'%d -> %x\n' % (i, i)
         return generator(), "text/plain", ()    # empty headers
 
-All values could looks like:
+All values could look like this:
 
 .. code:: python
 
@@ -96,8 +96,8 @@ Returning Responses
 
 make response
 `````````````
-Response are the base class fore returning values. In fact, from other values
-which are returned from request handlers are converted to Response object, via
+Response is the base class for returning values. In fact, other values which are
+returned from request handlers are converted to a Response object via the
 make_response function.
 
 .. code:: python
@@ -107,7 +107,7 @@ make_response function.
 
 
 data : str, bytes, dict, list, None or generator
-    Returned value as response body. Each type of data returns different
+    Returned value as response body. Each type of data returns a different
     response type:
 
         - str, bytes - Response
@@ -116,15 +116,15 @@ data : str, bytes, dict, list, None or generator
         - generator - GeneratorResponse
 
 content_type : str
-    The ``Content-Type`` header which is set, if this header is not set
-    in headers.
+    The ``Content-Type`` header is set if this header is not already set
+    in the headers.
 headers : Headers, tuple, dict, ...
-    If is Headers instance, that be set *(referer)*. Other types, are send
-    to Headers constructor.
+    If it is a Headers instance, it will be set *(e.g., referer)*. Other types
+    are sent to the Headers constructor.
 status_code : int
     HTTP status code, HTTP_OK is 200.
 
-You can use headers instead of `content_type` argument.
+You can use the headers parameter instead of the `content_type` argument.
 
 .. code:: python
 
@@ -134,8 +134,8 @@ You can use headers instead of `content_type` argument.
                              headers={"Content-Type": "text/plain"},
                              status_code=NOT_FOUND)
 
-If you return just simple type, or tuple of arguments, PoorWSGI automatically
-call make_response function to create response for you.
+If you return just a simple type, or a tuple of arguments, PoorWSGI automatically
+calls the make_response function to create a response for you.
 
 .. code:: python
 
@@ -153,14 +153,16 @@ call make_response function to create response for you.
 
 Response
 ````````
-Response object is one of base element of WSGI application. Response is object
-which have full data, to return valid HTTP answer to client. Status code,
-text reason of status code, headers and body. That's all. All values returned
-from handlers is transform to Response object if it is possible. If handlers
-return valid Response it will be returns.
+A Response object is one of the basic elements of a WSGI application. Response is
+an object that contains all the necessary data to return a valid HTTP answer to
+the client: status code, text reason for the status code, headers, and body.
+That's all. All values returned from handlers are transformed to a Response
+object if possible. If a handler returns a valid Response, it will be returned
+as-is.
 
-Response have some functionality, to be useful like write method, to appending
-to body with auto-counting ``Content-Length``, or some headers additional work.
+Response has some useful functionality, such as the write method for appending
+to the body with auto-counting of ``Content-Length``, and additional header
+management.
 
 .. code:: python
 
@@ -169,11 +171,11 @@ to body with auto-counting ``Content-Length``, or some headers additional work.
         return Response("I'm teapot :-)", content_type="text/plain",
                         status_code=418)
 
-There are some additional subclasses with special working.
+There are some additional subclasses with specific functionality.
 
 JSONResponse
 ````````````
-There is JSONResponse class to fast way for returning JSON.
+There is a JSONResponse class for quickly returning JSON.
 
 .. code:: python
 
@@ -182,7 +184,7 @@ There is JSONResponse class to fast way for returning JSON.
         return JSONReponse(status_code=418, message="I'm teapot :-)",
                            numbers=list(range(5)))
 
-This response returned these data with status code 418:
+This response returns the following data with status code 418:
 
 .. code:: json
 
@@ -191,11 +193,11 @@ This response returned these data with status code 418:
         "numbers": [0, 1, 2, 3, 4]
     }
 
-Or you can simple return dictionary or list. It will be automatically convert
-to JSONResponse by make_response function. So it is similar to return text or
-bytes.
+Or you can simply return a dictionary or a list. It will be automatically
+converted to JSONResponse by the make_response function. So it is similar to
+returning text or bytes.
 
-Be careful that your dict or list **have to be convertible** to JSON by
+Be careful that your dict or list **has to be convertible** to JSON by the
 json.dumps function.
 
 .. code:: python
@@ -214,10 +216,9 @@ json.dumps function.
 
 JSONGeneratorResponse
 `````````````````````
-There is JSONGeneratorResponse class too, which could return JSON, but
-it could accept generators as arrays. And of course, this response
-is returned by stream like GeneratorResponse, so data is not buffered
-in memmory if wsgi server don't do that.
+There is also a JSONGeneratorResponse class, which can return JSON and
+can accept generators as arrays. This response is streamed like GeneratorResponse,
+so data is not buffered in memory if the WSGI server does not buffer it.
 
 .. code:: python
 
@@ -226,7 +227,7 @@ in memmory if wsgi server don't do that.
         return JSONGeneratorReponse(status_code=418, message="I'm teapot :-)",
                                     numbers=range(5))
 
-This response returned these data with status code 418:
+This response returns the following data with status code 418:
 
 .. code:: json
 
@@ -237,8 +238,9 @@ This response returned these data with status code 418:
 
 FileResponse
 ````````````
-File response open the file and send it throw ``wsgi.filewrapper``, which could
-be *sendfile()* call. See PEP 3333. Content type and length read from system.
+FileResponse opens the file and sends it through ``wsgi.filewrapper``, which
+could be a *sendfile()* call. See PEP 3333. Content type and length are read
+from the system.
 
 .. code:: python
 
@@ -248,18 +250,18 @@ be *sendfile()* call. See PEP 3333. Content type and length read from system.
 
 GeneratorResponse
 `````````````````
-Response which is use for generator values. Generator **must** return bytes,
-instead of strings! For string returned generator, use **StrGeneratorResponse**,
-which use generator for utf-8 encoding to bytes.
+A Response that is used for generator values. A generator **must** return bytes,
+not strings. For a generator that returns strings, use **StrGeneratorResponse**,
+which encodes the strings to UTF-8 bytes.
 
 NoContentResponse
 `````````````````
-Sometimes you don't want to response payload. NoContentResponse has default code
-`204 No Content`.
+Sometimes you don't want a response payload. NoContentResponse has a default
+code of `204 No Content`.
 
 RedirectResponse
 ````````````````
-Response with interface for more comfortable redirect response.
+A Response with an interface for a more comfortable redirect response.
 
 .. code:: python
 
@@ -269,9 +271,9 @@ Response with interface for more comfortable redirect response.
 
 NotModifiedResponse
 ```````````````````
-NotModifiedResponse is base on NoContentResponse with status code
-`304 Bot Modified`. You have to add some Not Modified header in headers
-parameters or as constructor argument.
+NotModifiedResponse is based on NoContentResponse with status code
+`304 Not Modified`. You have to add a Not Modified header in the headers
+parameters or as a constructor argument.
 
 .. code:: python
 
@@ -298,9 +300,9 @@ parameters or as constructor argument.
 
 Partial Content
 ```````````````
-Sometimes, you want to return partial Content, which is typical reaction to
-`Range` headers. For that situations, there are `parse_range` function and
-`make_partial` Response method.
+Sometimes, you want to return partial content, which is a typical reaction to
+`Range` headers. For such situations, there are the `parse_range` function and
+the `make_partial` Response method.
 
 .. code:: python
 
@@ -323,7 +325,10 @@ Sometimes, you want to return partial Content, which is typical reaction to
 
 PartialResponse
 ```````````````
-For special use cases, programmer have own mechanism to select range, for example, if units is not bytes. For that situations, there is PartialResponse, which is similar to Response, but it is ``206 Partial Content`` yet, and you have to use ``make_range`` method to only create right ``Content-Range`` header.
+For special use cases where a programmer has their own mechanism to select a range,
+for example if units are not bytes, there is PartialResponse, which is similar
+to Response, but is already set to ``206 Partial Content``, and you only need to
+use the ``make_range`` method to create the correct ``Content-Range`` header.
 
 .. code:: python
 
@@ -339,11 +344,11 @@ Stopping handlers
 
 HTTPException
 `````````````
-There is HTTPException class, based from Exception, which is used for stopping
-handler with right http status. There is possible two scenarios.
+There is the HTTPException class, based on Exception, which is used for stopping
+a handler with the correct HTTP status. There are two possible scenarios:
 
-You want to stop with specific HTTP status code, and handler from application
-was used to generate right response.
+You want to stop with a specific HTTP status code, and a handler from
+the application will be used to generate the correct response.
 
 .. code:: python
 
@@ -353,8 +358,8 @@ was used to generate right response.
             raise HTTPException(HTTP_BAD_REQUEST)
         return "Some message", "text/plain"
 
-Or you would stop with specific response. Instead of status code, just use
-Response object.
+Or you want to stop with a specific response. Instead of a status code, just
+use Response object.
 
 .. code:: python
 
@@ -367,16 +372,16 @@ Response object.
             raise HTTPException(error)
         return "Other message", "text/plain"
 
-**Additional functionality)**
+**Additional functionality**
 
-If status code is ``DECLINED``, that return nothing. That means, that no status
+If the status code is ``DECLINED``, it returns nothing. That means no status
 code, no headers, no response body. Just stop the request.
 
-If status code is ``HTTP_NO_CONTENT``, that return NoContentResponse, so message
-body is not send.
+If the status code is ``HTTP_NO_CONTENT``, it returns NoContentResponse, so the
+message body is not sent.
 
-When the handler raise any other exception, that generate Internal Server Error
-status code.
+When the handler raises any other exception, it generates an Internal Server
+Error status code.
 
 Compatibility
 `````````````
@@ -385,34 +390,35 @@ functions.
 
 **redirect**
 
-Have the same interface as RedirectResponse, and only raise the HTTPException
+It has the same interface as RedirectResponse, and only raises the HTTPException
 with RedirectResponse.
 
 **abort**
 
-Have the same interface as HTTPException, and voila, it raise the HTTPException.
+It has the same interface as HTTPException, and voila, it raises the HTTPException.
 
 Routing
 -------
 
-There are two ways how to set path handler. Via decorators of Application object,
-or method set\_ where one of parameter is your handler. It is important how look
-your application. If your web project have one or a few files where your
-handlers are, it is good idea to use decorators. But if you have big project
-with more files, it could be difficult to load all files with decorated
-handlers. So that is right job for set\_ methods in one file, like a route file
-or dispatch table.
+There are two ways to set a path handler: via decorators of the Application object,
+or using a set\_ method where one of the parameters is your handler. The choice
+depends on how your application is structured. If your web project has one or a few
+files where your handlers are, it is a good idea to use decorators. But if you
+have a large project with many files, it could be difficult to load all files with
+decorated handlers. In that case, set\_ methods in a single file, such as a
+route file or dispatch table, is a better approach.
 
 Static Routing
 ~~~~~~~~~~~~~~
-There are method and decorator to set your function (handler) to response static
-route. Application.set_route and Application.route. Both of them have tho
-parametrs, first the required path like ``/some/path/for/you`` and next method
-flags, which is default METHOD_HEAD | METHOD_GET. There are other methods
-in state module like METHOD_POST, METHOD_PUT etc. There is two special constants
-METHOD_GET_POST which is HEAD | GET | POST, aned METHOD_ALL which is all
-supported methods. If method does not match, but path is exist in internal
-table, http state HTTP_METHOD_NOT_ALLOWED is return.
+There is a method and a decorator to set your function (handler) to respond to a
+static route: Application.set_route and Application.route. Both of them have
+two parameters: first, the required path like ``/some/path/for/you``, and second,
+method flags, which default to METHOD_HEAD | METHOD_GET. There are other
+methods in the state module like METHOD_POST, METHOD_PUT, etc. There are two
+special constants: METHOD_GET_POST, which is HEAD | GET | POST, and METHOD_ALL,
+which includes all supported methods. If the method does not match but the path
+exists in the internal table, the HTTP state HTTP_METHOD_NOT_ALLOWED is
+returned.
 
 .. code:: python
 
@@ -424,16 +430,17 @@ table, http state HTTP_METHOD_NOT_ALLOWED is return.
         return 'Data of other path'
     app.set_route('/some/other/path', other_path, state.METHOD_GET_POST)
 
-You pop from application table via method Application.pop_route, or get internal
-table via Application.routes property. **Each path can have only one handler**,
-but one handler can be use for more path.
+You can pop from the application table via method Application.pop_route, or get
+the internal table via Application.routes property. **Each path can have only
+one handler**, but one handler can be used for more paths.
 
 Regular expression routes
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-As in other wsgi connectors, or frameworks if you want, there are way how to
-define routes with getting part of url path as parameter of handler. PoorWSGI
-call them **regular expression routes**. You can use it in nice human-readable
-form or in your own regular expressions. Basic use is define by group name.
+As in other WSGI connectors (or frameworks, if you prefer), there is a way to
+define routes that capture part of the URL path as a parameter of the handler.
+PoorWSGI calls them **regular expression routes**. You can use them in a nice
+human-readable form or in your own regular expressions. Basic use is defined by
+group name.
 
 .. code:: python
 
@@ -442,10 +449,10 @@ form or in your own regular expressions. Basic use is define by group name.
     def user_detail(req, name):
         return 'Name is %s' % name
 
-There are use filters define by regular expression from table
-Application.filters. This filter is use to transport to regular expression
-define by group. Default filter is ``r'[^/]+'`` with str convert function. You
-can use any filter from table filters.
+Filters are defined by regular expressions from the Application.filters table.
+Each filter is used to transform a URL group into a regular expression. The default
+filter is ``r'[^/]+'`` with a ``str`` convert function. You can use any filter
+from the filters table.
 
 .. code:: python
 
@@ -454,19 +461,20 @@ can use any filter from table filters.
     def surnames_by_age(req, surname, age):
         return 'Surname is: %s and age is: %d' % (surname, age)
 
-Filter int is define by ``r'-?\d+'`` with convert "function" int. So age must be
-number and the input parameter is int instance.
+The :int filter is defined by ``r'-?\d+'`` with the ``int`` conversion function.
+So age must be a number and the input parameter is an ``int`` instance.
 
-There are predefined filters, for example: **:int**, **:word**, **:re:** and
-**none** as default filter. Word is define as ``r'\w+'`` regular expression,
-and poorwsgi use re.U flag, so it match any Unicode string. That means UTF-8
-string. For all filters see Application.filters property or ``/debug-info`` page.
+There are predefined filters, for example: **:int**, **:word**, **:re:**, and
+**none** as the default filter. :word is defined as the ``r'\w+'`` regular
+expression, and PoorWSGI uses the ``re.U`` flag, so it matches any Unicode string
+(i.e., UTF-8 string). For all filters, see the Application.filters property or
+the ``/debug-info`` page.
 
-You can get copy of filters table calling Application.filters property. And this
-filters table is output to debug-info page. Adding your own filter is possible
-with function set_filter with name, regular expression and convert function
-which is str by default. Next you can use this filter in group regular
-expression.
+You can get a copy of the filters table by calling the Application.filters
+property. This filters table is output to the debug-info page. Adding your own
+filter is possible with the ``set_filter`` function, which takes a name, a
+regular expression, and a convert function (which is ``str`` by default). You can
+then use this filter in a group regular expression.
 
 .. code:: python
 
@@ -476,9 +484,9 @@ expression.
     def user_by_login(req, login):
         return 'Users email is %s' % login
 
-In other way, you can use filters define by inline regular expression. That is
-``:re:`` filter. This filter have regular expression which you write in, and
-allways str convert function, so parametr is allways string.
+Alternatively, you can use filters defined by inline regular expressions. That is
+the ``:re:`` filter. This filter takes a regular expression that you provide, and
+always uses the ``str`` convert function, so the parameter is always a string.
 
 .. code:: python
 
@@ -489,13 +497,13 @@ allways str convert function, so parametr is allways string.
 
 Group naming
 ~~~~~~~~~~~~
-Group names **must be unique** in defined path. They are store in ordered
-dictionary, to do wrap by their convert functions. You can named them in route
-definition how you can, and they can't be named same in handler parameters,
-but they must be only in the same ordering. Be careful to named parameters
-in handler with some python keyword, like class for example. If you can, you can
-use python "varargs" syntax to get any count of parameters in your handler
-function.
+Group names **must be unique** in the defined path. They are stored in an
+ordered dictionary and wrapped by their convert functions. You can name them
+in the route definition as you wish; they do not need to match the parameter
+names in the handler, but they must maintain the same ordering. Be careful not to
+name parameters in the handler with a Python keyword, like ``class`` for example. If
+you prefer, you can use Python's "varargs" syntax to receive any number of parameters
+in your handler function.
 
 .. code:: python
 
@@ -503,9 +511,9 @@ function.
     def test_varargs(req, *args):
         return "Parse %d parameters %s" % (len(args), str(args))
 
-At last future of regular expression routes is direct access to dictionary
-with req.groups variable. This variable is set from any regular expression
-route.
+A future feature of regular expression routes is direct access to the dictionary
+with the ``req.groups`` variable. This variable is set from any regular
+expression route.
 
 .. code:: python
 
@@ -513,24 +521,24 @@ route.
     def test_varargs(req, *args):
         return "All input variables from url path: %s" % str(req.groups)
 
-Regular expression routes as like static routes could be set with
-Application.route or Application.set_route methods. But internaly
-Application.regular_route or Application.set_regular_route is call.
-Same situation is with Application.pop_route and Application.pop_regular_route.
+Regular expression routes, like static routes, can be set with Application.route
+or Application.set_route methods. Internally, however, Application.regular_route
+or Application.set_regular_route is called. The same situation applies to
+Application.pop_route and Application.pop_regular_route.
 
 Other handlers
 --------------
 
 Default handler
 ~~~~~~~~~~~~~~~
-If no route is match, there are two ways which could occur. First is call
-default handler if method match of course. Default handler is set with default
-Application.decorator or Application.set_default method. Parameter is only
-method which is default in METHOD_HEAD | METHOD_GET too. Instead of route
-handlers, when method does not match, 404 error was returned.
+If no route matches, two scenarios can occur. The first is to call the default
+handler if the method matches. The default handler is set with the default
+Application decorator or Application.set_default method. The parameter is only
+the method, which also defaults to METHOD_HEAD | METHOD_GET. Unlike route
+handlers, when the method does not match, a 404 error is returned.
 
-So default handler is fallback with ``r'/.*'`` regular expression. For example,
-you can use is for any OPTIONS method.
+So the default handler is a fallback with the ``r'/.*'`` regular expression. For
+example, you can use it for any OPTIONS method.
 
 .. code:: python
 
@@ -538,23 +546,23 @@ you can use is for any OPTIONS method.
     def default(req):
         return b'', '', {'Allow': 'OPTIONS', 'GET', 'HEAD'}
 
-Be careful, default handler is call before 404 not found handler. When it is
-possible to serve request any other way, it will. For example if
-poor_DocumentRoot is set and PoorWSGI found the file, that will be send.
-Of course, internal file or dictionary handler is use only with METHOD_GET
-or METHOD_HEAD.
+Be careful: the default handler is called before the 404 not found handler. If it
+is possible to serve the request in any other way, it will be. For example, if
+poor_DocumentRoot is set and PoorWSGI finds the file, it will be sent. Of
+course, the internal file or directory handler is used only with METHOD_GET or
+METHOD_HEAD.
 
 HTTP state handlers
 ~~~~~~~~~~~~~~~~~~~
-There are some predefined HTTP state handlers, which are use when other
-HTTP state are raised via HTTPException or any other exception which ends with
+There are some predefined HTTP state handlers, which are used when other HTTP
+states are raised via HTTPException or any other exception that ends with an
 HTTP_INTERNAL_SERVER_ERROR status code.
 
-You can redefined your own handlers for any combination of status code and
-method type like routes handlers. Response from these handlers are same as in
-route handlers.
+You can define your own handlers for any combination of status code and method
+type, similar to route handlers. Responses from these handlers are the same as
+in route handlers.
 
-Be sure, that some http_state handlers can add other keyword arguments.
+Note that some HTTP state handlers receive additional keyword arguments.
 
 .. code:: python
 
@@ -562,16 +570,17 @@ Be sure, that some http_state handlers can add other keyword arguments.
     def page_not_found(req, *_):
         return "Your request %s not found." % req.path, "text/plain"
 
-If your http state (error) handler was crashed with error, internal server
-error was return and right handler is called. If this your handler was crashed
-too, default poor WSGI internal server error handler is called.
+If your HTTP state (error) handler raises an error, a 500 Internal Server Error
+is returned and the default internal server error handler is called. If your
+default internal server error handler crashes as well, the built-in PoorWSGI
+internal server error handler is called.
 
 Error handlers
 ~~~~~~~~~~~~~~
-In most cases, when exception was raised from your handler, *Internal Server
-Error* was returned from server. When you want to handle each type of exception,
-you can define your own error handler, which will be called instead of
-HTTP_INTERNAL_SERVER_ERROR state handler.
+In most cases, when an exception is raised from your handler, *Internal Server
+Error* is returned from the server. When you want to handle each type of
+exception, you can define your own error handler, which will be called instead
+of the HTTP_INTERNAL_SERVER_ERROR state handler.
 
 .. code:: python
 
@@ -592,34 +601,34 @@ HTTP_INTERNAL_SERVER_ERROR state handler.
         return "Yep!"
 
 
-Exception handlers are stored in OrderedDict, so exception type is checked in
-same order as you set error handlers. So you must define handler for base
-exception last.
+Exception handlers are stored in an OrderedDict, so the exception type is
+checked in the same order as you set error handlers. Therefore, you must define
+the handler for the base exception last.
 
 Before and After response
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-PoorWSGI have too special list of handlers. First is iterate and call before
-each response. You can add function with Application.before_response and
+PoorWSGI also has two special lists of handlers. The first iterates and calls
+before each response. You can add functions with Application.before_response and
 Application.after_response decorators or Application.add_before_response and
-Application.add_after_response methods. And there are
-Application.pop_before_response and Application.pop_after_response methods
-to remove handlers.
+Application.add_after_response methods. There are also
+Application.pop_before_response and Application.pop_after_response methods to
+remove handlers.
 
-Before response handlers are called in order how was added to list. They don't
-return anything, resp. their return values are ignored. If they crash with
-error, internal_server_error was return and http state handler was called.
+Before response handlers are called in the order they were added to the list.
+Their return values are ignored. If they raise an error, an Internal Server Error
+is returned and the HTTP state handler is called.
 
-After response handlers are called in order how was added to list. If they
-crash with error, internal_server_error was return and http state handler is
-called, but all code from before response list and from route handler was
-called.
+After response handlers are called in the order they were added to the list. If
+they raise an error, an Internal Server Error is returned and the HTTP state
+handler is called, but all code from the before response list and from the
+route handler has already been executed.
 
-After response handler is call even if error handler, internal_server_error for
-example was called.
+An after response handler is called even if an error handler, such as
+internal_server_error, was called.
 
-Before response handler must have request argument, but after response handler
-must have request and response argument.
+A before response handler must have a request argument, but an after response
+handler must have request and response arguments.
 
 .. code:: python
 
@@ -635,29 +644,30 @@ must have request and response argument.
 Filtering
 `````````
 
-TODO: How to write output filter, gzip for example....
+TODO: How to write an output filter, gzip for example...
 
 WebSockets
 ~~~~~~~~~~
 
 WebSockets are not directly supported in PoorWSGI, but upgrade requests can be
-handled like other HTTP requests. See
+handled like other HTTP requests. See the
 `websocket.py <https://github.com/PoorHttp/PoorWSGI/blob/master/examples/websocket.py>`_
-example which use uWsgi implementation or WSocket implementation.
+example, which uses the uWSGI implementation or WSocket implementation.
 
 
 Request variables
 -----------------
-PoorWSGI has two extra classes for get arguments. From request path, typical
-for GET method and from request body, typical for POST method. This parsing is
-enabled by default, but you can configure with options.
+PoorWSGI has two classes for parsing request arguments: one for arguments from
+the request path (typical for GET requests) and one for arguments from the request
+body (typical for POST requests). This parsing is enabled by default, but you can
+configure it with options.
 
 Query arguments
 ~~~~~~~~~~~~~~~
-Request query arguments are stored to Args class, define in poorwsgi.request
-module. Args is dict base class, with interface compatible methods getfirst
-and getlist. You can access to variables with args parameters at all time when
-poor_AutoArgs is set to On, which is default.
+Request query arguments are stored in the Args class, defined in the
+poorwsgi.request module. Args is a dict-based class with the getfirst and
+getlist methods. You can access query variables via ``req.args`` whenever
+poor_AutoArgs is set to On, which is the default.
 
 .. code:: python
 
@@ -667,22 +677,23 @@ poor_AutoArgs is set to On, which is default.
         colors = req.args.getlist('color', func=int)
         return "Get arguments are %s" % str(req.args)
 
-If no arguments are parsed, or if poor_AutoArgs is set to Off, req.args is
-EmptyForm instance, which is dict base class too with both of methods.
+If no arguments are parsed, or if poor_AutoArgs is set to Off, req.args is an
+EmptyForm instance, which is also a dict-based class with both methods.
 
 Form arguments
 ~~~~~~~~~~~~~~
-Request form arguments are stored in FieldStorage class, define in
-poorwsgi.fieldstorage module. This class is inspired by FieldStorage from
-legacy cgi module. Variables are parsed every time, when poor_AutoForm is set
-to On, which is default, request method is POST, PUT or PATCH and request
-mime type is one of `Application.form_mime_types`. You can call it
-on any other methods of course, but it must exist wsgi.input in request
-environment from wsgi server.
+Request form arguments are stored in the FieldStorage class, defined in the
+poorwsgi.fieldstorage module. This class is inspired by FieldStorage from the
+legacy cgi module. Variables are parsed whenever poor_AutoForm is set to
+On (which is the default), the request method is POST, PUT or PATCH, and the
+request MIME type is one of `Application.form_mime_types`. You can also trigger
+this parsing for other methods, but ``wsgi.input`` must exist in the request
+environment from the WSGI server.
 
-req.form instance is create with poor_KeepBlankValues and poor_StrictParsing
-variables as Args class is create, but FieldStorageParser have file_callback
-variable, which is configurable by Application.file_callback property.
+The ``req.form`` instance is created with poor_KeepBlankValues and
+poor_StrictParsing variables, just as the Args class is created. However,
+FieldStorageParser has a ``file_callback`` variable, which is configurable by the
+Application.file_callback property.
 
 .. code:: python
 
@@ -695,18 +706,18 @@ variable, which is configurable by Application.file_callback property.
         colors = req.form.getlist('color', func=int)
         return "Post arguments for id are %s" % (id, str(req.args))
 
-As like Args class, if poor_AutoForm is set to Off, or if method is no POST,
-PUT or PATCH, req.form is EmptyForm instance instead of FieldStorage.
+Similar to the Args class, if poor_AutoForm is set to Off, or if the method is
+not POST, PUT or PATCH, ``req.form`` is an EmptyForm instance instead of
+FieldStorage.
 
 JSON request
 ~~~~~~~~~~~~
-In the first place JSON request are from AJAX. There are automatic JSON
-parsing in Request object, which parse request body to JSON variable. This
-parsing starts only when Application.auto_json variable is set to True (default)
-and if mime type of POST, PUT or PATCH request is application/json.
-Then request body is parsed to json property. You can configure JSON types
-via Application.json_mime_types property, which is list of request
-mime types.
+Initially, JSON requests came from AJAX. There is automatic JSON parsing in the
+Request object, which parses the request body to a JSON variable. This parsing
+starts only when the Application.auto_json variable is set to True (default) and
+the MIME type of a POST, PUT or PATCH request is application/json. Then the
+request body is parsed to the json property. You can configure JSON types via the
+Application.json_mime_types property, which is a list of request MIME types.
 
 .. code:: python
 
@@ -716,7 +727,7 @@ mime types.
                methods=state.METHOD_POST | state.METHOD_PUT | state.METHOD_PATCH)
     def test_json(req):
         for key, val in req.json.items():
-            req.error_log('%s: %v' % (key, str(val)))
+            req.error_log('%s: %s' % (key, str(val)))
 
         res = Response(content_type='application/json')
         json.dump(res, {'Status': '200', 'Message': 'Ok'})
@@ -742,24 +753,24 @@ JQuery AJAX request could look like this:
              }
     });
 
-There are a few variants which req.json could be:
+There are a few variants that req.json could be:
 
-* JsonDict when dictionary is parsed.
-* JsonList when list is parsed.
-* Other based types from json.loads function like str, int, float, bool
+* JsonDict when a dictionary is parsed.
+* JsonList when a list is parsed.
+* Other base types from the json.loads function, such as str, int, float, bool,
   or None.
-* None when parsing of JSON fails. That is logged with WARNING log level.
+* None when JSON parsing fails. This is logged with a WARNING log level.
 
 File uploading
 ~~~~~~~~~~~~~~
-By default, FieldStorage store files somewhere to ``/tmp`` directory. This is
-happened in FieldStorageParser, which calls ``TemporaryFile``. Uploaded files
-are accessible like another form variables, but.
+By default, FieldStorage stores files somewhere in the ``/tmp`` directory. This
+happens in FieldStorageParser, which calls ``TemporaryFile``. Uploaded files
+are accessible like other form variables, but:
 
-Any variables from FieldStorage is accessible with ``__getitem__`` method.
-So you can get variable by ``req.form[key]``, which gets FieldStorage
-instance. This instance has some attributes, which you can test,
-what type of variable is it.
+Any variable from FieldStorage is accessible with the ``__getitem__`` method. So
+you can get a variable by ``req.form[key]``, which returns a FieldStorage
+instance. This instance has some attributes that you can use to test what type
+of variable it is.
 
 .. code:: python
 
@@ -772,9 +783,9 @@ what type of variable is it.
 
 Own file callback
 ~~~~~~~~~~~~~~~~~
-Sometimes, you want to use your own file_callback, because you don't want to
-use TemporaryFile as storage for this upload files. You can do it with simple
-adding class, which is io.FileIO class in Python 3.x. Next only set
+Sometimes, you want to use your own file_callback because you don't want to use
+TemporaryFile as storage for uploaded files. You can do it by simply adding a
+class that is an ``io.FileIO`` class in Python 3.x. Then, only set the
 Application.file_callback property.
 
 .. code:: python
@@ -785,12 +796,11 @@ Application.file_callback property.
     app = Application('test')
     app.file_callback = FileIO
 
-As you can see, this example works, but it is so bad solution of your problem.
-Little bit better solution will be, if you store files only if exist and only
-to special separate dictionary, which could be configurable. That you need use
-to factory to create file_callback. In next example is written own form
-processing, which is not important, when `file_callback` could be set via
-Application property.
+As you can see, this example works, but it is a poor solution to your problem.
+A better solution is to store files only if they do not already exist, in a
+configurable directory. You need to use a factory to create file_callback. The
+following example shows custom form processing; however, this is not necessary
+since ``file_callback`` can be set directly via an Application property.
 
 .. code:: python
 
@@ -841,72 +851,72 @@ Application property.
 CachedInput
 ~~~~~~~~~~~
 
-When HTTP Forms are base64 encoded, FieldStorageParser use readline on request
-input file. This is not so optimal. So there is CachedInput class, which
-is returned as wrapper around ``wsgi.input`` file.
+When HTTP forms are base64 encoded, FieldStorageParser uses readline on the
+request input file. This is not optimal. CachedInput is a class that serves as
+a wrapper around the ``wsgi.input`` file to address this.
 
-Proccess variables
+Process variables
 ~~~~~~~~~~~~~~~~~~
-Here is appliation variables, which is used to confiure request processing,
-resp. which configure processing with request.
+Here are the application variables used to configure request processing.
 
 
 Application.auto_args
 `````````````````````
-If auto_args is set to ``True``, which is default, Request object parse input
-arguments from request uri at initialisation. There will be ``Request.args``
-property, which is instance of ``Args`` class. If you want to off this
-functionality, set this property to ``False``. If argument parsing is disabled,
-``Request.args`` will be instance of ``EmptyForm`` with same interface and no
-data.
+If ``auto_args`` is set to ``True`` (which is the default), the Request object
+parses input arguments from the request URI at initialization. There will be a
+``Request.args`` property, which is an instance of the ``Args`` class. If you want
+to disable this functionality, set this property to ``False``. If argument
+parsing is disabled, ``Request.args`` will be an instance of ``EmptyForm`` with
+the same interface and no data.
 
 Application.auto_form
 `````````````````````
-If auto_form is set to ``True``, which is default, Request object parse input
-arguments from request body at initialisation when request type is POST, PUT
-or PATCH. There will be ``Request.form`` property which is instance of
-``FieldStorage`` class. If you want to off this functionality, set this property
-to ``False``. If form parsing is disabled, or JSON is detected, ``Request.form``
-will be instance of ``EmptyForm`` with same interface and no data.
+If ``auto_form`` is set to ``True`` (which is the default), the Request object
+parses input arguments from the request body at initialization when the request
+type is POST, PUT or PATCH. There will be a ``Request.form`` property which is
+an instance of the ``FieldStorage`` class. If you want to disable this
+functionality, set this property to ``False``. If form parsing is disabled, or
+JSON is detected, ``Request.form`` will be an instance of ``EmptyForm`` with the
+same interface and no data.
 
 Application.form_mime_types
 ``````````````````````````````
-List of mime types, which is parsed as input form by ``FieldStorageParser``
-class. If input request does not have set one of these mime types, that form
-will not be parsed.
+List of MIME types, which is parsed as an input form by the
+``FieldStorageParser`` class. If the input request does not have one of these
+MIME types set, that form will not be parsed.
 
 Application.file_callback
 `````````````````````````
-Class or function, which is used to store file from form. See
+A class or function that is used to store a file from the form. See
 `own file callback`_ for more details.
 
 Application.auto_json
 `````````````````````
-If it is ``True``, which is default, method is POST, PUT or PATCH and request
-mime type is json, than Request object do automatic parsing request body to
-``Request.json`` dict property. If is disabled, or if form is detected, then
-``EmptyForm`` instance is set.
+If it is ``True`` (which is the default), the method is POST, PUT or PATCH and
+the request mime type is JSON, then the Request object automatically parses
+the request body to the ``Request.json`` dict property. If it is disabled, or if
+a form is detected, then an ``EmptyForm`` instance is set.
 
 Application.json_mime_types
 ``````````````````````````````
-List of mime types, which is paresed as json by ``json.loads`` function.
-If input request does not have set one of these mime types, that
-``Request.json`` was not parsed.
+List of MIME types, which is parsed as JSON by the ``json.loads`` function.
+If the input request does not have one of these MIME types set, then
+``Request.json`` will not be parsed.
 
 Application.keep_blank_values
 `````````````````````````````
-This property is set for input parameters to automatically calling Args and
-FieldStorageParser classes, when auto_args resp. auto_form is set. By default
-this property is set to ``0``. If it set to ``1``, blank values should be
-interpret as empty strings.
+This property is passed to the Args and FieldStorageParser classes when
+``auto_args`` and ``auto_form`` are set, respectively.
+By default, this property is set to ``0``. If it is set to ``1``, blank values
+will be interpreted as empty strings.
 
 Application.strict_parsing
 ``````````````````````````
-This property is set for input parameter to automatically calling Args and
-FieldStorageParser classes. When auto_args resp. auto_form is set. By default
-this variable is set to ``0``. If is set to ``1``, ValueError exception
-could raise on parsing error. I'm sure, that you never want to set this
-variable to ``1``. If so, use it in your own parsing.
+This property is passed to the Args and FieldStorageParser classes when
+``auto_args`` and ``auto_form`` are set, respectively.
+By default, this variable is set to ``0``. If it is set to ``1``, a ValueError
+exception may be raised on a parsing error. You will almost certainly never want to
+set this variable to ``1``; if you do, use it in your own parsing.
 
 .. code:: python
 
@@ -936,16 +946,16 @@ variable to ``1``. If so, use it in your own parsing.
 
 Application.auto_cookies
 ````````````````````````
-When auto_cookies is set to ``True``, which is default, ``Request.cookies``
-property is set when request heades contains ``Cookie`` header. Otherwise
-empty tupple will be set.
+When ``auto_cookies`` is set to ``True`` (which is the default), the
+``Request.cookies`` property is set when the request headers contain a ``Cookie``
+header. Otherwise, an empty tuple will be set.
 
 
 Application / User options
 --------------------------
-Like in mod_python Request, Poor WSGI Application have get_options method too.
-This method return dictionary of application options or variables, which start
-with ``app_`` prefix. This prefix is cut from options names.
+Like mod_python's Request, the PoorWSGI Application has a get_options method.
+This method returns a dictionary of application options, whose names start with
+the ``app_`` prefix. This prefix is stripped from the option names.
 
 .. code:: ini
 
@@ -965,7 +975,7 @@ And you can get these variables with get_options method:
     def list_options(req):
         return ("%s = %s" % (key, val) in config.items())
 
-Output of application url /options looks like:
+The output of application URL /options looks like this:
 
 ::
 
@@ -973,46 +983,46 @@ Output of application url /options looks like:
     tmp_path = tmp
     templ = templ
 
-You can store your variables to request object too. There are few reserved
-variables for you, which poorwsgi never use, and which are None by default:
+You can also store your variables in the request object. There are a few reserved
+variables for you, which PoorWSGI never uses, and which are ``None`` by default:
 
 :req.user:   For user object, who is login, check_digest decorator set this
              variable.
 :req.api:    For API checking. OpenAPIRequest use this variable.
-:req.db:     For single database conection per request. You can store structure
-             with more databases if you need to this vairable.
-:req.app\_:  As prefix for any your application variable.
+:req.db:     For a single database connection per request. You can store a
+             structure with multiple databases if needed.
+:req.app\_:  As a prefix for any of your application variables.
 
-So if you want to add any other variable, be careful to named it.
+So if you want to add any other variable, be careful how you name it.
 
 Headers and Sessions
 --------------------
 Request Headers
 ~~~~~~~~~~~~~~~
-We talk about headers in a few paragraph before. Now is time to more
-information about that. Request object have headers_in attribute, which is
-instance of wshiref.headers.Headers. This headers contains request headers
-from client like in mod_python. You can read it as you can.
+Request headers were introduced earlier; this section provides more detail.
+The Request object has a ``headers_in`` attribute, which
+is an instance of ``wsgiref.headers.Headers``. These headers contain the request
+headers from the client, similar to mod_python. You can read them as needed.
 
-Next to it there are some Request properties, to get parset header values.
+In addition, there are some Request properties for accessing parsed header values.
 
 :headers:           Full headers object.
 :mime_type:         Return mime type part from ``Content-Type`` header
 :charset:           Return charset part from ``Content-Type`` header
 :content_length:    Return content length if ``Content-Length`` header is set,
                     or -1 if not.
-:accept:            List of ``Accept`` content neogetions set.
-:accept_charset:    List of ``Accept-Charset`` content neogetions set.
-:accept_encoding:   List of ``Accept-Encoding`` content neogetions set.
-:accept_language:   List of ``Accept-Language`` content neogetions set.
+:accept:            List of ``Accept`` content negotiations set.
+:accept_charset:    List of ``Accept-Charset`` content negotiations set.
+:accept_encoding:   List of ``Accept-Encoding`` content negotiations set.
+:accept_language:   List of ``Accept-Language`` content negotiations set.
 :accept_html:       True if ``text/html`` mime type is in ``Accept`` header.
 :accept_xhtml:      True if ``text/xhtml`` mime type is in ``Accept`` header.
 :accept_json:       True if ``application/json`` mime type is in ``Accept``
                     header.
 :is_xhr:            True if ``X-Requested-With`` is ``XMLHttpRequest``.
-:cookies:           Cooike object created from ``Cookie`` header or empty tuple.
-:authorization:     Parsed ``Authorization`` header to dictionary.
-:referer:           Http referer from ``Referer`` header or None
+:cookies:           Cookie object created from ``Cookie`` header or empty tuple.
+:authorization:     Parsed ``Authorization`` header as a dictionary.
+:referer:           HTTP referer from ``Referer`` header or None.
 :user_agent:        User's client from ``User-Agent`` header or None.
 :forwarded_for:     Value of ``X-Forward-For`` header or None.
 :forwarded_host:    Value of ``X-Forward-Host`` header or None.
@@ -1020,12 +1030,12 @@ Next to it there are some Request properties, to get parset header values.
 
 Response Headers
 ~~~~~~~~~~~~~~~~
-Response headers is the same Request.Headers class as in request object. But
-you can create it. If you don't set header when you create Response object,
-default ``X-Powered-By`` header is set to "Poor WSGI for Python". The
-``Content-Type`` and ``Content-Length`` headers are append automatically.
-All headers keys must be set once, except of ``Set-Cookie``, which could be set
-more times.
+Response headers use the same Headers class as in the request object.
+If you don't set a header when you create a Response object,
+the default ``X-Powered-By`` header is set to "Poor WSGI for Python". The
+``Content-Type`` and ``Content-Length`` headers are appended automatically. Each
+header key must appear at most once, except for ``Set-Cookie``, which can be set
+multiple times.
 
 .. code:: python
 
@@ -1040,10 +1050,10 @@ more times.
 
 Sessions
 ~~~~~~~~
-Like in mod_python, PoorSession is session class of PoorWSGI. It's
-self-contained cookie which has data dictionary. Data are sent to client in
-hidden, bzip2, base64 encoded format. PoorSession needs ``secret_key``,
-which can be set by ``poor_SecretKey`` environment variable to
+Like mod_python, PoorSession is the session class of PoorWSGI. It's a
+self-contained cookie with a data dictionary. Data are sent to the client
+in a hidden, bzip2-compressed, base64-encoded format. PoorSession needs a ``secret_key``,
+which can be set by the ``poor_SecretKey`` environment variable to the
 Application.secret_key property.
 
 .. code:: python
@@ -1105,20 +1115,21 @@ Application.secret_key property.
 HTTP Digest Auth
 ~~~~~~~~~~~~~~~~
 
-PoorWSGI supports HTTP Digest Authorization from version 2.3.x.
-Supported are:
+PoorWSGI supports HTTP Digest Authorization from version 2.3.x. Supported features
+are:
 
     * MD5, MD5-sess, SHA-256, SHA-256-sess algorithm, **MD5-sess** is default
     * none or auth quality of protection (qop), **auth** is default
     * nonce value timeout, so new hash will be count every N seconds,
       **300** sec (5min) is default
-    * ``nc`` header value from browser **is not checked** on server side now
+    * The ``nc`` header value from the browser **is not currently checked** on the
+      server side.
 
 
 Application settings
 ````````````````````
 
-There are some application options, which are used for HTTP Authorization
+There are some application options that are used for HTTP Authorization
 configuration.
 
     :secret_key:        Secret Key is used for generating ``nonce`` value,
@@ -1151,10 +1162,11 @@ configuration.
 Usage
 `````
 
-There is check_digest decorator, which can be used simply to check
-``Authorization`` header in client requests. Be careful to overriding default
-HTTP_UNAUTHORIZED handler, which must return right ``WWW-Authenticate`` header,
-when browser doesn't sent right ``Authorization`` header.
+There is a check_digest decorator, which can be used to check the
+``Authorization`` header in client requests. Be careful when overriding the
+default HTTP_UNAUTHORIZED handler - it must return the correct
+``WWW-Authenticate`` header when the browser does not send a valid
+``Authorization`` header.
 
 .. code:: python
 
@@ -1171,8 +1183,8 @@ when browser doesn't sent right ``Authorization`` header.
         """Page only for *foo* user in *User Zone* only."""
         ...
 
-The poorwsgi.digest module can be use for managing digest file too. But you
-can manage PasswordMap directly with methods.
+The poorwsgi.digest module can also be used for managing the digest file. You
+can also manage PasswordMap directly with its methods.
 
 .. code:: sh
 
@@ -1185,35 +1197,34 @@ can manage PasswordMap directly with methods.
 
 Debugging
 ---------
-Poor WSGI have few debugging mechanism which you can to use. First, it could
-be good idea to set up poor_Debug variable. If this variable is set, there are
-full traceback on error page internal_server_error with http code 500.
+Poor WSGI has a few debugging mechanisms you can use. First, it is a
+good idea to set the poor_Debug variable. If this variable is set, there is a
+full traceback on the internal_server_error page (HTTP 500).
 
-Second effect of this variable is enabling special debug page on
-``/debug-info`` url. On this page, you can found:
+The second effect of this variable is enabling the special debug page at
+``/debug-info`` URL. On this page, you can find:
 
-    * full handlers table with requests, http methods and handlers which are
-      call to serve this requests.
-    * http state handlers table with http state codes, http methods and handlers
-      which are call when this http state is returned.
-    * request headers table from your browser when you call this debug request
-    * poor request variables, which are setting of actual instance of Poor WSGI
-      configuration variables.
-    * application variables which are set like a connector variables but with
-      app\_ prefix.
-    * request environment, which is set from your wsgi server to wsgi
-      application, so to Poor WSGI connector.
+    * a full handlers table with request paths, HTTP methods, and handlers that
+      are called to serve those requests.
+    * an HTTP state handlers table with HTTP status codes, HTTP methods, and
+      handlers that are called when those HTTP states are raised.
+    * the request headers sent by your browser when you access the debug page.
+    * the Poor WSGI configuration variables for the current application instance.
+    * application variables, which are set like connector variables but with
+      the app\_ prefix.
+    * the request environment, which is passed from the WSGI server to the WSGI
+      application, that is, to the Poor WSGI connector.
 
 Profiling
 ~~~~~~~~~
-If you want to profile your request code, you can do with profiler. Poor WSGI
-application object have methods to set profiling. You must only prepare runctx
-function, which is call before all your request. From each your request will
-be generate .profile dump file, which you can study.
+If you want to profile your request code, you can do so with a profiler. The Poor
+WSGI application object has methods to set up profiling. You only need to provide
+a runctx function, which is called before every request. For each request, a
+.profile dump file will be generated for analysis.
 
-If you want to profile all process after start your application, you can make
-file, which profile importing your application, which import Poor WSGI
-connector.
+If you want to profile the entire process from the start of your application,
+you can create a file that profiles the import of your application, which in
+turn imports the Poor WSGI connector.
 
 .. code:: python
 
@@ -1230,16 +1241,16 @@ connector.
     # web application
     app.set_profile(cProfile.runctx, 'log/req')
 
-When you use this file instead of your application file, simple.py for
-example, application create files in log directory. First file will be
-init.profile from first import by WSGI server. Other files will look like
-req\_.profile, req_debug-info.profile etc. Second parameter of set_profile
-method is prefix of output file names. File name are create from url path, so
-each url create file.
+When you use this file instead of your application file (simple.py for
+example), the application creates files in the log directory. The first file will
+be init.profile, created from the initial import by the WSGI server. Other files
+will look like req\_.profile, req_debug-info.profile, etc. The second parameter of
+the set_profile method is the prefix for output file names. File names are created
+from the URL path, so each URL creates its own file.
 
-There is nice tool to view this profile files runsnakerun. You can download it
-from http://www.vrplumber.com/programming/runsnakerun/. Using that is very
-simple just open profile file:
+There is a useful tool to view these profile files called runsnakerun. You can
+download it from http://www.vrplumber.com/programming/runsnakerun/. Using it is
+very simple - just open a profile file:
 
 .. code:: sh
 
@@ -1249,14 +1260,14 @@ simple just open profile file:
 
 OpenAPI
 -------
-OpenAPI aka Swagger 3.0 is specification for RESTful api documentation and
-request and response validation. PoorWSGI have
-`openapi_core <https://github.com/p1c2u/openapi-core>`_ wrapper in
-``openapi_wrapper`` module. You must only declare your before and after request
-handler.
+OpenAPI aka Swagger 3.0 is a specification for RESTful API documentation and
+request and response validation. PoorWSGI has an
+`openapi_core <https://github.com/p1c2u/openapi-core>`_ wrapper in the
+``openapi_wrapper`` module. You only need to declare your before and after
+response handlers.
 
-This wrapper is place where, **openapi_core** python package is use, so that is
-not in PoorWSGI requirements. You need to install separately:
+This wrapper is the only place where the **openapi_core** Python package is
+used, so it is not in PoorWSGI's requirements. You need to install it separately:
 
 .. code:: sh
 

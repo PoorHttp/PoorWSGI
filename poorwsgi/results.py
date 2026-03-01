@@ -1,37 +1,48 @@
-"""Default Poor WSGI handlers.
+"""Default PoorWSGI handlers.
 
 :Functions: not_modified, internal_server_error, bad_request, forbidden,
             not_found, method_not_allowed, not_implemented, directory_index,
             debug_info
 """
 
-from traceback import format_exception
-from time import strftime, gmtime
-from os.path import isfile, isdir, getsize, getctime
-from operator import itemgetter
-from sys import version, exc_info
+import mimetypes
+import os
+from hashlib import sha256
 from inspect import cleandoc
 from logging import getLogger
-from hashlib import sha256
-from typing import Dict, Callable, Optional
+from operator import itemgetter
+from os.path import getctime, getsize, isdir, isfile
+from sys import exc_info, version
+from time import gmtime, strftime
+from traceback import format_exception
+from typing import Callable, Dict, Optional
 
-import os
-import mimetypes
-
-from poorwsgi.response import Response, NotModifiedResponse, HTTPException
-from poorwsgi.state import METHOD_ALL, methods, sorted_methods, \
-    HTTP_NOT_MODIFIED, HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED, HTTP_FORBIDDEN, \
-    HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED, HTTP_INTERNAL_SERVER_ERROR, \
-    HTTP_NOT_IMPLEMENTED, \
-    __version__, __date__
-from poorwsgi.session import get_token
 from poorwsgi.headers import time_to_http
+from poorwsgi.response import HTTPException, NotModifiedResponse, Response
+from poorwsgi.session import get_token
+from poorwsgi.state import (
+    HTTP_BAD_REQUEST,
+    HTTP_FORBIDDEN,
+    HTTP_INTERNAL_SERVER_ERROR,
+    HTTP_METHOD_NOT_ALLOWED,
+    HTTP_NOT_FOUND,
+    HTTP_NOT_IMPLEMENTED,
+    HTTP_NOT_MODIFIED,
+    HTTP_UNAUTHORIZED,
+    METHOD_ALL,
+    __date__,
+    __version__,
+    methods,
+    sorted_methods,
+)
 
-HTML_ESCAPE_TABLE = {'&': "&amp;",
-                     '"': "&quot;",
-                     "'": "&apos;",
-                     '>': "&gt;",
-                     '<': "&lt;"}
+HTML_ESCAPE_TABLE = {
+    "&": "&amp;",
+    '"': "&quot;",
+    "'": "&apos;",
+    ">": "&gt;",
+    "<": "&lt;",
+}
 
 log = getLogger("poorwsgi")
 
@@ -43,19 +54,19 @@ default_states: Dict[int, Dict] = {}
 
 
 def html_escape(text: str):
-    """Escape to html entities."""
-    return ''.join(HTML_ESCAPE_TABLE.get(c, c) for c in text)
+    """Escapes a string for HTML entities."""
+    return "".join(HTML_ESCAPE_TABLE.get(c, c) for c in text)
 
 
 def hbytes(val: float):
-    """Return pair value and unit.
+    """Returns a value and its unit as a pair.
 
     >>> hbytes(2000000)
     (1.9..., 'M')
     >>> hbytes(1024.0)
     (1.0, 'k')
     """
-    unit = ('', 'k', 'M', 'G', 'T', 'P')
+    unit = ("", "k", "M", "G", "T", "P")
     u = 0
     while val > 1000 and u < len(unit):
         u += 1
@@ -64,14 +75,14 @@ def hbytes(val: float):
 
 
 def human_methods_(m):
-    """Return methods in text."""
+    """Returns methods as a text string."""
     if m == METHOD_ALL:
-        return 'ALL'
-    return ' | '.join(key for key, val in sorted_methods if val & m)
+        return "ALL"
+    return " | ".join(key for key, val in sorted_methods if val & m)
 
 
 def handlers_view(handlers, sort=True):
-    """Returns sorted handlers list."""
+    """Returns a sorted list of handlers."""
     rv = []
     for u, d in sorted(handlers.items()) if sort else handlers.items():
         vt = {}
@@ -86,33 +97,40 @@ def handlers_view(handlers, sort=True):
 
 
 def not_modified(req):
-    """Return NotModifiedResponse.
+    """Returns a NotModifiedResponse.
 
-    Headers ETag, Content-Location is return from request.
-    Date header will be set.
+    The ETag and Content-Location headers are returned from the request.
+    The Date header will be set.
     """
     return NotModifiedResponse(
-            etag=req.headers.get('ETag'),
-            content_location=req.headers.get('Content-Location'),
-            date=time_to_http())
+        etag=req.headers.get("ETag"),
+        content_location=req.headers.get("Content-Location"),
+        date=time_to_http(),
+    )
 
 
 def internal_server_error(req, *_):
-    """ More debug 500 Internal Server Error server handler.
+    """A more debug-friendly 500 Internal Server Error server handler.
 
-    It was be called automatically when no handlers are not defined
-    in dispatch_table.errors. If poor_Debug variable is to On, Tracaback
-    will be generated.
+    It is called automatically when no handlers are defined in
+    dispatch_table.errors. If the poor_Debug variable is set to On, a
+    traceback will be generated.
     """
     handler = {"module": None, "name": None, "args": None}
     if req.uri_handler:
         handler["module"] = req.uri_handler.__module__
         handler["name"] = req.uri_handler.__name__
-        handler["args"] = ', '.join(req.uri_handler.__code__.co_varnames)
+        handler["args"] = ", ".join(req.uri_handler.__code__.co_varnames)
 
-    log.exception("Handler `%s.%s(%s)' for %s [%s]",
-                  handler["module"], handler["name"], handler["args"],
-                  req.uri, req.uri_rule, exc_info=True)
+    log.exception(
+        "Handler `%s.%s(%s)' for %s [%s]",
+        handler["module"],
+        handler["name"],
+        handler["args"],
+        req.uri,
+        req.uri_rule,
+        exc_info=True,
+    )
 
     exc_type, exc_value, exc_traceback = exc_info()
 
@@ -132,7 +150,8 @@ def internal_server_error(req, *_):
         "  </style>\n"
         " </head>\n"
         " <body>\n"
-        "  <h1>500 - Internal Server Error</h1>\n")
+        "  <h1>500 - Internal Server Error</h1>\n"
+    )
 
     if req.debug:
         uri = html_escape(req.uri)
@@ -146,45 +165,41 @@ def internal_server_error(req, *_):
             f"  uri_rule: <b><code>{uri_rule}</code></b><br/>\n"
             "  uri_handler: <b><code>"
             f"{handler['module']}.{handler['name']}({handler['args']})"
-            "</code></b><br/>\n")
+            "</code></b><br/>\n"
+        )
 
-        res.write(
-            "  <h2>Exception Traceback</h2>\n"
-            "  <pre>\n")
+        res.write("  <h2>Exception Traceback</h2>\n  <pre>\n")
 
         # Traceback
-        traceback = format_exception(exc_type,
-                                     exc_value,
-                                     exc_traceback)
-        traceback = ''.join(traceback)
-        traceback = traceback.split('\n')
+        traceback = format_exception(exc_type, exc_value, exc_traceback)
+        traceback = "".join(traceback)
+        traceback = traceback.split("\n")
 
         for i, line in enumerate(traceback):
             traceback_line = html_escape(line)
-            res.write('<span class="line%s">%s</span>\n' %
-                      (i % 2, traceback_line))
+            res.write(
+                '<span class="line%s">%s</span>\n' % (i % 2, traceback_line)
+            )
 
         res.write(
             "  </pre>\n"
             "  <hr>\n"
             "  <small><i>%s / Poor WSGI for Python ,webmaster: %s</i></small>"
-            "\n" % (req.server_software, req.server_admin))
+            "\n" % (req.server_software, req.server_admin)
+        )
     else:
         res.write(
             "  <hr>\n"
-            "  <small><i>webmaster: %s </i></small>\n" % req.server_admin)
-    # endif
+            "  <small><i>webmaster: %s </i></small>\n" % req.server_admin
+        )
 
-    res.write(
-        " </body>\n"
-        "</html>")
+    res.write(" </body>\n</html>")
 
     return res
-# enddef
 
 
 def bad_request(req, error=None):
-    """ 400 Bad Request server error handler. """
+    """A 400 Bad Request server error handler."""
     if error:
         log.warning("400 - Bad Request: %s", error)
     path = "[ NOT PARSED ]"
@@ -214,39 +229,47 @@ def bad_request(req, error=None):
         "  <hr>\n"
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
-        "</html>" % (req.method, html_escape(path), error or "",
-                     req.server_admin))
+        "</html>"
+        % (req.method, html_escape(path), error or "", req.server_admin)
+    )
     return Response(content, status_code=HTTP_BAD_REQUEST)
 
 
-def unauthorized(req, realm=None, stale='', error=None):
-    """Return 401 Unauthorized response."""
+def unauthorized(req, realm=None, stale="", error=None):
+    """Returns a 401 Unauthorized response."""
     if error:
         log.warning("401 - Unauthorized response: %s", error)
     headers = None
-    if req.app.auth_type == 'Digest':
+    if req.app.auth_type == "Digest":
         if not realm:
             raise RuntimeError("Digest: realm value must be set")
 
-        nonce = get_token(req.secret_key, req.user_agent,
-                          timeout=req.app.auth_timeout)
+        nonce = get_token(
+            req.secret_key, req.user_agent, timeout=req.app.auth_timeout
+        )
         opaque = sha256(req.server_hostname.encode()).hexdigest()
 
-        qop = req.app.auth_qop or ''
+        qop = req.app.auth_qop or ""
         if qop:
             qop = 'qop="%s",' % req.app.auth_qop
 
         header = (
             'Digest realm="{realm}",{qop}algorithm="{algorithm}",'
             'nonce="{nonce}",opaque="{opaque}"'
-            ''.format(realm=realm, qop=qop, algorithm=req.app.auth_algorithm,
-                      nonce=nonce, opaque=opaque))
+            "".format(
+                realm=realm,
+                qop=qop,
+                algorithm=req.app.auth_algorithm,
+                nonce=nonce,
+                opaque=opaque,
+            )
+        )
         if stale:
-            header += ',stale=true'
+            header += ",stale=true"
 
         # Headers could be tuple, than each header value must be another
         # available authenticate method, for example SHA-256 algorithm.
-        headers = {'WWW-Authenticate': header}
+        headers = {"WWW-Authenticate": header}
 
     content = (
         "<!DOCTYPE html>\n"
@@ -267,13 +290,14 @@ def unauthorized(req, realm=None, stale='', error=None):
         "  <hr>\n"
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
-        "</html>" % (req.method, html_escape(req.uri), req.server_admin))
+        "</html>" % (req.method, html_escape(req.uri), req.server_admin)
+    )
 
     return Response(content, headers=headers, status_code=HTTP_UNAUTHORIZED)
 
 
 def forbidden(req, error=None):
-    """ 403 - Forbidden Access server error handler. """
+    """A 403 - Forbidden Access server error handler."""
     if error:
         log.warning("400 - Forbidden Access: %s", error)
 
@@ -297,13 +321,13 @@ def forbidden(req, error=None):
         "  <hr>\n"
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
-        "</html>" % (html_escape(req.uri), req.server_admin))
+        "</html>" % (html_escape(req.uri), req.server_admin)
+    )
     return Response(content, status_code=HTTP_FORBIDDEN)
-# enddef
 
 
 def not_found(req, error=None):
-    """ 404 - Page Not Found server error handler. """
+    """A 404 - Page Not Found server error handler."""
     if error:
         log.warning("404 - Not Found: %s", error)
 
@@ -326,13 +350,13 @@ def not_found(req, error=None):
         "  <hr>\n"
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
-        "</html>" % (html_escape(req.uri), req.server_admin))
+        "</html>" % (html_escape(req.uri), req.server_admin)
+    )
     return Response(content, status_code=HTTP_NOT_FOUND)
-# enddef
 
 
 def method_not_allowed(req, error=None):
-    """ 405 Method Not Allowed server error handler. """
+    """A 405 Method Not Allowed server error handler."""
     if error:
         log.warning("405 - Method Not Allowed: %s", error)
 
@@ -356,13 +380,13 @@ def method_not_allowed(req, error=None):
         "  <hr>\n"
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
-        "</html>" % (req.method, html_escape(req.uri), req.server_admin))
+        "</html>" % (req.method, html_escape(req.uri), req.server_admin)
+    )
     return Response(content, status_code=HTTP_METHOD_NOT_ALLOWED)
-# enddef
 
 
 def not_implemented(req, code: Optional[int] = None, error=None):
-    """ 501 Not Implemented server error handler. """
+    """A 501 Not Implemented server error handler."""
     if error:
         log.error("501 - Not Implemented: %s", error)
 
@@ -380,38 +404,44 @@ def not_implemented(req, code: Optional[int] = None, error=None):
         " </style>\n"
         " </head>\n"
         " <body>\n"
-        "  <h1>501 - Not Implemented</h1>\n")
+        "  <h1>501 - Not Implemented</h1>\n"
+    )
 
     if code:
         content += (
             "  <p>Your reqeuest <code>%s</code> returned not implemented\n"
-            "   status code <code>%s</code>.</p>\n" % (html_escape(req.uri),
-                                                       code))
-        log.error('Your reqeuest %s returned not implemented status code %s',
-                  html_escape(req.uri), code)
+            "   status code <code>%s</code>.</p>\n"
+            % (html_escape(req.uri), code)
+        )
+        log.error(
+            "Your reqeuest %s returned not implemented status code %s",
+            html_escape(req.uri),
+            code,
+        )
     else:
         content += (
             " <p>Response for Your reqeuest <code>%s</code>\n"
-            "  is not implemented</p>" % html_escape(req.uri))
-    # endif
+            "  is not implemented</p>" % html_escape(req.uri)
+        )
 
     content += (
         "  <hr>\n"
         "  <small><i>webmaster: %s </i></small>\n"
         " </body>\n"
-        "</html>" % req.server_admin)
+        "</html>" % req.server_admin
+    )
 
     return Response(content, status_code=HTTP_NOT_IMPLEMENTED)
-# enddef
 
 
 def directory_index(req, path):  # noqa: C901
-    """Returns directory index as html page."""
+    """Returns a directory index as an HTML page."""
     if not isdir(path):
         log.error(
             "Only directory_index can be send with directory_index handler. "
             "`%s' is not directory.",
-            path)
+            path,
+        )
         raise HTTPException(HTTP_INTERNAL_SERVER_ERROR)
 
     last_modified = time_to_http(getctime(path))
@@ -422,7 +452,7 @@ def directory_index(req, path):  # noqa: C901
 
     index.sort()
 
-    diruri = html_escape(req.uri.rstrip('/'))
+    diruri = html_escape(req.uri.rstrip("/"))
     content = (
         "<!DOCTYPE html>\n"
         "<html>\n"
@@ -442,7 +472,8 @@ def directory_index(req, path):  # noqa: C901
         "  <hr>\n"
         "  <table>\n"
         "   <tr><th>Name</th><th>Last Modified</th>"
-        "<th class=\"size\">Size</th><th>Type</th></tr>\n" % (diruri, diruri))
+        '<th class="size">Size</th><th>Type</th></tr>\n' % (diruri, diruri)
+    )
 
     for item in index:
         # dot files
@@ -456,94 +487,117 @@ def directory_index(req, path):  # noqa: C901
         if not os.access(fpath, os.R_OK):
             continue
 
-        fname = item + ('/' if isdir(fpath) else '')
+        fname = item + ("/" if isdir(fpath) else "")
         ftype = ""
 
         if isfile(fpath):
             # pylint: disable=unused-variable
-            (ftype, encoding) = mimetypes.guess_type(fpath)
+            (ftype, _) = mimetypes.guess_type(fpath)
             if not ftype:
-                ftype = 'application/octet-stream'
+                ftype = "application/octet-stream"
             size = "%.1f%s" % hbytes(getsize(fpath))
         elif isdir(fpath):
             ftype = "Directory"
             size = "-"
         else:
-            size = ftype = '-'
+            size = ftype = "-"
 
         content += (
-            "   <tr><td><a href=\"%s\">%s</a></td><td>%s</td>"
-            "<td class=\"size\">%s</td><td>%s</td></tr>\n" %
-            (diruri + '/' + fname,
-             fname,
-             strftime("%d-%b-%Y %H:%M", gmtime(getctime(fpath))),
-             size,
-             ftype))
+            '   <tr><td><a href="%s">%s</a></td><td>%s</td>'
+            '<td class="size">%s</td><td>%s</td></tr>\n'
+            % (
+                diruri + "/" + fname,
+                fname,
+                strftime("%d-%b-%Y %H:%M", gmtime(getctime(fpath))),
+                size,
+                ftype,
+            )
+        )
 
-    content += (
-        "  </table>\n"
-        "  <hr>\n")
+    content += "  </table>\n  <hr>\n"
 
     if req.debug:
         content += (
             "  <small><i>%s / Poor WSGI for Python, "
-            "webmaster: %s </i></small>\n" %
-            (req.server_software, req.server_admin)
+            "webmaster: %s </i></small>\n"
+            % (req.server_software, req.server_admin)
         )
     else:
-        content += ("  <small><i>webmaster: %s </i></small>\n" %
-                    req.server_admin)
+        content += (
+            "  <small><i>webmaster: %s </i></small>\n" % req.server_admin
+        )
 
-    content += (
-        "  </body>\n"
-        "</html>")
+    content += "  </body>\n</html>"
 
-    return (content, "text/html; character=utf-8",
-            ('Last-Modified', last_modified))
+    return (
+        content,
+        "text/html; character=utf-8",
+        ("Last-Modified", last_modified),
+    )
 
 
 def debug_info(req, app):
-    """Return debug page.
+    """Returns the debug page.
 
-    When Application.debug is enable, this handler is used for /debug-info.
+    When Application.debug is enabled, this handler is used for /debug-info.
     """
     # pylint: disable=too-many-locals
     # transform static handlers table to html
     shandlers_html = "<tr><th>Static:</th></tr>\n"
     shandlers_html += "\n".join(
-        ('   <tr><td colspan="2"><a href="%s">%s</a></td>'
-         '<td>%s</td><td>%s</td></tr>' %
-         (html_escape(u), html_escape(u), human_methods_(m),
-          f.__module__+'.'+f.__name__)
-         for u, m, f in handlers_view(app.routes)))
+        (
+            '   <tr><td colspan="2"><a href="%s">%s</a></td>'
+            "<td>%s</td><td>%s</td></tr>"
+            % (
+                html_escape(u),
+                html_escape(u),
+                human_methods_(m),
+                f.__module__ + "." + f.__name__,
+            )
+            for u, m, f in handlers_view(app.routes)
+        )
+    )
 
     # regular expression handlers
     rhandlers_html = "<tr><th>Regular expression:</th></tr>\n"
     rhandlers_html += "\n".join(
-        ('   <tr><td><div class="path">%s</div></td>'
-         '<td>%s</td><td>%s</td><td>%s</td></tr>' %
-         (html_escape(r or u.pattern),
-          ', '.join(tuple("%s:<b>%s</b>" % (G, C.__name__) for G, C in c)),
-          human_methods_(m),
-          f.__module__+'.'+f.__name__)
-         for u, m, (f, c, r) in handlers_view(app.regular_routes, False)))
+        (
+            '   <tr><td><div class="path">%s</div></td>'
+            "<td>%s</td><td>%s</td><td>%s</td></tr>"
+            % (
+                html_escape(r or u.pattern),
+                ", ".join(
+                    tuple("%s:<b>%s</b>" % (G, C.__name__) for G, C in c)
+                ),
+                human_methods_(m),
+                f.__module__ + "." + f.__name__,
+            )
+            for u, m, (f, c, r) in handlers_view(app.regular_routes, False)
+        )
+    )
 
     dhandlers_html = "<tr><th>Default:</th></tr>\n"
     # this function could be called by user, so we need to test req.debug
-    if req.debug and 'debug-info' not in app.routes:
-        dhandlers_html += ('   <tr><td colspan="2"><a href="%s">%s</a></td>'
-                           '<td>%s</td><td>%s</td></tr>\n' %
-                           ('/debug-info',
-                            '/debug-info',
-                            'ALL',
-                            debug_info.__module__+'.'+debug_info.__name__))
+    if req.debug and "debug-info" not in app.routes:
+        dhandlers_html += (
+            '   <tr><td colspan="2"><a href="%s">%s</a></td>'
+            "<td>%s</td><td>%s</td></tr>\n"
+            % (
+                "/debug-info",
+                "/debug-info",
+                "ALL",
+                debug_info.__module__ + "." + debug_info.__name__,
+            )
+        )
 
     dhandlers_html += "\n".join(
-        ('   <tr><td colspan="2">_default_handler_</td>'
-         '<td>%s</td><td>%s</td></tr>' %
-         (human_methods_(m),
-          f.__module__+'.'+f.__name__)
-         for x, m, f in handlers_view({'x': app.defaults})))
+        (
+            '   <tr><td colspan="2">_default_handler_</td>'
+            "<td>%s</td><td>%s</td></tr>"
+            % (human_methods_(m), f.__module__ + "." + f.__name__)
+            for x, m, f in handlers_view({"x": app.defaults})
+        )
+    )
 
     # transform state handlers and default state table to html, users handler
     # from shandlers are preferer
@@ -556,73 +610,95 @@ def debug_info(req, app):
             _tmp_shandlers[key] = val
 
     ehandlers_html = "\n".join(
-        "   <tr><td>%s</td><td>%s</td><td>%s</td></tr>" %
-        (c, human_methods_(m), f.__module__+'.'+f.__name__)
-        for c, m, f in handlers_view(_tmp_shandlers))
+        "   <tr><td>%s</td><td>%s</td><td>%s</td></tr>"
+        % (c, human_methods_(m), f.__module__ + "." + f.__name__)
+        for c, m, f in handlers_view(_tmp_shandlers)
+    )
 
     # pre and post table
     pre, post = app.before, app.after
     if len(pre) >= len(post):
-        post += (len(pre)-len(post)) * (None, )
+        post += (len(pre) - len(post)) * (None,)
     else:
-        pre += (len(post)-len(pre)) * (None, )
+        pre += (len(post) - len(pre)) * (None,)
 
     pre_post_html = "\n".join(
-        "   <tr><td>%s</td><td>%s</td></tr>" %
-        (f0.__module__+'.'+f0.__name__ if f0 is not None else '',
-         f1.__module__+'.'+f1.__name__ if f1 is not None else '',)
-        for f0, f1 in zip(pre, post))
+        "   <tr><td>%s</td><td>%s</td></tr>"
+        % (
+            f0.__module__ + "." + f0.__name__ if f0 is not None else "",
+            f1.__module__ + "." + f1.__name__ if f1 is not None else "",
+        )
+        for f0, f1 in zip(pre, post)
+    )
 
     # filters
     filters_html = "\n".join(
-        "   <tr><td>%s</td><td>%s</td><td>%s</td></tr>" %
-        (f, html_escape(str(r)), c.__name__)
-        for f, (r, c) in app.filters.items())
+        "   <tr><td>%s</td><td>%s</td><td>%s</td></tr>"
+        % (f, html_escape(str(r)), c.__name__)
+        for f, (r, c) in app.filters.items()
+    )
 
     # transform actual request headers to hml
-    headers_html = "\n".join((
-        "   <tr><td>%s:</td><td>%s</td></tr>" %
-        (key, html_escape(val)) for key, val in req.headers.items()))
+    headers_html = "\n".join(
+        (
+            "   <tr><td>%s:</td><td>%s</td></tr>" % (key, html_escape(val))
+            for key, val in req.headers.items()
+        )
+    )
 
     # transform some poor wsgi variables to html
-    poor_html = "\n".join((
-        "   <tr><td>%s:</td><td>%s</td></tr>" %
-        (key, html_escape(str(val))) for key, val in (
-            ('Debug', req.debug),
-            ('Version', "%s (%s)" % (__version__, __date__)),
-            ('Python Version', version),
-            ('Server Software', req.server_software),
-            ('Server Hostname', req.server_hostname),
-            ('Server Port', req.server_port),
-            ('Server Scheme', req.server_scheme),
-            ('HTTP Hostname', req.hostname),
-            ('Server Admin', req.server_admin),
-            ('Forward For', req.forwarded_for),
-            ('Forward Host', req.forwarded_host),
-            ('Forward Proto', req.forwarded_proto),
-            ('Document Root', req.document_root),
-            ('Document Index', req.document_index),
-            ('Secret Key', '*'*5 + ' see in error output (wsgi log)'
-             ' when Log Level is <b>debug</b> ' + '*'*5)
-        )))
-    log.debug('SecretKey: %s', repr(req.secret_key))
+    poor_html = "\n".join(
+        (
+            "   <tr><td>%s:</td><td>%s</td></tr>"
+            % (key, html_escape(str(val)))
+            for key, val in (
+                ("Debug", req.debug),
+                ("Version", "%s (%s)" % (__version__, __date__)),
+                ("Python Version", version),
+                ("Server Software", req.server_software),
+                ("Server Hostname", req.server_hostname),
+                ("Server Port", req.server_port),
+                ("Server Scheme", req.server_scheme),
+                ("HTTP Hostname", req.hostname),
+                ("Server Admin", req.server_admin),
+                ("Forward For", req.forwarded_for),
+                ("Forward Host", req.forwarded_host),
+                ("Forward Proto", req.forwarded_proto),
+                ("Document Root", req.document_root),
+                ("Document Index", req.document_index),
+                (
+                    "Secret Key",
+                    "*" * 5 + " see in error output (wsgi log)"
+                    " when Log Level is <b>debug</b> " + "*" * 5,
+                ),
+            )
+        )
+    )
+    log.debug("SecretKey: %s", repr(req.secret_key))
 
     # tranform application variables to html
-    app_html = "\n".join((
-        "   <tr><td>%s:</td><td>%s</td></tr>" %
-        (key, html_escape(val)) for key, val in req.get_options().items()))
+    app_html = "\n".join(
+        (
+            "   <tr><td>%s:</td><td>%s</td></tr>" % (key, html_escape(val))
+            for key, val in req.get_options().items()
+        )
+    )
 
     environ = req.environ.copy()
-    if hasattr(os, 'getgid'):
-        environ['os.pgid'] = os.getgid()
-        environ['os.puid'] = os.getuid()
-        environ['os.egid'] = os.getegid()
-        environ['os.euid'] = os.geteuid()
+    if hasattr(os, "getgid"):
+        environ["os.pgid"] = os.getgid()
+        environ["os.puid"] = os.getuid()
+        environ["os.egid"] = os.getegid()
+        environ["os.euid"] = os.geteuid()
 
     # transfotm enviroment variables to html
-    environ_html = "\n".join((
-        "   <tr><td>%s:</td><td>%s</td></tr>" %
-        (key, html_escape(str(val))) for key, val in sorted(environ.items())))
+    environ_html = "\n".join(
+        (
+            "   <tr><td>%s:</td><td>%s</td></tr>"
+            % (key, html_escape(str(val)))
+            for key, val in sorted(environ.items())
+        )
+    )
 
     content_html = cleandoc(
         """
@@ -709,21 +785,23 @@ def debug_info(req, app):
           <hr>
           <small><i>%s / Poor WSGI for Python , webmaster: %s </i></small>
          </body>
-        </html>""") % (shandlers_html,
-                       rhandlers_html,
-                       dhandlers_html,
-                       ehandlers_html,
-                       pre_post_html,
-                       filters_html,
-                       headers_html,
-                       poor_html,
-                       app_html,
-                       environ_html,
-                       req.server_software,
-                       req.server_admin)
+        </html>"""
+    ) % (
+        shandlers_html,
+        rhandlers_html,
+        dhandlers_html,
+        ehandlers_html,
+        pre_post_html,
+        filters_html,
+        headers_html,
+        poor_html,
+        app_html,
+        environ_html,
+        req.server_software,
+        req.server_admin,
+    )
 
     return content_html
-# enddef
 
 
 def __fill_default_shandlers(code: int, handler: Callable):
@@ -741,6 +819,14 @@ __fill_default_shandlers(HTTP_METHOD_NOT_ALLOWED, method_not_allowed)
 __fill_default_shandlers(HTTP_INTERNAL_SERVER_ERROR, internal_server_error)
 __fill_default_shandlers(HTTP_NOT_IMPLEMENTED, not_implemented)
 
-__all__ = ['not_modified', 'internal_server_error', 'bad_request', 'forbidden',
-           'not_found', 'method_not_allowed', 'not_implemented',
-           'directory_index', 'debug_info']
+__all__ = [
+    "bad_request",
+    "debug_info",
+    "directory_index",
+    "forbidden",
+    "internal_server_error",
+    "method_not_allowed",
+    "not_found",
+    "not_implemented",
+    "not_modified",
+]

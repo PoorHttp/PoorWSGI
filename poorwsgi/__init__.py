@@ -4,23 +4,21 @@ Poor WSGI connector for Python
 Current Contents:
 
 * headers: Headers
-* request: Request and FieldStorage classes, which is used for
+* request: Request and FieldStorage classes, which are used for
   managing requests.
-* response: Response classes and some make responses functions for creating
-  request response.
-* results: default result handlers of connector like directory index,
-  servers errors or debug output handler.
-* session: self-contained cookie based session class
-* state: constants like http status code and method types
-* wsgi: Application callable class, which is the main point for poorwsgi web
-  application.
+* response: Response classes and functions for creating HTTP responses.
+* results: Default result handlers for the connector, such as directory index,
+  server errors, or debug output handlers.
+* session: A self-contained cookie-based session class.
+* state: Constants like HTTP status codes and method types.
+* wsgi: The Application callable class, which is the main entry point for a
+  PoorWSGI web application.
 * digest: HTTP Digest Authorization support.
 * openapi_wrapper: OpenAPI core wrapper for PoorWSGI Request and Response
-  object
+  objects.
 """
 
-from poorwsgi.response import redirect, abort, make_response
-
+from poorwsgi.response import abort, make_response, redirect
 from poorwsgi.wsgi import Application
 
-__all__ = ["Application", "redirect", "abort", "make_response"]
+__all__ = ["Application", "abort", "make_response", "redirect"]

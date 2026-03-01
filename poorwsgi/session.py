@@ -25,13 +25,12 @@ log = getLogger("poorwsgi")  # pylint: disable=invalid-name
 
 
 def hidden(text: Union[str, bytes], passwd: Union[str, bytes]) -> bytes:
-    """(en|de)crypt text with sha hash of passwd via xor.
+    """(En|de)crypts text with a SHA hash of the password via XOR.
 
-    Arguments:
-        text : str or bytes
-            raw data to (en|de)crypt
-        passwd : str or bytes
-            password
+    text
+        Raw data to (en|de)crypt.
+    passwd
+        The password.
     """
     if isinstance(passwd, bytes):
         passwd = sha512(passwd).digest()
@@ -57,10 +56,10 @@ def hidden(text: Union[str, bytes], passwd: Union[str, bytes]) -> bytes:
 
 def get_token(secret: str, client: str, timeout: Optional[int] = None,
               expired: int = 0):
-    """Create token from secret, and client string.
+    """Creates a token from a secret and client string.
 
-    If timeout is set, token contains time align with twice of this value.
-    Twice, because time of creating can be so near to computed time.
+    If timeout is set, the token contains a time aligned with twice this value.
+    This is because the creation time can be very close to the computed time.
     """
     if timeout is None:
         text = "%s%s" % (secret, client)
@@ -75,10 +74,11 @@ def get_token(secret: str, client: str, timeout: Optional[int] = None,
 
 def check_token(token: str, secret: str, client: str,
                 timeout: Optional[int] = None):
-    """Check token, if it is right.
+    """Checks if the token is correct.
 
-    Arguments secret, client and expired must be same, when token was
-    generated. If expired is set, than token must be younger than 2*expired.
+    The secret, client, and timeout arguments must match those used when
+    the token was generated. If timeout is set, the token must not be
+    older than 2 * timeout.
     """
     if timeout is None:
         return token == get_token(secret, client)
@@ -95,67 +95,66 @@ def check_token(token: str, secret: str, client: str,
 
 
 class SessionError(RuntimeError):
-    """Base Exception for Session"""
+    """Base Exception for Session."""
 
 
 class NoCompress:
-    """Fake compress class/module whith two static method for PoorSession.
+    """Fake compress class/module with two static methods for PoorSession.
 
-    If compress parameter is None, this class is use.
+    If the compress parameter is None, this class is used.
     """
-
     @staticmethod
     def compress(data, compresslevel=0):  # pylint: disable=unused-argument
-        """Get two params, data, and compresslevel. Method only return data."""
+        """Accepts data and compresslevel, and returns data unchanged."""
         return data
 
     @staticmethod
     def decompress(data):
-        """Get one parameter data, which returns."""
+        """Accepts data and returns it unchanged."""
         return data
 
 
 class PoorSession:
-    """Self-contained cookie with session data.
+    """A self-contained cookie with session data.
 
-    You cat store or read data from object via PoorSession.data variable which
-    must be dictionary. Data is stored to cookie by pickle dump, and next
-    hidden with app.secret_key. So it must be set on Application object or with
-    poor_SecretKey environment variable. Be careful with stored object. You can
-    add object with little python trick:
+    You can store or read data from the object via the PoorSession.data
+    variable, which must be a dictionary. Data is stored to the cookie by
+    JSON serialization and then hidden with app.secret_key. Therefore, it
+    must be set on the Application object or with the poor_SecretKey
+    environment variable. Be careful with stored objects. You can add
+    objects with a little Python trick:
 
     .. code:: python
 
         sess = PoorSession(app.secret_key)
 
-        sess.data['class'] = obj.__class__          # write to cookie
+        sess.data['class'] = obj.__class__.__name__   # write to cookie
         sess.data['dict'] = obj.__dict__.copy()
 
-        obj = sess.data['class']()                  # read from cookie
+        obj = globals()[sess.data['class']]()         # read from cookie
         obj.__dict__ = sess.data['dict'].copy()
 
-    Or for beter solution, you can create export and import methods for you
-    object like that:
+    For a better solution, you can create export and import methods for
+    your object like this:
 
     .. code:: python
 
-        class Obj(object):
-            def import(self, d):
+        class Obj:
+            def from_dict(self, d):
                 self.attr1 = d['attr1']
                 self.attr2 = d['attr2']
 
-            def export(self):
-                d = {'attr1': self.attr1, 'attr2': self.attr2}
-                return d
+            def to_dict(self):
+                return {'attr1': self.attr1, 'attr2': self.attr2}
 
         obj = Obj()
         sess = PoorSession(app.secret_key)
 
-        sess.data['class'] = obj.__class__          # write to cookie
-        sess.data['dict'] = obj.export()
+        sess.data['name'] = obj.__class__.__name__    # write to cookie
+        sess.data['dict'] = obj.to_dict()
 
-        obj = sess.data['class']()                  # read from cookie
-        obj.import(sess.data['dict'])
+        obj = globals()[sess.data['name']]()          # read from cookie
+        obj.from_dict(sess.data['dict'])
     """
 
     def __init__(self, secret_key: Union[Request, str, bytes],
@@ -165,49 +164,50 @@ class PoorSession:
         """Constructor.
 
         Arguments:
-            expires : int
-                Cookie ``Expires`` time in seconds, if it 0, no expire is set
-            max_age : int
+            expires
+                Cookie ``Expires`` time in seconds. If it is 0, no expiration
+                is set.
+            max_age
                 Cookie ``Max-Age`` attribute. If both expires and max-age are
                 set, max_age has precedence.
-            domain : str
-                Cookie ``Host`` to which the cookie will be sent.
-            path : str
-                Cookie ``Path`` that must exist in the requested URL.
-            secure : bool
-                If ``Secure`` cookie attribute will be sent.
-            same_site: str
-                The ``SameSite`` attribute. When is set could be one of
-                ``Strict|Lax|None``. By default attribute is not set which is
-                ``Lax`` by browser.
-            compress : compress module or class.
-                Could be ``bz2``, ``gzip.zlib``, or any other, which have
-                standard compress and decompress methods. Or it could be
+            domain
+                The cookie ``Host`` to which the cookie will be sent.
+            path
+                The cookie ``Path`` that must exist in the requested URL.
+            secure
+                If the ``Secure`` cookie attribute will be sent.
+            same_site
+                The ``SameSite`` attribute. When set, it can be one of
+                ``Strict|Lax|None``. By default, the attribute is not
+                set, which browsers default to ``Lax``.
+            compress
+                Can be ``bz2``, ``gzip.zlib``, or any other, which has
+                standard compress and decompress methods. Or it can be
                 ``None`` to not use any compressing method.
-            sid : str
-                Cookie key name.
+            sid
+                The cookie key name.
 
-        .. code:: Python
+        .. code:: python
 
             session_config = {
                 'expires': 3600,  # one hour
                 'max_age': 3600,
                 'domain': 'example.net',
                 'path': '/application',
-                ̈́'secure': True,
+                'secure': True,
                 'same_site': True,
                 'compress': gzip,
                 'sid': 'MYSID'
             }
 
-            session = PostSession(app.secret_key, **config)
+            session = PoorSession(app.secret_key, **session_config)
             try:
                 session.load(req.cookies)
             except SessionError as err:
                 log.error("Invalid session: %s", str(err))
 
-        *Changed in version 2.4.x*: use app.secret_key in constructor, and than
-        call load method.
+        *Changed in version 2.4.x*: Use app.secret_key in the
+        constructor, and then call the load method.
         """
         if not isinstance(secret_key, (str, bytes)):  # backwards compatibility
             log.warning('Do not use request in PoorSession constructor, '
@@ -236,7 +236,7 @@ class PoorSession:
             self.load(secret_key.cookies)
 
     def load(self, cookies: Optional[SimpleCookie]):
-        """Load session from request's cookie"""
+        """Loads the session from the request's cookie."""
         if not isinstance(cookies, SimpleCookie) or self.__sid not in cookies:
             return
         raw = cookies[self.__sid].value
@@ -254,9 +254,9 @@ class PoorSession:
                 raise SessionError("Cookie data is not dictionary!")
 
     def write(self):
-        """Store data to cookie value.
+        """Stores data to the cookie value.
 
-        This method is called automatically in header method.
+        This method is called automatically in the header method.
         """
         raw = b64encode(self.__cps.compress(hidden(dumps(self.data),
                                                    self.__secret_key), 9))
@@ -280,9 +280,10 @@ class PoorSession:
         return raw
 
     def destroy(self):
-        """Destroy session. In fact, set cookie expires value to past (-1).
+        """Destroys the session by setting the cookie's expires value
+        to the past (-1).
 
-        Be sure, that data can't be changed:
+        Ensures that data cannot be changed:
         https://stackoverflow.com/a/5285982/8379994
         """
         self.cookie[self.__sid]['expires'] = -1
@@ -293,12 +294,12 @@ class PoorSession:
             self.cookie[self.__sid]['Secure'] = True
 
     def header(self, headers: Optional[Union[Headers, Response]] = None):
-        """Generate cookie headers and append it to headers if it set.
+        """Generates cookie headers and appends them to headers if set.
 
-        Returns list of cookie header pairs.
+        Returns a list of cookie header pairs.
 
-        headers : Headers or Response
-            Object, which is used to write header directly.
+        headers
+            The object used to write the header directly.
         """
         self.write()
         cookies = self.cookie.output().split('\r\n')

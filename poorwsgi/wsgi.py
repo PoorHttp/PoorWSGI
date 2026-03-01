@@ -1,4 +1,5 @@
-"""Application callable class, which is the main point for wsgi application.
+"""Application callable class, which is the main entry point for a WSGI
+application.
 
 :Classes:   Application
 :Functions: to_response
@@ -8,48 +9,67 @@
 # pylint: disable=unsubscriptable-object
 # pylint: disable=consider-using-f-string
 
-from os import path, access, R_OK, environ
-from collections import OrderedDict
-from logging import getLogger
-from hashlib import md5, sha256
-from typing import Union, Callable, Optional, Type, ClassVar
-from time import time
-
 import re
 import uuid
+from collections import OrderedDict
+from hashlib import md5, sha256
+from logging import getLogger
+from os import R_OK, access, environ, path
+from time import time
+from typing import Callable, ClassVar, Optional, Type, Union
 
-from poorwsgi.state import \
-    METHOD_GET, METHOD_POST, METHOD_HEAD, methods, \
-    HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND, HTTP_FORBIDDEN, \
-    deprecated
 from poorwsgi.request import Request, SimpleRequest
-from poorwsgi.results import default_states, not_implemented, \
-    internal_server_error, directory_index, debug_info
-from poorwsgi.response import BaseResponse, HTTPException, \
-    FileObjResponse, FileResponse, make_response, ResponseError
+from poorwsgi.response import (
+    BaseResponse,
+    FileObjResponse,
+    FileResponse,
+    HTTPException,
+    ResponseError,
+    make_response,
+)
+from poorwsgi.results import (
+    debug_info,
+    default_states,
+    directory_index,
+    internal_server_error,
+    not_implemented,
+)
+from poorwsgi.state import (
+    HTTP_FORBIDDEN,
+    HTTP_METHOD_NOT_ALLOWED,
+    HTTP_NOT_FOUND,
+    METHOD_GET,
+    METHOD_HEAD,
+    METHOD_POST,
+    deprecated,
+    methods,
+)
 
 log = getLogger("poorwsgi")
 
 # check, if there is define filter in uri
-re_filter = re.compile(r'<(\w+)(:[^>]+)?>')
+re_filter = re.compile(r"<(\w+)(:[^>]+)?>")
 
 # check for invalid route definitions with spaces
-# Matches: <{space}name, <name{space}: , <name{space}> , <name:{space}word, <name:filter{space}>
-re_invalid_filter = re.compile(r'<\s+\w+|<\w+\s+[:|>]|<\w+:\s+\w+|<\w+:[^>]+\s+>')
+# Matches: <{space}name, <name{space}: , <name{space}> , <name:{space}word,
+# <name:filter{space}>
+re_invalid_filter = re.compile(
+    r"<\s+\w+|<\w+\s+[:|>]|<\w+:\s+\w+|<\w+:[^>]+\s+>"
+)
 
 # Supported authorization algorithms
 AUTH_DIGEST_ALGORITHMS = {
-    'MD5': md5,
-    'MD5-sess': md5,
-    'SHA-256': sha256,
-    'SHA-256-sess': sha256,
+    "MD5": md5,
+    "MD5-sess": md5,
+    "SHA-256": sha256,
+    "SHA-256-sess": sha256,
     # 'SHA-512-256': sha512,  # Need extend library
     # 'SHA-512-256-sess': sha512,
 }
 
 
 def to_response(response):
-    """handler response to application response."""
+    """Converts a handler's response to an application response."""
     if isinstance(response, BaseResponse):
         return response
 
@@ -58,23 +78,24 @@ def to_response(response):
     return make_response(*response)
 
 
-class Application():
-    """Poor WSGI application which is called by WSGI server.
+class Application:
+    """Poor WSGI application that is called by the WSGI server.
 
-    Working of is describe in PEP 0333. This object store route dispatch table,
-    and have methods for it's using and of course __call__ method for use
-    as WSGI application.
+    Its working is described in PEP 0333. This object stores the route
+    dispatch table, and has methods for its use, as well as a __call__
+    method for use as a WSGI application.
     """
+
     # pylint: disable=too-many-public-methods
     __instances: ClassVar[list[str]] = []
 
     def __init__(self, name="__main__"):
-        """Application class is per name singleton.
+        """The Application class is a per-name singleton.
 
-        That means, there could be exist only one instance with same name.
+        That means, there can only be one instance with the same name.
         """
         if Application.__instances.count(name):
-            raise RuntimeError('Application with name %s exist yet.' % name)
+            raise RuntimeError("Application with name %s exist yet." % name)
         Application.__instances.append(name)
 
         # Application name
@@ -91,14 +112,17 @@ class Application():
         self.__handlers = {}
 
         self.__filters = {
-            ':int': (r'-?\d+', int),
-            ':float': (r'-?\d+(\.\d+)?', float),
-            ':word': (r'\w+', str),
-            ':hex': (r'[0-9a-fA-F]+', str),
-            ':uuid': (r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-'
-                      r'[0-9a-fA-F]{4}-[0-9a-fA-F]{12}', uuid.UUID),
-            ':re:': (None, str),
-            'none': (r'[^/]+', str)
+            ":int": (r"-?\d+", int),
+            ":float": (r"-?\d+(\.\d+)?", float),
+            ":word": (r"\w+", str),
+            ":hex": (r"[0-9a-fA-F]+", str),
+            ":uuid": (
+                r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+                r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+                uuid.UUID,
+            ),
+            ":re:": (None, str),
+            "none": (r"[^/]+", str),
         }
 
         # handlers of regex paths: {r'/user/([a-z]?)': {METHOD_GET: handler}}
@@ -112,33 +136,34 @@ class Application():
 
         # -- Application variable
         self.__config = {
-            'auto_args': True,
-            'auto_form': True,
-            'auto_json': True,
-            'auto_data': True,
-            'cached_size': 65365,
-            'data_size': 65365,
-            'read_timeout': 10,
-            'keep_blank_values': 0,
-            'strict_parsing': 0,
-            'file_callback': None,
-            'json_mime_types': [
-                'application/json',
-                'application/javascript',
-                'application/merge-patch+json'],
-            'form_mime_types': [
-                'application/x-www-form-urlencoded',
-                'multipart/form-data'
+            "auto_args": True,
+            "auto_form": True,
+            "auto_json": True,
+            "auto_data": True,
+            "cached_size": 65365,
+            "data_size": 65365,
+            "read_timeout": 10,
+            "keep_blank_values": 0,
+            "strict_parsing": 0,
+            "file_callback": None,
+            "json_mime_types": [
+                "application/json",
+                "application/javascript",
+                "application/merge-patch+json",
             ],
-            'auto_cookies': True,
-            'debug': 'Off',
-            'document_root': '',
-            'document_index': 'Off',
-            'secret_key': None,
-            'auth_type': None,
-            'auth_algorithm': 'MD5-sess',
-            'auth_qop': 'auth',
-            'auth_timeout': 300,
+            "form_mime_types": [
+                "application/x-www-form-urlencoded",
+                "multipart/form-data",
+            ],
+            "auto_cookies": True,
+            "debug": "Off",
+            "document_root": "",
+            "document_index": "Off",
+            "secret_key": None,  # nosec
+            "auth_type": None,
+            "auth_algorithm": "MD5-sess",
+            "auth_qop": "auth",
+            "auth_timeout": 300,
         }
         self.__auth_hash = md5
 
@@ -156,60 +181,63 @@ class Application():
 
         if _filter in self.__filters:
             regex = self.__filters[_filter][0]
-        elif _filter[:4] == ':re:':     # :re: filter have user defined regex
+        elif _filter[:4] == ":re:":  # :re: filter have user defined regex
             regex = _filter[4:]
         else:
             try:
                 regex = self.__filters[_filter][0]
             except KeyError as err:
-                raise RuntimeError("Undefined route group filter '%s'" %
-                                   _filter) from err
+                raise RuntimeError(
+                    "Undefined route group filter '%s'" % _filter
+                ) from err
 
         return "(?P<%s>%s)" % (groups[0], regex)
 
     def __converter(self, _filter):
         _filter = str(_filter).lower()
-        _filter = ':re:' if _filter[:4] == ':re:' else _filter
+        _filter = ":re:" if _filter[:4] == ":re:" else _filter
         try:
             return self.__filters[_filter][1]
         except KeyError as err:
-            raise RuntimeError("Undefined route group filter '%s'" %
-                               _filter) from err
+            raise RuntimeError(
+                "Undefined route group filter '%s'" % _filter
+            ) from err
 
     @property
     def name(self):
-        """Return application name."""
+        """Returns the application name."""
         return self.__name
 
     @property
     def filters(self):
-        """Copy of filter table.
+        """A copy of the filter table.
 
-        Filter table contains regular expressions and convert functions,
+        The filter table contains regular expressions and conversion functions;
         see Application.set_filter and Application.route.
 
         Default filters are:
 
-            **:int**    match number and convert it to int
+            **:int**    matches a number and converts it to an int
 
-            **:float**  match number and convert it to float
+            **:float**  matches a number and converts it to a float
 
-            **:word**   match one string word
+            **:word**   matches a single string word
 
-            **:hex**    match hexadecimal value and convert it to str
+            **:hex**    matches a hexadecimal value and converts it to a str
 
-            **:re:**    match user defined regular expression
+            **:re:**    matches a user-defined regular expression
 
-            **none**    match any string without '/' character
+            **none**    matches any string without the '/' character
 
-        For more details see `/debug-info` page of your application, where
-        you see all filters with regular expression definition.
+        For more details, see the `/debug-info` page of your application,
+        where you can find all filters with their regular expression
+        definitions.
         """
         return self.__filters.copy()
 
     @property
     def before(self):
-        """Tuple of table with before-response handlers.
+        """A tuple of before-response handlers.
 
         See Application.before_response.
         """
@@ -217,7 +245,7 @@ class Application():
 
     @property
     def after(self):
-        """Tuple of table with after-response handlers.
+        """A tuple of after-response handlers.
 
         See Application.after_response.
         """
@@ -225,15 +253,15 @@ class Application():
 
     @property
     def defaults(self):
-        """Copy of table with default handlers.
+        """A copy of the table with default handlers.
 
-        See Application.set_default
+        See Application.set_default.
         """
         return self.__dhandlers.copy()
 
     @property
     def routes(self):
-        """Copy of table with static handlers.
+        """A copy of the table with static handlers.
 
         See Application.route.
         """
@@ -241,7 +269,7 @@ class Application():
 
     @property
     def regular_routes(self):
-        """Copy of table with regular expression handlers.
+        """A copy of the table with regular expression handlers.
 
         See Application.route and Application.regular_route.
         """
@@ -249,267 +277,269 @@ class Application():
 
     @property
     def states(self):
-        """Copy of table with http state handlers.
+        """A copy of the table with HTTP state handlers.
 
-        See Application.http_state
+        See Application.http_state.
         """
         return self.__shandlers.copy()
 
     @property
     def errors(self):
-        """Copy of table with exception handlers.
+        """A copy of the table with exception handlers.
 
-        See Application.error_handler
+        See Application.error_handler.
         """
         return self.__ehandlers.copy()
 
     @property
     def auto_args(self):
-        """Automatic parsing request arguments from uri.
+        """Automatic parsing of request arguments from the URI.
 
-        If it is True (default), Request object do automatic parsing request
-        uri to its args variable.
+        If it is True (default), the Request object automatically parses
+        the request URI into its args variable.
         """
-        return self.__config['auto_args']
+        return self.__config["auto_args"]
 
     @auto_args.setter
     def auto_args(self, value):
-        self.__config['auto_args'] = bool(value)
+        self.__config["auto_args"] = bool(value)
 
     @property
     def auto_form(self):
-        """Automatic parsing arguments from request body.
+        """Automatic parsing of arguments from the request body.
 
-        If it is True (default) and method is POST, PUT or PATCH, and
-        request mime type is one of form_mime_types, Request
-        object do automatic parsing request body to its form variable.
+        If it is True (default) and the method is POST, PUT, or PATCH, and the
+        request MIME type is one of form_mime_types, the Request
+        object automatically parses the request body into its form variable.
         """
-        return self.__config['auto_form']
+        return self.__config["auto_form"]
 
     @auto_form.setter
     def auto_form(self, value):
-        self.__config['auto_form'] = bool(value)
+        self.__config["auto_form"] = bool(value)
 
     @property
     def auto_json(self):
-        """Automatic parsing JSON from request body.
+        """Automatic parsing of JSON from the request body.
 
-        If it is True (default), method is POST, PUT or PATCH and request
-        mime type is one of json_mime_types, Request object do
-        automatic parsing request body to json variable.
+        If it is True (default), the method is POST, PUT, or PATCH, and
+        the request MIME type is one of json_mime_types, the Request
+        object automatically parses the request body into the json
+        variable.
         """
-        return self.__config['auto_json']
+        return self.__config["auto_json"]
 
     @auto_json.setter
     def auto_json(self, value):
-        self.__config['auto_json'] = bool(value)
+        self.__config["auto_json"] = bool(value)
 
     @property
     def auto_data(self):
-        """Enabling Request.data property for smaller requests.
+        """Enables the Request.data property for smaller requests.
 
         Default value is True.
         """
-        return self.__config['auto_data']
+        return self.__config["auto_data"]
 
     @auto_data.setter
     def auto_data(self, value: Union[int, bool]):
-        self.__config['auto_data'] = bool(value)
+        self.__config["auto_data"] = bool(value)
 
     @property
     def cached_size(self):
-        """Enabling cached_size for faster POST request.
+        """Enables cached_size for faster POST requests.
 
         Default value is 65365.
         """
-        return self.__config['cached_size']
+        return self.__config["cached_size"]
 
     @cached_size.setter
     def cached_size(self, value: int):
-        self.__config['cached_size'] = value
+        self.__config["cached_size"] = value
 
     @property
     def data_size(self):
-        """Size limit for Request.data property.
+        """Size limit for the Request.data property.
 
-        This value is  which is compare to request Content-Type. Default value
-        is 32768 as 30Kb.
+        This value is compared to the request's Content-Length. The
+        default value is 32768 (30KB).
         """
-        return self.__config['data_size']
+        return self.__config["data_size"]
 
     @data_size.setter
     def data_size(self, value: int):
-        self.__config['data_size'] = int(value)
+        self.__config["data_size"] = int(value)
 
     @property
     def auto_cookies(self):
-        """Automatic parsing cookies from request headers.
+        """Automatic parsing of cookies from request headers.
 
-        If it is True (default) and Cookie request header was set,
-        SimpleCookie object was parsed to Request property cookies.
+        If it is True (default) and the Cookie request header is set,
+        a SimpleCookie object is parsed to the Request property cookies.
         """
-        return self.__config['auto_cookies']
+        return self.__config["auto_cookies"]
 
     @auto_cookies.setter
     def auto_cookies(self, value: Union[int, bool]):
-        self.__config['auto_cookies'] = bool(value)
+        self.__config["auto_cookies"] = bool(value)
 
     @property
     def debug(self):
-        """Application debug as another way how to set poor_Debug.
+        """Application debug mode, as another way to set poor_Debug.
 
-        This setting will be rewrite by poor_Debug environment variable.
+        This setting will be overridden by the poor_Debug environment variable.
         """
-        return self.__config['debug'] == 'On'
+        return self.__config["debug"] == "On"
 
     @debug.setter
     def debug(self, value: Union[int, bool]):
-        self.__config['debug'] = 'On' if bool(value) else 'Off'
+        self.__config["debug"] = "On" if bool(value) else "Off"
 
     @property
     def document_root(self):
-        """Application document_root as another way how to set
+        """The application's document_root, as another way to set
         poor_DocumentRoot.
 
-        This setting will be rewrite by poor_DocumentRoot environ variable.
+        This setting will be overridden by the poor_DocumentRoot environment
+        variable.
         """
-        return self.__config['document_root']
+        return self.__config["document_root"]
 
     @document_root.setter
     def document_root(self, value: str):
-        self.__config['document_root'] = value
+        self.__config["document_root"] = value
 
     @property
     def document_index(self):
-        """Application document_root as another way how to set
-        poor_DocumentRoot.
+        """The application's document_index, as another way to set
+        poor_DocumentIndex.
 
-        This setting will be rewrite by poor_DocumentRoot environ variable.
+        This setting will be overridden by the poor_DocumentIndex environment
+        variable.
         """
-        return self.__config['document_index'] == 'On'
+        return self.__config["document_index"] == "On"
 
     @document_index.setter
     def document_index(self, value: Union[int, bool]):
-        self.__config['document_index'] = 'On' if bool(value) else 'Off'
+        self.__config["document_index"] = "On" if bool(value) else "Off"
 
     @property
     def secret_key(self):
-        """Application secret_key could be replace by poor_SecretKey in
-        request.
+        """The application's secret_key can be overridden by poor_SecretKey in
+        the request.
 
-        Secret key is used by PoorSession class. It is generate from
-        some server variables, and the best way is set to your own long
-        key."""
-        return self.__config['secret_key']
+        The secret key is used by the PoorSession class. It is generated from
+        some server variables; it is best to set it to your own long key."""
+        return self.__config["secret_key"]
 
     @secret_key.setter
     def secret_key(self, value: Union[str, bytes]):
-        self.__config['secret_key'] = value
+        self.__config["secret_key"] = value
 
     @property
     def keep_blank_values(self):
-        """Keep blank values in request arguments.
+        """Keeps blank values in request arguments.
 
-        If it is 1 (0 is default), automatic parsing request uri or body
-        keep blank values as empty string.
+        If it is 1 (0 is default), automatic parsing of the request URI or body
+        will keep blank values as empty strings.
         """
-        return self.__config['keep_blank_values']
+        return self.__config["keep_blank_values"]
 
     @keep_blank_values.setter
     def keep_blank_values(self, value: Union[int, bool]):
-        self.__config['keep_blank_values'] = int(value)
+        self.__config["keep_blank_values"] = int(value)
 
     @property
     def strict_parsing(self):
-        """Strict parse request arguments.
+        """Strict parsing of request arguments.
 
-        If it is 1 (0 is default), automatic parsing request uri or body
-        raise with exception on parsing error.
+        If it is 1 (0 is default), automatic parsing of the request URI or body
+        will raise an exception on a parsing error.
         """
-        return self.__config['strict_parsing']
+        return self.__config["strict_parsing"]
 
     @strict_parsing.setter
     def strict_parsing(self, value: Union[int, bool]):
-        self.__config['strict_parsing'] = int(value)
+        self.__config["strict_parsing"] = int(value)
 
     @property
     def file_callback(self):
-        """File callback use as parameter when parsing request body.
+        """A file callback used as a parameter when parsing the request body.
 
-        Default is None. Values could be a class or factory which got
-        filename from request body and have file compatible interface.
+        Default is None. The value can be a class or factory that receives a
+        filename from the request body and has a file-compatible interface.
         """
-        return self.__config['file_callback']
+        return self.__config["file_callback"]
 
     @file_callback.setter
     def file_callback(self, value: Callable):
-        self.__config['file_callback'] = value
+        self.__config["file_callback"] = value
 
     @property
     def read_timeout(self):
-        """Gets a timeout (in seconds) used for file receiving"""
+        """Gets the timeout (in seconds) used for file reception."""
         return self.__config["read_timeout"]
 
     @read_timeout.setter
     def read_timeout(self, timeout: float):
-        """Sets a timeout (in seconds) used for file receiving"""
+        """Sets the timeout (in seconds) used for file reception."""
         self.__config["read_timeout"] = timeout
 
     @property
     def json_mime_types(self):
-        """Copy of json mime type list.
+        """A copy of the JSON MIME type list.
 
-        Contains list of strings as json mime types, which is use for
-        testing, when automatics Json object is create from request body.
+        Contains a list of strings as JSON MIME types, which are used for
+        testing when an automatic JSON object is created from the request body.
         """
-        return self.__config['json_mime_types']
+        return self.__config["json_mime_types"]
 
     @property
     def auth_type(self):
         """Authorization type.
 
-        Only ``Digest`` type is supported now.
+        Only the ``Digest`` type is currently supported.
         """
-        return self.__config['auth_type']
+        return self.__config["auth_type"]
 
     @auth_type.setter
     def auth_type(self, value: str):
         value = value.capitalize()
-        if value not in ('Digest',):
-            raise ValueError('Unsupported authorization type')
+        if value not in ("Digest",):
+            raise ValueError("Unsupported authorization type")
         # for Digest
-        if self.__config['secret_key'] is None:
-            raise ValueError('Set secret key first')
-        self.__config['auth_type'] = value
+        if self.__config["secret_key"] is None:
+            raise ValueError("Set secret key first")
+        self.__config["auth_type"] = value
 
     @property
     def auth_algorithm(self):
         """Authorization algorithm.
 
-        Algorithm depends on authorization type and client support.
+        The algorithm depends on the authorization type and client support.
         Supported:
 
         :Digest: MD5 | MD5-sess | SHA256 | SHA256-sess
         :default: MD5-sess
         """
-        return self.__config['auth_algorithm']
+        return self.__config["auth_algorithm"]
 
     @auth_algorithm.setter
     def auth_algorithm(self, value: str):
-        if self.__config['auth_algorithm'] is None:
-            raise ValueError('Set authorization type first')
+        if self.__config["auth_algorithm"] is None:
+            raise ValueError("Set authorization type first")
 
-        if self.__config['auth_algorithm'] == 'Digest':
+        if self.__config["auth_algorithm"] == "Digest":
             if value not in AUTH_DIGEST_ALGORITHMS:
-                raise ValueError('Unsupported Digest algorithm')
-        self.__config['auth_algorithm'] = value
+                raise ValueError("Unsupported Digest algorithm")
+        self.__config["auth_algorithm"] = value
         self.__auth_hash = AUTH_DIGEST_ALGORITHMS[value]
 
     @property
     def auth_hash(self):
-        """Return authorization hash function.
+        """Returns the authorization hash function.
 
-        Function can be changed by auth_algorithm property.
+        The function can be changed by the auth_algorithm property.
 
         :default: md5
         """
@@ -519,76 +549,78 @@ class Application():
     def auth_qop(self):
         """Authorization quality of protection.
 
-        This is use for Digest authorization only. When browsers
-        supports only ``auth`` or empty value, PoorWSGI supports the same.
+        This is used for Digest authorization only. PoorWSGI supports only
+        ``auth`` or an empty value, consistent with common browser support.
 
         :default: auth
         """
-        return self.__config['auth_qop']
+        return self.__config["auth_qop"]
 
     @auth_qop.setter
     def auth_qop(self, value: str):
-        if value not in ('', 'auth', None):
-            raise ValueError('Unsupported quality of protection')
-        self.__config['auth_qop'] = value
+        if value not in ("", "auth", None):
+            raise ValueError("Unsupported quality of protection")
+        self.__config["auth_qop"] = value
 
     @property
     def auth_timeout(self):
-        """Digest Authorization timeout of nonce value in seconds.
+        """Digest Authorization timeout for the nonce value in seconds.
 
-        In fact, timeout will be between timeout and 2*timeout, because
+        In fact, the timeout will be between timeout and 2*timeout because
         time alignment is used. If timeout is None or 0, no timeout is used.
 
-        :default: 300 (5min)
+        :default: 300 (5 min)
         """
-        return self.__config['auth_timeout']
+        return self.__config["auth_timeout"]
 
     @auth_timeout.setter
     def auth_timeout(self, value: Optional[int]):
         if not isinstance(value, (type(None), int)):
-            raise ValueError('Unsupported auth_timeout value')
-        self.__config['auth_timeout'] = value
+            raise ValueError("Unsupported auth_timeout value")
+        self.__config["auth_timeout"] = value
 
     @property
     def form_mime_types(self):
-        """Copy of form mime type list.
+        """A copy of the form MIME type list.
 
-        Contains list of strings as form mime types, which is use for
-        testing, when automatics Form object is create from request body.
+        Contains a list of strings as form MIME types, which are used for
+        testing when an automatic Form object is created from the request body.
         """
-        return self.__config['form_mime_types']
+        return self.__config["form_mime_types"]
 
     def set_filter(self, name: str, regex: str, converter: Callable = str):
-        r"""Create new filter or overwrite built-ins.
+        r"""Creates a new filter or overwrites built-ins.
 
-        name : str
-            Name of filter which is used in route or set_route method.
-        regex : str
-            Regular expression which used for filter.
-        converter : function
-            Converter function or class, which gets string in input. Default is
-            str function, which call __str__ method on input object.
+        name
+            The name of the filter used in the route or set_route method.
+        regex
+            The regular expression used for the filter.
+        converter
+            The converter function or class that takes a string as input.
+            The default is the str function, which calls the __str__
+            method on the input object.
 
         .. code:: python
 
             app.set_filter('uint', r'\d+', int)
         """
-        name = ':'+name if name[0] != ':' else name
+        name = ":" + name if name[0] != ":" else name
         self.__filters[name] = (regex, converter)
 
     @deprecated("use before_response instead")
     def before_request(self):
-        """Deprecated, use before_request instead."""
+        """Deprecated; use before_response instead."""
 
         def wrapper(fun):
             self.add_before_response(fun)
             return fun
+
         return wrapper
 
     def before_response(self):
-        """Append handler to call before each response.
+        """Appends a handler to call before each response.
 
-        This is decorator for function to call before each response.
+        This is a decorator for a function to call before each response.
 
         .. code:: python
 
@@ -596,21 +628,23 @@ class Application():
             def before_each_response(req):
                 print("Response coming")
         """
+
         def wrapper(fun):
             self.add_before_response(fun)
             return fun
+
         return wrapper
 
     @deprecated("use add_before_response instead")
     def add_before_request(self, fun: Callable):
-        """Deprecated, use add_before_response instead."""
+        """Deprecated; use add_before_response instead."""
         self.add_before_response(fun)
 
     def add_before_response(self, fun: Callable):
-        """Append handler to call before each response.
+        """Appends a handler to call before each response.
 
-        Method adds function to list functions which is call before each
-        response.
+        This method adds a function to the list of functions that are
+        called before each response.
 
         .. code:: python
 
@@ -625,28 +659,31 @@ class Application():
 
     @deprecated("use pop_before_response instead")
     def pop_before_request(self, fun: Callable):
-        """Deprecated, use pop_before_response instead."""
+        """Deprecated; use pop_before_response instead."""
         self.pop_before_response(fun)
 
     def pop_before_response(self, fun: Callable):
-        """Remove handler added by add_before_response or before_response."""
+        """Removes a handler added by add_before_response or
+        before_response."""
         if not self.__before.count(fun):
             raise ValueError("%s is not in list" % str(fun))
         self.__before.remove(fun)
 
     @deprecated("use after_response instead")
     def after_request(self):
-        """Deprecated, use after_response instead."""
+        """Deprecated; use after_response instead."""
+
         def wrapper(fun):
             self.add_after_response(fun)
             return fun
+
         return wrapper
 
     def after_response(self):
-        """Append handler to call after each response.
+        """Appends a handler to call after each response.
 
-        This decorator append function to be called after each response,
-        if you want to use it redefined all outputs.
+        This decorator appends a function to be called after each response.
+        The handler must return a response object.
 
         .. code:: python
 
@@ -655,21 +692,23 @@ class Application():
                 print("Response out")
                 return response
         """
+
         def wrapper(fun):
             self.add_after_response(fun)
             return fun
+
         return wrapper
 
     @deprecated("use add_after_response instead")
     def add_after_request(self, fun: Callable):
-        """Deprecated, use add_after_response instead."""
+        """Deprecated; use add_after_response instead."""
         self.add_after_response(fun)
 
     def add_after_response(self, fun: Callable):
-        """Append handler to call after each response.
+        """Appends a handler to call after each response.
 
-        Method for direct append function to list functions which are called
-        after each response.
+        This method directly appends a function to the list of functions
+        that are called after each response.
 
         .. code:: python
 
@@ -685,41 +724,44 @@ class Application():
 
     @deprecated("use pop_after_response instead")
     def pop_after_request(self, fun: Callable):
-        """Deprecated, use pop_after_response instead."""
+        """Deprecated; use pop_after_response instead."""
         self.pop_after_response(fun)
 
     def pop_after_response(self, fun: Callable):
-        """Remove handler added by add_after_response or after_response."""
+        """Removes a handler added by add_after_response or after_response."""
         if not self.__before.count(fun):
             raise ValueError("%s is not in list" % str(fun))
         self.__after.remove(fun)
 
     def default(self, method: int = METHOD_HEAD | METHOD_GET):
-        """Set default handler.
+        """Sets a default handler.
 
-        This is decorator for default handler for http method (called before
-        error_not_found).
+        This is a decorator for a default handler for an HTTP method
+        (called before error_not_found).
 
         .. code:: python
 
             @app.default(METHOD_GET_POST)
             def default_get_post(req):
-                # this function will be called if no uri match in internal
-                # uri table with method. It's similar like not_found error,
-                # but without error
+                # Called if no URI matches in the internal URI table for
+                # the method. Similar to a not_found error, but without
+                # an error.
                 ...
         """
+
         def wrapper(fun):
             self.set_default(fun, method)
             return fun
+
         return wrapper
-    # enddef
 
-    def set_default(self, fun: Callable,
-                    method: int = METHOD_HEAD | METHOD_GET):
-        """Set default handler.
+    def set_default(
+        self, fun: Callable, method: int = METHOD_HEAD | METHOD_GET
+    ):
+        """Sets a default handler.
 
-        Set fun default handler for http method called before error_not_found.
+        Sets ``fun`` as the default handler for the HTTP method, called before
+        error_not_found.
 
         .. code:: python
 
@@ -728,21 +770,20 @@ class Application():
         for val in methods.values():
             if method & val:
                 self.__dhandlers[val] = fun
-    # enddef
 
     def pop_default(self, method: int):
-        """Pop default handler for method."""
+        """Pops the default handler for a method."""
         return self.__dhandlers.pop(method)
 
     def route(self, uri: str, method: int = METHOD_HEAD | METHOD_GET):
-        r"""Wrap function to be handler for uri and specified method.
+        r"""Wraps a function to be a handler for a URI and specified method.
 
-        You can define uri as static path or as groups which are hand
-        to handler as next parameters.
+        You can define the URI as a static path or with groups, which are
+        passed to the handler as subsequent parameters.
 
         .. code:: python
 
-            # static uri
+            # static URI
             @app.route('/user/post', method=METHOD_POST)
             def user_create(req):
                 ...
@@ -757,40 +798,42 @@ class Application():
             def surnames_by_age(req, surname, age):
                 ...
 
-            # group with own regular expression filter
+            # group with its own regular expression filter
             @app.route('/<car:re:\w+>/<color:re:#[\da-fA-F]+>')
             def car(req, car, color):
                 ...
 
-        If you can use some name of group which is python keyword, like class,
-        you can use \**kwargs syntax:
+        If you need to use a group name that is a Python keyword, such as
+        'class', you can use the ``**kwargs`` syntax:
 
         .. code:: python
 
             @app.route('/<class>/<len:int>')
             def classes(req, **kwargs):
-                return ("'%s' class is %d lenght." %
+                return ("'%s' class is %d length." %
                         (kwargs['class'], kwargs['len']))
 
-        Be sure with ordering of call this decorator or set_route function with
-        groups regular expression. Regular expression routes are check with the
-        same ordering, as you create internal table of them. First match stops
-        any other searching. In fact, if groups are detect, they will be
-        transfer to normal regular expression, and will be add to second
-        internal table.
+        Be mindful of the ordering when calling this decorator or the set_route
+        function with group regular expressions. Regular expression routes are
+        checked in the same order as they are created in the internal table.
+        The first match stops any further searching. In fact, if groups are
+        detected, they will be transferred to normal regular expressions and
+        added to a second internal table.
         """
+
         def wrapper(fun):
             self.set_route(uri, fun, method)
             return fun
+
         return wrapper
-    # enddef
 
-    def set_route(self, uri: str, fun: Callable,
-                  method: int = METHOD_HEAD | METHOD_GET):
-        """Set handler for uri and method.
+    def set_route(
+        self, uri: str, fun: Callable, method: int = METHOD_HEAD | METHOD_GET
+    ):
+        """Sets a handler for a URI and method.
 
-        Another way to add fun as handler for uri. See Application.route
-        documentation for details.
+        Another way to add ``fun`` as a handler for the URI. See
+        Application.route documentation for details.
 
         .. code:: python
 
@@ -807,10 +850,11 @@ class Application():
             raise ValueError(msg)
 
         if re_filter.search(uri):
-            r_uri = re_filter.sub(self.__regex, uri) + '$'
-            converters = tuple((g[0], self.__converter(g[1]))
-                               for g in (m.groups()
-                                         for m in re_filter.finditer(uri)))
+            r_uri = re_filter.sub(self.__regex, uri) + "$"
+            converters = tuple(
+                (g[0], self.__converter(g[1]))
+                for g in (m.groups() for m in re_filter.finditer(uri))
+            )
             self.set_regular_route(r_uri, fun, method, converters, uri)
         else:
             if uri not in self.__handlers:
@@ -820,34 +864,36 @@ class Application():
                     self.__handlers[uri][val] = fun
 
     def pop_route(self, uri: str, method: int):
-        """Pop handler for uri and method from handers table.
+        """Pops a handler for a URI and method from the handlers table.
 
-        Method must be define unique, so METHOD_GET_POST could not be use.
-        If you want to remove handler for both methods, you must call pop route
-        for each method state.
+        The method must be defined uniquely, so METHOD_GET_POST cannot be used.
+        If you want to remove a handler for both methods, you must call
+        pop_route for each method state.
         """
         if re_filter.search(uri):
-            r_uri = re_filter.sub(self.__regex, uri) + '$'
+            r_uri = re_filter.sub(self.__regex, uri) + "$"
             return self.pop_regular_route(r_uri, method)
 
         handlers = self.__handlers.get(uri, {})
         rval = handlers.pop(method)
-        if not handlers:    # is empty
+        if not handlers:  # is empty
             self.__handlers.pop(uri, None)
         return rval
 
     def is_route(self, uri: str):
-        """Check if uri have any registered record."""
+        """Checks if the URI has any registered record."""
         if re_filter.search(uri):
-            r_uri = re_filter.sub(self.__regex, uri) + '$'
+            r_uri = re_filter.sub(self.__regex, uri) + "$"
             return self.is_regular_route(r_uri)
         return uri in self.__handlers
 
     def regular_route(self, ruri: str, method: int = METHOD_HEAD | METHOD_GET):
-        r"""Wrap function to be handler for uri defined by regular expression.
+        r"""Wraps a function to be a handler for a URI defined by a regular
+        expression.
 
-        Both of function, regular_route and set_regular_route store routes
-        to special internal table, which is another to table of static routes.
+        Both regular_route and set_regular_route functions store routes
+        in a special internal table, which is separate from the table of static
+        routes.
 
         .. code:: python
 
@@ -856,36 +902,44 @@ class Application():
             def any_user(req):
                 ...
 
-            # regular expression with
+            # regular expression with named group
             @app.regular_route(r'/user/(?P<user>\w+)')
             def user_detail(req, user):             # named path args
                 ...
 
-        Be sure with ordering of call this decorator or set_regular_route
-        function. Regular expression routes are check with the same ordering,
-        as you create internal table of them. First match stops any other
-        searching.
+        Be mindful of the ordering when calling this decorator or the
+        set_regular_route function. Regular expression routes are checked
+        in the same order as they are created in the internal table. The
+        first match stops any further searching.
         """
+
         def wrapper(fun):
             self.set_regular_route(ruri, fun, method)
             return fun
+
         return wrapper
 
-    def set_regular_route(self, uri: str, fun: Callable,
-                          method: int = METHOD_HEAD | METHOD_GET,
-                          converters=(), rule: Optional[str] = None):
-        r"""Set handler for uri defined by regular expression.
+    def set_regular_route(
+        self,
+        uri: str,
+        fun: Callable,
+        method: int = METHOD_HEAD | METHOD_GET,
+        converters=(),
+        rule: Optional[str] = None,
+    ):
+        r"""Sets a handler for a URI defined by a regular expression.
 
-        Another way to add fn as handler for uri defined by regular expression.
-        See Application.regular_route documentation for details.
+        Another way to add ``fun`` as a handler for a URI defined by a
+        regular expression. See Application.regular_route documentation
+        for details.
 
 
         .. code:: python
 
             app.set_regular_route('/use/\w+/post', user_create, METHOD_POST)
 
-        This method is internally use, when groups are found in static route,
-        adding by route or set_route method.
+        This method is used internally when groups are found in a static route,
+        added by the route or set_route method.
         """
         r_uri = re.compile(uri, re.U)
         if r_uri not in self.__rhandlers:
@@ -895,25 +949,29 @@ class Application():
                 self.__rhandlers[r_uri][val] = (fun, converters, rule)
 
     def pop_regular_route(self, uri: str, method: int):
-        """Pop handler and converters for uri and method from handlers table.
+        """Pops a handler and converters for a URI and method from the handlers
+        table.
 
-        For more details see Application.pop_route.
+        For more details, see Application.pop_route.
         """
         r_uri = re.compile(uri, re.U)
         handlers = self.__rhandlers.get(r_uri, {})
         rval = handlers.pop(method)
-        if not handlers:    # is empty
+        if not handlers:  # is empty
             self.__rhandlers.pop(r_uri, None)
         return rval
 
     def is_regular_route(self, r_uri):
-        """Check if regular expression uri have any registered record."""
+        """Checks if a regular expression URI has any registered record."""
         r_uri = re.compile(r_uri, re.U)
         return r_uri in self.__rhandlers
 
-    def http_state(self, status_code: int,
-                   method: int = METHOD_HEAD | METHOD_GET | METHOD_POST):
-        """Wrap function to handle http status codes.
+    def http_state(
+        self,
+        status_code: int,
+        method: int = METHOD_HEAD | METHOD_GET | METHOD_POST,
+    ):
+        """Wraps a function to handle HTTP status codes.
 
         .. code:: python
 
@@ -921,14 +979,20 @@ class Application():
             def page_not_found(req, *_):
                 return "Your page %s was not found." % req.path, "text/plain"
         """
+
         def wrapper(fun):
             self.set_http_state(status_code, fun, method)
             return fun
+
         return wrapper
 
-    def set_http_state(self, status_code: int, fun: Callable,
-                       method: int = METHOD_HEAD | METHOD_GET | METHOD_POST):
-        """Set function as handler for http state code and method."""
+    def set_http_state(
+        self,
+        status_code: int,
+        fun: Callable,
+        method: int = METHOD_HEAD | METHOD_GET | METHOD_POST,
+    ):
+        """Sets a function as the handler for an HTTP state code and method."""
         if status_code not in self.__shandlers:
             self.__shandlers[status_code] = {}
         for val in methods.values():
@@ -936,18 +1000,20 @@ class Application():
                 self.__shandlers[status_code][val] = fun
 
     def pop_http_state(self, status_code: int, method: int):
-        """Pop handler for http state and method.
+        """Pops a handler for an HTTP state and method.
 
-        As Application.pop_route, for pop multi-method handler, you must call
-        pop_http_state for each method.
+        Similar to Application.pop_route, to pop a multi-method handler, you
+        must call pop_http_state for each method.
         """
         handlers = self.__shandlers.get(status_code, {})
         return handlers.pop(method)
 
     def error_handler(
-            self, error: Type[Exception],
-            method: int = METHOD_HEAD | METHOD_GET | METHOD_POST):
-        """Wrap function to handle exceptions.
+        self,
+        error: Type[Exception],
+        method: int = METHOD_HEAD | METHOD_GET | METHOD_POST,
+    ):
+        """Wraps a function to handle exceptions.
 
         .. code:: python
 
@@ -956,15 +1022,20 @@ class Application():
                 log.exception("ValueError %s", error)
                 return "Values %s are not correct." % req.args, "text/plain"
         """
+
         def wrapper(fun):
             self.set_error_handler(error, fun, method)
             return fun
+
         return wrapper
 
     def set_error_handler(
-            self, error: Type[Exception], fun: Callable,
-            method: int = METHOD_HEAD | METHOD_GET | METHOD_POST):
-        """Set function as handler for exception and method."""
+        self,
+        error: Type[Exception],
+        fun: Callable,
+        method: int = METHOD_HEAD | METHOD_GET | METHOD_POST,
+    ):
+        """Sets a function as the handler for an exception and method."""
         if error not in self.__ehandlers:
             self.__ehandlers[error] = {}
         for val in methods.values():
@@ -972,22 +1043,24 @@ class Application():
                 self.__ehandlers[error][val] = fun
 
     def pop_error_handler(self, error: Type[Exception], method: int):
-        """Pop handler for http state and method.
+        """Pops a handler for an exception and method.
 
-        As Application.pop_route, for pop multi-method handler, you must call
-        pop_http_state for each method.
+        Similar to Application.pop_route, to pop a multi-method handler,
+        you must call pop_error_handler for each method.
         """
         handlers = self.__ehandlers.get(error, {})
         return handlers.pop(method)
 
     def state_from_table(self, req: SimpleRequest, status_code: int, **kwargs):
-        """Internal method, which is called if another http state has occurred.
+        """Internal method, which is called if another HTTP state has occurred.
 
-        If status code is in Application.shandlers (fill with http_state
-        function), call this handler.
+        If the status code is in Application.shandlers (filled with the
+        http_state function), this handler is called.
         """
-        if status_code in self.__shandlers \
-                and req.method_number in self.__shandlers[status_code]:
+        if (
+            status_code in self.__shandlers
+            and req.method_number in self.__shandlers[status_code]
+        ):
             try:
                 handler = self.__shandlers[status_code][req.method_number]
                 req.error_handler = handler
@@ -1007,12 +1080,11 @@ class Application():
             return not_implemented(req, status_code)
 
     def error_from_table(self, req: SimpleRequest, error: Exception):
-        """Internal method, which is called when exception was raised."""
+        """Internal method, which is called when an exception is raised."""
 
         handler = None
         for error_type, hdls in self.__ehandlers.items():
-            if isinstance(error, error_type) \
-                    and req.method_number in hdls:
+            if isinstance(error, error_type) and req.method_number in hdls:
                 handler = hdls[req.method_number]
                 break
 
@@ -1028,7 +1100,8 @@ class Application():
                 status_code = http_err.args[0]
                 kwargs = http_err.args[1]
                 return to_response(
-                        self.state_from_table(req, status_code, **kwargs))
+                    self.state_from_table(req, status_code, **kwargs)
+                )
 
             except Exception:  # pylint: disable=broad-except
                 return internal_server_error(req)
@@ -1036,30 +1109,32 @@ class Application():
 
     def handler_from_default(self, req: SimpleRequest):
         """Internal method, which is called if no handler is found."""
-        req.uri_rule = '/*'
+        req.uri_rule = "/*"
         if req.method_number in self.__dhandlers:
             req.uri_handler = self.__dhandlers[req.method_number]
-            self.handler_from_before(req)       # call before handlers now
+            self.handler_from_before(req)  # call before handlers now
             return self.__dhandlers[req.method_number](req)
 
-        self.handler_from_before(req)       # call before handlers now
+        self.handler_from_before(req)  # call before handlers now
         log.error("404 Not Found: %s %s", req.method, req.path)
         raise HTTPException(HTTP_NOT_FOUND)
 
     def handler_from_before(self, req: SimpleRequest):
-        """Internal method, which run all before (pre_proccess) handlers.
+        """Internal method, which runs all before (pre_process) handlers.
 
-        This method was call before end-point route handler.
+        This method is called before the endpoint route handler.
         """
         for fun in self.__before:
             fun(req)
 
     def handler_from_table(self, req: Request):  # noqa: C901
-        """Call right handler from handlers table (fill with route function).
+        """Calls the correct handler from the handlers table (populated
+        by the route function).
 
-        If no handler is fined, try to find directory or file if Document Root,
-        resp. Document Index is set. Then try to call default handler for right
-        method or call handler for status code 404 - not found.
+        If no handler is found, it attempts to serve a file from Document Root
+        or a directory listing if Document Index is also enabled. Then it
+        attempts to call the default handler for the correct method or
+        calls the handler for status code 404 (Not Found).
         """
         # pylint: disable=too-many-return-statements
         # static routes
@@ -1070,7 +1145,7 @@ class Application():
                 req.uri_rule = req.path  # nice variable for before handlers
                 req.uri_handler = handler
                 self.handler_from_before(req)  # call before handlers now
-                return handler(req)       # call right handler now
+                return handler(req)  # call right handler now
 
             self.handler_from_before(req)  # call before handlers now
             raise HTTPException(HTTP_METHOD_NOT_ALLOWED)
@@ -1079,74 +1154,83 @@ class Application():
         for ruri in self.__rhandlers:
             match = ruri.match(req.path)
             if match and req.method_number in self.__rhandlers[ruri]:
-                handler, converters, rule = \
-                    self.__rhandlers[ruri][req.method_number]
+                handler, converters, rule = self.__rhandlers[ruri][
+                    req.method_number
+                ]
                 req.uri_rule = rule or ruri.pattern
                 req.uri_handler = handler
                 if converters:
                     # create OrderedDict from match inside of dict for
                     # converters applying
                     req.path_args = OrderedDict(
-                        (g, c(v))for ((g, c), v) in zip(converters,
-                                                        match.groups()))
-                    self.handler_from_before(req)   # call before handlers now
+                        (g, c(v))
+                        for ((g, c), v) in zip(converters, match.groups())
+                    )
+                    self.handler_from_before(req)  # call before handlers now
                     return handler(req, *req.path_args.values())
 
                 req.path_args = match.groupdict()
-                self.handler_from_before(req)   # call before handlers now
+                self.handler_from_before(req)  # call before handlers now
                 return handler(req, *match.groups())
 
         # try file or index
-        if req.document_root and \
-                req.method_number & (METHOD_HEAD | METHOD_GET):
-            rfile = "%s%s" % (req.document_root,
-                              path.normpath("%s" % req.path))
+        if req.document_root and req.method_number & (
+            METHOD_HEAD | METHOD_GET
+        ):
+            rfile = "%s%s" % (
+                req.document_root,
+                path.normpath("%s" % req.path),
+            )
 
             if not path.exists(rfile):
-                if req.debug and req.path == '/debug-info':  # work if debug
-                    req.uri_rule = '/debug-info'
+                if req.debug and req.path == "/debug-info":  # work if debug
+                    req.uri_rule = "/debug-info"
                     req.uri_handler = debug_info
                     self.handler_from_before(req)  # call before handlers now
                     return debug_info(req, self)
-                return self.handler_from_default(req)         # try default
+                return self.handler_from_default(req)  # try default
 
             # return file
             if path.isfile(rfile) and access(rfile, R_OK):
-                req.uri_rule = '/*'
-                self.handler_from_before(req)      # call before handlers now
+                req.uri_rule = "/*"
+                self.handler_from_before(req)  # call before handlers now
                 log.info("Return file: %s", req.path)
                 return FileResponse(rfile)
 
             # return directory index
-            if req.document_index and path.isdir(rfile) \
-                    and access(rfile, R_OK):
+            if (
+                req.document_index
+                and path.isdir(rfile)
+                and access(rfile, R_OK)
+            ):
                 log.info("Return directory: %s", req.path)
-                req.uri_rule = '/*'
+                req.uri_rule = "/*"
                 req.uri_handler = directory_index
-                self.handler_from_before(req)      # call before handlers now
+                self.handler_from_before(req)  # call before handlers now
                 return directory_index(req, rfile)
-            self.handler_from_before(req)      # call before handlers now
+            self.handler_from_before(req)  # call before handlers now
             raise HTTPException(HTTP_FORBIDDEN)
         # req.document_root
 
-        if req.debug and req.path == '/debug-info':
-            req.uri_rule = '/debug-info'
+        if req.debug and req.path == "/debug-info":
+            req.uri_rule = "/debug-info"
             req.uri_handler = debug_info
-            self.handler_from_before(req)          # call before handlers now
+            self.handler_from_before(req)  # call before handlers now
             return debug_info(req, self)
 
         return self.handler_from_default(req)
 
     def __request__(self, env, start_response):  # noqa: C901
-        """Create Request instance and return wsgi response.
+        """Creates a Request instance and returns a WSGI response.
 
-        This method create Request object, call handlers from
-        Application.before, uri handler (handler_from_table), default handler
-        (Application.defaults) or error handler (Application.state_from_table),
-        and handlers from Application.after.
+        This method creates a Request object, calls handlers from
+        Application.before, the URI handler (handler_from_table), the
+        default handler (Application.defaults) or the error handler
+        (Application.state_from_table), and handlers from
+        Application.after.
         """
         # pylint: disable=method-hidden,too-many-branches,too-many-statements
-        env['REQUEST_STARTTIME'] = time()
+        env["REQUEST_STARTTIME"] = time()
         request = None
 
         try:
@@ -1162,10 +1246,11 @@ class Application():
                 status_code = http_err.args[0]
                 kwargs = http_err.args[1]
                 response = to_response(
-                        self.state_from_table(request, status_code, **kwargs))
+                    self.state_from_table(request, status_code, **kwargs)
+                )
         except (ConnectionError, SystemExit) as err:
             log.warning(str(err))
-            log.warning('   ***   You should ignore next error   ***')
+            log.warning("   ***   You should ignore next error   ***")
             return ()
         except ResponseError:
             log.error("Bad returned value from %s", request.uri_handler)
@@ -1188,13 +1273,16 @@ class Application():
                 response = internal_server_error(request)
 
         __fn = None
-        try:    # call post_process handler
+        try:  # call post_process handler
             for fun in self.__after:
                 __fn = fun
                 response = to_response(fun(request, response))
         except BaseException as err:  # pylint: disable=broad-except
-            log.error("Handler %s from %s returns invalid data or crashed",
-                      __fn, __fn.__module__)
+            log.error(
+                "Handler %s from %s returns invalid data or crashed",
+                __fn,
+                __fn.__module__,
+            )
             response = self.error_from_table(request, err)
             if not response:
                 response = to_response(self.state_from_table(request, 500))
@@ -1202,49 +1290,58 @@ class Application():
         skip_sendfile = request.server_software == "uWsgi" and response.ranges
         # need working fileno method
         try:
-            if isinstance(response, FileObjResponse) and \
-                    "wsgi.file_wrapper" in env and not skip_sendfile:
-                return env['wsgi.file_wrapper'](response(start_response))
-            return response(start_response)         # return bytes generator
+            if (
+                isinstance(response, FileObjResponse)
+                and "wsgi.file_wrapper" in env
+                and not skip_sendfile
+            ):
+                return env["wsgi.file_wrapper"](response(start_response))
+            return response(start_response)  # return bytes generator
         except HTTPException as http_err:  # HTTP_RANGE_NOT_SATISFIABLE case
             response = http_err.make_response()
             return response(start_response)
 
     def __call__(self, env, start_response):
-        """Callable define for Application instance.
+        """Callable defined for the Application instance.
 
-        This method run __request__ method.
+        This method runs the __request__ method.
         """
         return self.__request__(env, start_response)
 
     def __profile_request__(self, env, start_response):
         """Profiler version of __request__.
 
-        This method is used if set_profile is used."""
+        This method is used if set_profile is called.
+        """
+
         # pylint: disable=possibly-unused-variable
         def wrapper(rval):
             rval.append(self.__original_request__(env, start_response))
 
         rval = []
-        uri_dump = (self.__dump + "_" + env.get('REQUEST_METHOD') +
-                    env.get('PATH_INFO').replace('/', '_') +
-                    "." + str(time()) +
-                    '.profile')
-        log.info('Generate %s', uri_dump)
-        self.__runctx('wrapper(rval)', globals(), locals(), filename=uri_dump)
+        uri_dump = (
+            self.__dump
+            + "_"
+            + env.get("REQUEST_METHOD")
+            + env.get("PATH_INFO").replace("/", "_")
+            + "."
+            + str(time())
+            + ".profile"
+        )
+        log.info("Generate %s", uri_dump)
+        self.__runctx("wrapper(rval)", globals(), locals(), filename=uri_dump)
         return rval[0]
-    # enddef
 
     def __repr__(self):
-        return '%s - callable Application class instance' % self.__name
+        return "%s - callable Application class instance" % self.__name
 
     def set_profile(self, runctx, dump):
-        """Set profiler for __call__ function.
+        """Sets a profiler for the __call__ function.
 
-        runctx : function
-            function from profiler module
-        dump : str
-            path and prefix for .profile files
+        runctx
+            Function from the profiler module.
+        dump
+            Path and prefix for .profile files.
 
         Typical usage:
 
@@ -1261,33 +1358,32 @@ class Application():
 
         self.__original_request__ = self.__request__
         self.__request__ = self.__profile_request__
-    # enddef
 
     def del_profile(self):
-        """Remove profiler from application."""
+        """Removes the profiler from the application."""
         self.__request__ = self.__original_request__
 
     @staticmethod
     def get_options():
-        """Returns dictionary with application variables from system
+        """Returns a dictionary with application variables from the system
         environment.
 
-        Application variables start with ``app_`` prefix,
-        but in returned dictionary is set without this prefix.
+        Application variables start with the ``app_`` prefix,
+        but in the returned dictionary, they are set without this prefix.
 
         .. code:: python
 
             app_db_server = localhost   # application variable db_server
             app_templates = app/templ   # application variable templates
 
-        This method works like Request.get_options, but work with
-        os.environ, so it works only with wsgi servers, which set not only
-        request environ, but os.environ too. Apaches mod_wsgi don't do that,
-        uWsgi and PoorHTTP do that.
+        This method works like Request.get_options, but it works with
+        os.environ, so it is effective only with WSGI servers that set
+        not only the request environment, but also os.environ. Apache's
+        mod_wsgi does not do that; uWsgi and PoorHTTP do.
         """
         options = {}
         for key, val in environ.items():
             key = key.strip()
-            if key[:4].lower() == 'app_':
+            if key[:4].lower() == "app_":
                 options[key[4:].lower()] = val.strip()
         return options

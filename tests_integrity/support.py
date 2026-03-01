@@ -16,11 +16,11 @@ from openapi_core.templating.paths.exceptions import PathNotFound
 
 
 class TestError(RuntimeError):
-    """Support exception."""
+    """A support exception."""
 
 
 def start_server(request, example, env=None, close=True):
-    """Start web server with example."""
+    """Starts a web server with an example application."""
 
     process = None
     print("Starting wsgi application...")
@@ -59,7 +59,7 @@ def start_server(request, example, env=None, close=True):
 
 def check_url(url, method="GET", status_code=200, allow_redirects=True,
               **kwargs):
-    """Do HTTP request and check status_code."""
+    """Performs an HTTP request and checks the status code."""
     session = kwargs.pop("session", None)
     timeout = kwargs.pop("timeout", None)
     if not session:     # nechceme vytvářet session nadarmo
@@ -81,7 +81,7 @@ def check_url(url, method="GET", status_code=200, allow_redirects=True,
 
 def check_api(url, method="GET", status_code=200,
               response_spec=None, **kwargs):
-    """Do HTTP API request and check status_code."""
+    """Performs an HTTP API request and checks the status code."""
     assert response_spec, "response_validator must be set"
     session = kwargs.pop("session", None)
     if not session:

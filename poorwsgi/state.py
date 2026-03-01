@@ -1,4 +1,4 @@
-"""Constants like http status code and method types."""
+"""Constants for HTTP status codes and method types."""
 
 # pylint: disable=consider-using-f-string
 
@@ -9,7 +9,8 @@ import warnings
 
 __author__ = "Ondrej Tuma (McBig) <mcbig@zeropage.cz>"
 __date__ = "14 Oct 2024"
-__version__ = "2.7.0"       # https://www.python.org/dev/peps/pep-0386/
+# PEP 0386 -- Version Identification and Dependency Specification
+__version__ = "2.7.0"
 
 DECLINED = 0
 
@@ -115,7 +116,7 @@ sorted_methods = sorted(methods.items(), key=itemgetter(1))
 
 
 def deprecated(reason=""):
-    """Deprecated decorator."""
+    """A decorator to mark functions or methods as deprecated."""
     def wrapper(fun):
         @wraps(fun)
         def wrapped(*args, **kwargs):

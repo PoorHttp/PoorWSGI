@@ -29,7 +29,7 @@ app.auto_form = False
 
 
 class Blackhole:
-    """Dummy File Object"""
+    """A dummy file object."""
 
     def __init__(self, filename):
         log.debug("Start uploading file: %s", filename)
@@ -37,28 +37,27 @@ class Blackhole:
         self.__hash = sha256()
 
     def write(self, data):
-        """Only count uploaded data size."""
+        """Only counts the uploaded data size."""
         size = len(data)
         self.uploaded += size
         self.__hash.update(data)
         return size
 
     def seek(self, size):
-        """Dummy seek"""
+        """A dummy seek method."""
         if size == -1:
             return self.uploaded
         return size
 
     def hexdigest(self):
-        """Return sha256 hexdigest of file."""
-        return self.__hash.hexdigest()
+        """Returns the SHA256 hexdigest of the file."""
 
     def close(self):
-        """Dummy close"""
+        """A dummy close method."""
 
 
 class Temporary:
-    """Temporary file"""
+    """A temporary file."""
 
     def __init__(self, filename):
         log.debug("Start uploading file: %s", filename)
@@ -68,37 +67,37 @@ class Temporary:
         self.__file = TemporaryFile('wb+')
 
     def write(self, data):
-        """Only count uploaded data size."""
+        """Only counts the uploaded data size."""
         size = self.__file.write(data)
         self.__hash.update(data)
         self.uploaded += size
         return size
 
     def seek(self, size):
-        """Proxy to internal file object seek method."""
+        """Proxies to the internal file object's seek method."""
         return self.__file.seek(size)
 
     def read(self, size):
-        """Proxy to internal file object read method."""
+        """Proxies to the internal file object's read method."""
         return self.__file.seek(size)
 
     def close(self):
-        """Proxy to internal file object close method."""
+        """Proxies to the internal file object's close method."""
         return self.__file.close()
 
     def hexdigest(self):
-        """Return sha256 hexdigest of file."""
+        """Returns the SHA256 hexdigest of the file."""
         return self.__hash.hexdigest()
 
 
 def blackhole_factory(req):
-    """Factory for craeting Dummy file instance"""
+    """Factory for creating a dummy file instance."""
     if req.content_length <= 0:
         raise HTTPException(400,
                             error="Missing content length or no content")
 
     def create(filename):
-        """Create Blackhole File object"""
+        """Creates a Blackhole File object."""
         log.debug(create.__doc__)
         return Blackhole(filename)
 
@@ -106,13 +105,13 @@ def blackhole_factory(req):
 
 
 def temporary_factory(req):
-    """Factory for craeting Dummy file instance"""
+    """Factory for creating a dummy file instance."""
     if req.content_length <= 0:
         raise HTTPException(400,
                             error="Missing content length or no content")
 
     def create(filename):
-        """Create Temporary File object"""
+        """Creates a Temporary File object."""
         log.debug(create.__doc__)
         return Temporary(filename)
 
@@ -120,15 +119,15 @@ def temporary_factory(req):
 
 
 def no_factory():
-    """No factory callback"""
+    """No factory callback function."""
 
 
 def original_factory():
-    """Original factory callback"""
+    """Original factory callback function."""
 
 
 def html_form(req, file_callback):
-    """Generate upload page for specified callback."""
+    """Generates an upload page for the specified callback."""
     stats = ""
     hexdigest = ""
     if req.method == 'POST':
@@ -198,25 +197,25 @@ def html_form(req, file_callback):
 
 @app.route('/blackhole', method=state.METHOD_GET_POST)
 def blackhole_form(req):
-    """Return form for blackhole callback."""
+    """Returns the form for the blackhole callback."""
     return html_form(req, blackhole_factory)
 
 
 @app.route('/temporary', method=state.METHOD_GET_POST)
 def temporary_form(req):
-    """Return form for temporary callback."""
+    """Returns the form for the temporary callback."""
     return html_form(req, temporary_factory)
 
 
 @app.route('/no-factory', method=state.METHOD_GET_POST)
 def no_form(req):
-    """Return form for no Formfield."""
+    """Returns the form for no Formfield."""
     return html_form(req, original_factory)
 
 
 @app.route('/')
 def root(req):
-    """Return Root (Index) page."""
+    """Returns the Root (Index) page."""
     assert req
     return """<html>
       <head>
@@ -245,10 +244,10 @@ def root(req):
 
 class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
     """This class is identical to WSGIServer but uses threads to handle
-    requests by using the ThreadingMixIn. This is useful to handle weg
-    browsers pre-opening sockets, on which Server would wait indefinitely.
+        requests by using the ThreadingMixIn. This is useful to handle web
+        browsers pre-opening sockets, on which the server would wait
+        indefinitely.
     """
-
     multithread = True
     daemon_threads = True
 

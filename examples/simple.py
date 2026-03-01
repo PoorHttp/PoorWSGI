@@ -1,7 +1,8 @@
-"""This is example and test application for PoorWSGI connector.
+"""This is an example and test application for the PoorWSGI connector.
 
-This sample testing example is free to use, modify and study under same BSD
-licence as PoorWSGI. So enjoy it ;)
+This sample testing example is free to use, modify, and study under the same
+BSD
+license as PoorWSGI. Enjoy!
 """
 
 import logging as log
@@ -49,13 +50,16 @@ app.secret_key = os.urandom(32)  # random key each run
 
 
 class MyValueError(ValueError):
-    """My value error"""
+    """A custom Value Error."""
 
 
 class Storage(file):
     """File storage class created by StorageFactory."""
 
     def __init__(self, directory, filename):
+        """Initializes the Storage class, creating a file at the specified
+        path. Raises OSError if the file already exists.
+        """
         log.debug("directory: %s; filename: %s", directory, filename)
         self.path = directory + '/' + filename
 
@@ -67,7 +71,7 @@ class Storage(file):
 
 
 class StorageFactory:
-    """Storage Factory do some code before creating file."""
+    """Storage Factory performs some setup before creating a file."""
 
     # pylint: disable=too-few-public-methods
 
@@ -77,7 +81,7 @@ class StorageFactory:
             os.mkdir(directory)
 
     def create(self, filename):
-        """Create file in directory."""
+        """Creates a file in the specified directory."""
         if not filename:
             return BytesIO()
         return Storage(self.directory, filename)
@@ -88,7 +92,7 @@ app.auto_form = False
 
 @app.before_response()
 def log_request(req):
-    """Log each request before processing."""
+    """Logs each request before processing."""
     log.info("Before response")
     log.info("Headers: %s", req.headers)
     log.info("Data: %s", req.data)
@@ -96,8 +100,9 @@ def log_request(req):
 
 @app.before_response()
 def auto_form(req):
-    """ This is own implementation of req.form paring before any POST response
-        with own file_callback.
+    """This is a custom implementation of req.form parsing before any POST
+    response
+    with its own file_callback.
     """
     if req.is_body_request or req.server_protocol == "HTTP/0.9":
         factory = StorageFactory('./upload')
@@ -114,7 +119,7 @@ def auto_form(req):
 
 
 def get_crumbnav(req):
-    """Create crumb navigation from url."""
+    """Creates crumb navigation from the URL."""
     navs = [req.hostname]
     if req.uri == '/':
         navs.append('<b>/</b>')
@@ -125,7 +130,7 @@ def get_crumbnav(req):
 
 
 def get_header(title):
-    """Return HTML header."""
+    """Returns an HTML header."""
     return (
         "<html>", "<head>",
         '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>',
@@ -135,14 +140,14 @@ def get_header(title):
 
 
 def get_footer():
-    """Return HTML footer."""
+    """Returns an HTML footer."""
     return ("<hr>", "<small>Copyright (c) 2013-2021 Ondřej Tůma. See ",
             '<a href="http://poorhttp.zeropage.cz">poorhttp.zeropage.cz</a>'
             '</small>.', "</body>", "</html>")
 
 
 def get_variables(req):
-    """Return some environment variables and it's values."""
+    """Returns some environment variables and their values."""
     usable = ("REQUEST_METHOD", "QUERY_STRING", "SERVER_NAME", "SERVER_PORT",
               "REMOTE_ADDR", "REMOTE_HOST", "PATH_INFO")
     return sorted(
@@ -155,7 +160,7 @@ app.set_filter('email', r'[\w\.\-]+@[\w\.\-]+')
 
 
 def check_login(fun):
-    """Check session cookie."""
+    """Checks the session cookie."""
 
     @wraps(fun)
     def handler(req):
@@ -177,7 +182,7 @@ def check_login(fun):
 
 @app.route('/')
 def root(req):
-    """Return root index."""
+    """Returns the root index page."""
     buff = get_header("Index") + (
         get_crumbnav(req),
         "<ul>",
@@ -220,7 +225,7 @@ def root(req):
 
 @app.route('/favicon.ico')
 def favicon(_):
-    """Return favicon."""
+    """Returns the favicon."""
     icon = b"""
 AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAD///8A////AP///wD///8AFRX/Bw8P/24ICP/IAgL/7wAA/+oAAP/GAAD/bQAA/wj///8A
@@ -249,7 +254,7 @@ AADwDwAA+B8AAA==
 
 @app.route('/style.css')
 def style(_):
-    """Return stylesheet."""
+    """Returns the stylesheet."""
     buff = """
         body { width: 90%; max-width: 900px; margin: auto;
         padding-top: 30px; }
@@ -271,7 +276,7 @@ def style(_):
 @app.route('/test/<variable:uuid>')
 @app.route('/test/static')
 def test_dynamic(req, variable=None):
-    """Test dynamics values."""
+    """Tests dynamic values."""
     if not variable and req.headers.get('ETag') == 'W/"0123"':
         return not_modified(req)
 
@@ -311,7 +316,7 @@ def test_dynamic(req, variable=None):
 @app.route('/test/<variable:re:.*>')
 @app.route('/test/<variable0>/<variable1>/<variable2>')
 def test_varargs(req, *args):
-    """Handler for variable path agrs"""
+    """Handler for variable path arguments."""
     var_info = {'len': len(args), 'uri_rule': html_escape(req.uri_rule)}
     for key, val in req.path_args.items():
         var_info[key] = html_escape(repr(val))
@@ -343,7 +348,7 @@ def test_varargs(req, *args):
 
 @app.route('/login')
 def login(req):
-    """Create login session cookie."""
+    """Creates a login session cookie."""
     log.debug("Input cookies: %s", repr(req.cookies))
     cookie = PoorSession(app.secret_key)
     cookie.data['login'] = True
@@ -354,7 +359,7 @@ def login(req):
 
 @app.route('/logout')
 def logout(req):
-    """Destroy login session cookie."""
+    """Destroys the login session cookie."""
     log.debug("Input cookies: %s", repr(req.cookies))
     cookie = PoorSession(app.secret_key)
     cookie.destroy()
@@ -366,7 +371,7 @@ def logout(req):
 @app.route('/test/form', method=state.METHOD_GET_POST)
 @check_login
 def test_form(req):
-    """Form example"""
+    """A form example."""
     # pylint: disable=consider-using-f-string
     # get_var_info = {'len': len(args)}
     var_info = OrderedDict((
@@ -445,7 +450,7 @@ def test_form(req):
 @app.route('/test/upload', method=state.METHOD_GET_POST)
 @check_login
 def test_upload(req):
-    """Upload file example."""
+    """A file upload example."""
     var_info = OrderedDict((
         ('form_keys', req.form.keys()),
         ('form_value_names', ', '.join(
@@ -511,7 +516,7 @@ def test_upload(req):
 
 @app.http_state(state.HTTP_NOT_FOUND)
 def not_found(req, *_):
-    """Not found example response."""
+    """A not found example response."""
     buff = (
         "<html>",
         "<head>",
@@ -533,14 +538,14 @@ def not_found(req, *_):
 
 @app.error_handler(ValueError)
 def value_error_handler(*_):
-    """ValueError exception handler example."""
+    """A ValueError exception handler example."""
     log.exception("ValueError")
     raise HTTPException(state.HTTP_BAD_REQUEST)
 
 
 @app.route('/test/empty')
 def test_empty(req):
-    """No content response"""
+    """No content response."""
     assert req
     res = NoContentResponse()
     res.add_header("Super-Header", "SuperValue")
@@ -595,14 +600,14 @@ def test_partial_generator(req):
 
 @app.route('/yield')
 def yielded(_):
-    """Simple response generator by yield."""
+    """A simple response generator using yield."""
     for i in range(10):
         yield b"line %d\n" % i
 
 
 @app.route('/chunked')
 def chunked(_):
-    """Generator response with Response class."""
+    """A generator response with a Response class."""
 
     def gen():
         for i in range(10):
@@ -613,7 +618,7 @@ def chunked(_):
 
 @app.route('/yield', state.METHOD_POST)
 def input_stream(req):
-    """Stream request handler"""
+    """Stream request handler."""
     i = 0
 
     # chunk must be read with extra method, uwsgi has own
@@ -630,7 +635,7 @@ def input_stream(req):
 
 @app.route('/simple')
 def simple(req):
-    """Return simple.py with FileObjResponse"""
+    """Returns simple.py with FileObjResponse."""
     assert req
     file_ = open(__file__, 'rb')  # pylint: disable=consider-using-with
     return FileObjResponse(file_)
@@ -638,7 +643,7 @@ def simple(req):
 
 @app.route('/simple.py')
 def simple_py(req):
-    """Return simple.py with FileResponse"""
+    """Returns simple.py with FileResponse."""
     last_modified = int(getctime(__file__))
     weak = urlsafe_b64encode(
         md5(  # nosec
@@ -665,44 +670,44 @@ def simple_py(req):
 
 @app.after_response()
 def log_response(_, res):
-    """Log after response created."""
+    """Logs after the response is created."""
     log.info("After response")
     return res
 
 
 @app.route('/internal-server-error')
 def method_raises_errror(_):
-    """Own internal server error test"""
+    """A custom internal server error test."""
     raise RuntimeError('Test of internal server error')
 
 
 @app.route('/none')
 def none_no_content(_):
-    """Test for None response."""
+    """Tests for a None response."""
 
 
 @app.route('/bad-request')
 def bad_request(req):
-    """Endpoint raises ValueError exception."""
+    """Endpoint raises a ValueError exception."""
     assert req
     raise MyValueError("ValueError exception test.")
 
 
 @app.route('/forbidden')
 def forbidden(req):
-    """Test forbiden exception."""
+    """Tests forbidden exception."""
     raise HTTPException(state.HTTP_FORBIDDEN)
 
 
 @app.route('/not-modified')
 def not_modified_result(_):
-    """Test for raise not NotModifiedResponse"""
+    """Tests for raising a NotModifiedResponse."""
     raise HTTPException(NotModifiedResponse(etag="012"))
 
 
 @app.route('/not-implemented')
 def not_implemented(req):
-    """Test not implemented exception"""
+    """Tests not implemented exception."""
     raise HTTPException(state.HTTP_NOT_IMPLEMENTED)
 
 

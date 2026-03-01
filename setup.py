@@ -186,7 +186,6 @@ setup(name="PoorWSGI",
       classifiers=[
           "Development Status :: 5 - Production/Stable",
           "Environment :: Web Environment", "Intended Audience :: Developers",
-          "License :: OSI Approved :: BSD License",
           "Natural Language :: English", "Natural Language :: Czech",
           "Operating System :: MacOS :: MacOS X", "Operating System :: POSIX",
           "Operating System :: POSIX :: BSD",

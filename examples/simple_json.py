@@ -1,7 +1,7 @@
-"""This is example and test JSON application for PoorWSGI connector.
+"""This is an example and test JSON application for the PoorWSGI connector.
 
-This sample testing example is free to use, modify and study under same BSD
-licence as PoorWSGI. So enjoy it ;)
+This sample testing example is free to use, modify, and study under the same
+BSD license as PoorWSGI. Enjoy!
 """
 # pylint: disable=duplicate-code
 
@@ -42,7 +42,7 @@ if PROFILE is not None:
 
 @app.route('/test/json', method=state.METHOD_GET_POST)
 def test_json(req):
-    """Test GET / POST json"""
+    """Tests GET / POST JSON requests."""
     # numbers are complete list
     data = req.json
     if req.is_chunked_request:
@@ -61,7 +61,7 @@ def test_json(req):
 
 @app.route('/test/json-generator', method=state.METHOD_GET)
 def test_json_generator(req):
-    """Test JSON Generator"""
+    """Tests the JSON Generator."""
     # numbers are generator, which are iterate on output
     return JSONGeneratorResponse(status_code=418, message="I'm teapot :-)",
                                  numbers=range(5),
@@ -70,32 +70,32 @@ def test_json_generator(req):
 
 @app.route('/profile')
 def get_profile(_):
-    """Returun PROFILE env variable"""
+    """Returns the PROFILE environment variable."""
     return JSONResponse(PROFILE=PROFILE)
 
 
 @app.route('/timestamp')
 def get_timestamp(req):
-    """Return simple json with req.start_time timestamp"""
+    """Returns simple JSON with the req.start_time timestamp."""
     return JSONResponse(timestamp=req.start_time)
 
 
 @app.route('/unicode')
 def get_unicode(_):
-    """Return simple JSON with contain raw unicode characters."""
+    """Returns simple JSON containing raw Unicode characters."""
     return JSONResponse(name="Ondřej Tůma",
                         encoder_kwargs={"ensure_ascii": False})
 
 
 @app.route('/dict')
 def get_dict(_):
-    """Return dictionary"""
+    """Returns a dictionary."""
     return {"route": "/dict", "type": "dict"}
 
 
 @app.route('/list')
 def get_list(_):
-    """Return list"""
+    """Returns a list."""
     return [["key", "value"], ["route", "/list"], ["type", "list"]]
 
 

@@ -62,37 +62,44 @@ def req(app):
 
 
 class TestMap():
-    """Test for PasswordMap class."""
+    """Tests for the PasswordMap class."""
 
     def test_set(self, pmap):
+        """Tests setting a user's digest in the PasswordMap."""
         assert REALM in pmap
         assert USER in pmap[REALM]
         assert pmap[REALM][USER] == DIGEST
 
     def test_delete(self, pmap):
+        """Tests deleting a user from the PasswordMap."""
         assert pmap.delete(REALM, USER) is True
         assert pmap.delete(REALM, USER) is False
 
     def test_find(self, pmap):
+        """Tests finding a user's digest in the PasswordMap."""
         assert pmap.find(REALM, USER) == DIGEST
         assert pmap.find('', USER) is None
         assert pmap.find(REALM, '') is None
 
     def test_verify(self, pmap):
+        """Tests verifying a user's digest in the PasswordMap."""
         assert pmap.verify(REALM, USER, DIGEST) is True
         assert pmap.verify(REALM, USER, '') is False
         assert pmap.verify(REALM, '', DIGEST) is False
         assert pmap.verify('', USER, DIGEST) is False
 
     def test_load(self):
+        """Tests loading the PasswordMap from a file."""
         pmap = PasswordMap(FILE)
         pmap.load()
         assert pmap.verify(REALM, USER, DIGEST) is True
 
 
 def test_hexdigest():
+    """Tests the hexdigest function."""
     assert hexdigest(USER, REALM, 'looser') == DIGEST
 
 
 def test_header_parsing(req):
+    """Tests parsing the Authorization header."""
     assert req.authorization == DICT

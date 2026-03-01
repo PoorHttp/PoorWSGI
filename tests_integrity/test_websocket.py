@@ -1,4 +1,4 @@
-"""HTTP Digest example test."""
+"""WebSocket example tests."""
 from os import environ
 from os.path import dirname, join, pardir
 from uuid import uuid1
@@ -18,6 +18,7 @@ from . support import start_server, check_url
 
 @fixture(scope="module")
 def server(request):
+    """Fixture for starting the WebSocket example server."""
     value = environ.get("TEST_WEBSOCKET_URL", "").strip('/')
     if value:
         return value
@@ -34,18 +35,21 @@ def server(request):
 
 @fixture(scope="module")
 def http_url(server):
+    """Fixture for the HTTP URL of the server."""
     return f"http://{server}"
 
 
 @fixture(scope="module")
 def ws_url(server):
+    """Fixture for the WebSocket URL of the server."""
     return f"ws://{server}"
 
 
 class TestWebSocket:
-    """Test for WebSocket example."""
+    """Tests for the WebSocket example."""
 
     def test_upgrade(self, http_url):
+        """Tests the WebSocket upgrade handshake."""
         uuid = uuid1().bytes
         check_url(http_url+"/ws", status_code=101,
                   headers={"Connection": "Upgrade",
@@ -55,6 +59,7 @@ class TestWebSocket:
                            encodebytes(uuid).decode().strip()})
 
     def test_websocket(self, ws_url):
+        """Tests basic WebSocket communication."""
         # python websocket library breaks usage websocket-client with pylint
         # pylint: disable=no-member
         wsck = WebSocket()

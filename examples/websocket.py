@@ -1,6 +1,6 @@
 """WebSocket example.
 
-to run with uWSGI (uWSGI needs SSL to working websockets):
+To run with uWSGI (uWSGI needs SSL for working websockets):
 
 .. code:: sh
 
@@ -9,13 +9,13 @@ to run with uWSGI (uWSGI needs SSL to working websockets):
             --gevent 100 \
             --wsgi-file examples/websocket.py
 
-without uWsgi WSocket package is used:
+Without uWSGI, the WSocket package is used:
 
 .. code:: sh
 
    pip install WSocket
 
-to proxy with nginx:
+To proxy with nginx:
 
 .. code:: nginx
 
@@ -64,22 +64,22 @@ try:
     WebSocketError = OSError
 
     def WSocketApp(var):  # noqa: N802
-        """Compatible with wsocket WSocketApp"""
+        """Compatible with wsocket.WSocketApp."""
         return var
 
     class WebSocket():
-        """Compatibility class."""
+        """A compatibility class."""
         # pylint: disable=no-self-use
 
         def __init__(self):
             uwsgi.websocket_handshake()
 
         def receive(self):
-            """Receive message from websocket."""
+            """Receives a message from the websocket."""
             return uwsgi.websocket_recv()
 
         def send(self, msg):
-            """Send message to websocket."""
+            """Sends a message to the websocket."""
             uwsgi.websocket_send(msg)
 
 
@@ -92,12 +92,12 @@ except ModuleNotFoundError:
 
 
 def get_websocket(environment):
-    """Return websocket instace."""
+    """Returns a websocket instance."""
     if uwsgi:
         return WebSocket()
 
     def receive(self):
-        """uWsgi returns bytes."""
+        """uWSGI returns bytes."""
         string = self.receive_str()
         if string is None:
             raise WebSocketError("Socket was closed.")
@@ -121,7 +121,7 @@ app = application = WSocketApp(poor)
 
 @poor.route('/')
 def root(req):
-    """Return Root (Index) page."""
+    """Returns the Root (Index) page."""
     ws_scheme = 'wss' if req.scheme == 'https' else 'ws'
 
     return """
@@ -196,7 +196,7 @@ def root(req):
 
 @poor.route('/ws')
 def websocket(req):
-    """Websocket endpoint"""
+    """WebSocket endpoint."""
     answers = ("Hmm", "Yee", "Ok", "Really?", "Never mind", "You are best!",
                "😀", "😉", "☺", "😎", "👌", "👍", "🤔", "👏", "🤩", "...")
     try:
@@ -218,10 +218,10 @@ def websocket(req):
 
 class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
     """This class is identical to WSGIServer but uses threads to handle
-    requests by using the ThreadingMixIn. This is useful to handle weg
-    browsers pre-opening sockets, on which Server would wait indefinitely.
+        requests by using the ThreadingMixIn. This is useful to handle web
+        browsers pre-opening sockets, on which the server would wait
+        indefinitely.
     """
-
     multithread = True
     daemon_threads = True
 

@@ -1,4 +1,4 @@
-"""Classes, which is used for managing headers.
+"""Classes that are used for managing headers.
 
 :Classes:   Headers
 :Functions: parse_negotiation, render_negotiation
@@ -25,6 +25,7 @@ RangeList = List[Tuple[Optional[int], Optional[int]]]
 
 
 def _parseparam(s):
+    """Parse a parameter list, handling quoted strings."""
     while s[:1] == ';':
         s = s[1:]
         end = s.find(';')
@@ -38,9 +39,9 @@ def _parseparam(s):
 
 
 def parse_header(line):
-    """Parse a Content-type like header.
+    """Parses a Content-Type-like header.
 
-    Return the main content-type and a dictionary of options.
+    Returns the main content type and a dictionary of options.
 
     >>> parse_header("text/html; charset=latin-1")
     ('text/html', {'charset': 'latin-1'})
@@ -63,7 +64,8 @@ def parse_header(line):
 
 
 def parse_negotiation(value: str):
-    """Parse content negotiation headers to list of value, quality tuples.
+    """Parses content negotiation headers into a list of (value, quality)
+    tuples.
 
     >>> parse_negotiation('gzip;q=1.0, identity;q=0.5, *;q=0')
     [('gzip', 1.0), ('identity', 0.5), ('*', 0.0)]
@@ -85,7 +87,7 @@ def parse_negotiation(value: str):
 
 
 def render_negotiation(negotation: List[Tuple]):
-    """Render negotiation header value from tuples.
+    """Renders a negotiation header value from tuples.
 
     >>> render_negotiation([('gzip',1.0), ('*',0)])
     'gzip;q=1.0, *;q=0'
@@ -102,10 +104,10 @@ def render_negotiation(negotation: List[Tuple]):
 
 
 def parse_range(value: str) -> Dict[str, RangeList]:
-    """Parse HTTP Range header.
+    """Parses an HTTP Range header.
 
-    Parse `Range` header value and return dictionary with units key and list
-    tuples of range.
+    Parses the `Range` header value and returns a dictionary with the units
+    key and a list of range tuples.
 
     see: https://www.rfc-editor.org/rfc/rfc9110.html#name-range-requests
 
@@ -145,7 +147,7 @@ def parse_range(value: str) -> Dict[str, RangeList]:
 
 
 def datetime_to_http(value: datetime):
-    """Return HTTP Date from timestamp.
+    """Returns an HTTP Date from a timestamp.
 
     >>> datetime_to_http(datetime.fromtimestamp(0, timezone.utc))
     'Thu, 01 Jan 1970 00:00:00 GMT'
@@ -154,7 +156,7 @@ def datetime_to_http(value: datetime):
 
 
 def time_to_http(value: Optional[Union[int, float]] = None):
-    """Return HTTP Date from timestamp.
+    """Returns an HTTP Date from a timestamp.
 
     >>> time_to_http(0)
     'Thu, 01 Jan 1970 00:00:00 GMT'
@@ -168,7 +170,7 @@ def time_to_http(value: Optional[Union[int, float]] = None):
 
 
 def http_to_datetime(value: str):
-    """Return timestamp from HTTP Date
+    """Returns a datetime from an HTTP Date string.
 
     >>> http_to_datetime("Thu, 01 Jan 1970 00:00:00 GMT")
     datetime.datetime(1970, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
@@ -179,7 +181,7 @@ def http_to_datetime(value: str):
 
 
 def http_to_time(value: str):
-    """Return timestamp from HTTP Date
+    """Returns a timestamp from an HTTP Date.
 
     >>> http_to_time("Thu, 01 Jan 1970 00:00:00 GMT")
     0
@@ -188,7 +190,7 @@ def http_to_time(value: str):
 
 
 class ContentRange:
-    """Content-Range header.
+    """The Content-Range header.
 
     >>> str(ContentRange(1, 2))
     'bytes 1-2/*'
@@ -214,24 +216,25 @@ class ContentRange:
 
 
 class Headers(Mapping):
-    """Class inherited from collections.Mapping.
+    """A class inherited from collections.Mapping.
 
-    As PEP 0333, resp. RFC 2616 says, all headers names must be only US-ASCII
-    character except control characters or separators. And headers values must
-    be store in string encoded in ISO-8859-1. This class methods Headers.add
-    and Headers.add_header do auto convert values from UTF-8 to ISO-8859-1
-    encoding if it is possible. So on every modification methods must be use
-    UTF-8 string.
+    As PEP 0333, respectively RFC 2616, states, all header names must
+    contain only US-ASCII characters, excluding control characters or
+    separators. Header values must be stored in strings encoded in
+    ISO-8859-1. The Headers.add and Headers.add_header methods of this
+    class automatically convert values from UTF-8 to ISO-8859-1
+    encoding if possible. Therefore, all modification methods must use
+    UTF-8 strings.
 
-    Some headers can be set twice. At this moment, response can contain only
-    more ``Set-Cookie`` headers, but you can use add_header method to add more
-    headers with same name. Or you can create headers from tuples, which is
-    used in Request.
+    Some headers can be set twice. Currently, a response can contain
+    multiple ``Set-Cookie`` headers, but you can use the add_header
+    method to add multiple headers with the same name. Alternatively,
+    you can create headers from tuples, which is used in Request.
 
-    When more same named header is set in HTTP request, server join it's value
-    to one.
+    When multiple headers with the same name are set in an HTTP request,
+    the server joins their values into one.
 
-    Empty header is not allowed.
+    An empty header is not allowed.
 
     >>> headers = Headers({'X-Powered-By': 'Test'})
     >>> headers['X-Powered-By']
@@ -247,17 +250,17 @@ class Headers(Mapping):
     >>> 'x-powered-by' in headers
     True
     """
-
     def __init__(self, headers: Optional[HeadersList] = None,
                  strict: bool = True):
         """Headers constructor.
 
-        Headers object could be create from list, set or tuple of pairs
-        name, value. Or from dictionary. All names or values must be
-        iso-8859-1 encodable. If not, AssertionError will be raised.
+        A Headers object can be created from a list, set, or tuple of
+        (name, value) pairs, or from a dictionary. All names or values
+        must be ISO-8859-1 encodable. If not, an AssertionError will be
+        raised.
 
-        If strict is False, headers names and values are not encoded to
-        iso-8859-1. This is for input headers using only!
+        If strict is False, header names and values are not encoded to
+        ISO-8859-1. This is for input headers only.
         """
         headers = headers or []
         if isinstance(headers, (list, tuple, set)):
@@ -280,11 +283,11 @@ class Headers(Mapping):
                             "(got {0})".format(type(headers)))
 
     def __len__(self):
-        """Return len of header items."""
+        """Returns the number of header items."""
         return len(self.__headers)
 
     def __getitem__(self, name: str):
-        """Return header item identified by lower name."""
+        """Returns the header item identified by its lowercase name."""
         name = Headers.iso88591(name.lower())
         for k, val in self.__headers:
             if k.lower() == name:
@@ -292,13 +295,13 @@ class Headers(Mapping):
         raise KeyError("{0!r} is not registered".format(name))
 
     def __delitem__(self, name: str):
-        """Delete item identied by lower name."""
+        """Deletes the item identified by its lowercase name."""
         name = Headers.iso88591(name.lower())
         self.__headers = list(kv for kv in self.__headers
                               if kv[0].lower() != name)
 
     def __setitem__(self, name: str, value: str):
-        """Delete item if exist and set it's new value."""
+        """Deletes an item if it exists and sets its new value."""
         del self[name]
         self.add_header(name, value)
 
@@ -309,19 +312,20 @@ class Headers(Mapping):
         return "Headers(%r)" % repr(tuple(self.__headers))
 
     def names(self):
-        """Return tuple of headers names."""
+        """Returns a tuple of header names."""
         return tuple(k for k, v in self.__headers)
 
     def keys(self):
-        """Alias for names method."""
+        """An alias for the names method."""
         return self.names()
 
     def values(self):
-        """Return tuple of headers values."""
+        """Returns a tuple of header values."""
         return tuple(v for k, v in self.__headers)
 
     def get_all(self, name: str):
-        """Return tuple of all values of header identified by lower name.
+        """Returns a tuple of all values for the header identified by its
+        lowercase name.
 
         >>> headers = Headers([('Set-Cookie', 'one'), ('Set-Cookie', 'two')])
         >>> headers.get_all('Set-Cookie')
@@ -333,11 +337,11 @@ class Headers(Mapping):
         return tuple(kv[1] for kv in self.__headers if kv[0].lower() == name)
 
     def items(self):
-        """Return tuple of headers pairs."""
+        """Returns a tuple of header (key, value) pairs."""
         return tuple(self.__headers)
 
     def setdefault(self, name: str, value: str):
-        """Set header value if not exist, and return it's value."""
+        """Sets a header value if it does not exist, and returns its value."""
         res = self.get(name)
         if res is None:
             self.add_header(name, value)
@@ -345,9 +349,9 @@ class Headers(Mapping):
         return res
 
     def add(self, name: str, value: str):
-        """Set header name to value.
+        """Sets a header name to a value.
 
-        Duplicate names are not allowed instead of ``Set-Cookie``.
+        Duplicate names are not allowed, except for ``Set-Cookie``.
         """
         if name != "Set-Cookie" and name in self:
             raise KeyError("Key %s exist." % name)
@@ -358,15 +362,15 @@ class Headers(Mapping):
                    **kwargs):
         """Extended header setting.
 
-        name : str
-            Header field to add.
+        name
+            The header field to add.
 
-        value : str or list of tuples
-            If value is list of tuples, render_negogation will be used.
+        value
+            If the value is a list of tuples, render_negotiation will be used.
 
-        kwargs : dict
-            arguments can be used to set additional value parameters for the
-            header field, with underscores converted to dashes. Normally the
+        kwargs
+            Arguments can be used to set additional value parameters for the
+            header field, with underscores converted to dashes. Normally, the
             parameter will be added as name="value".
 
         .. code:: python
@@ -374,12 +378,11 @@ class Headers(Mapping):
             h.add_header('X-Header', 'value')
             h.add_header('Content-Disposition', 'attachment',
                          filename='image.png')
-            h.add_header('Accept-Encodding', [('gzip',1.0), ('*',0)])
+            h.add_header('Accept-Encoding', [('gzip',1.0), ('*',0)])
 
-        All names must be US-ASCII string except control characters
+        All names must be US-ASCII strings, excluding control characters
         or separators.
         """
-
         parts = []
 
         if isinstance(value, (list, tuple)):
@@ -402,10 +405,10 @@ class Headers(Mapping):
 
     @staticmethod
     def iso88591(value: str) -> str:
-        """Doing automatic conversion to iso-8859-1 strings.
+        """Performs automatic conversion to ISO-8859-1 strings.
 
-        Converts from utf-8 to iso-8859-1 string. That means, all input value
-        of Headers class must be UTF-8 stings.
+        Converts from UTF-8 to ISO-8859-1 strings. This means all input values
+        for the Headers class must be UTF-8 strings.
         """
         try:
             if isinstance(value, str):
@@ -419,7 +422,7 @@ class Headers(Mapping):
 
     @staticmethod
     def utf8(value: str) -> str:
-        """Doing automatic conversion to utf-8 strings."""
+        """Performs automatic conversion to UTF-8 strings."""
         try:
             return value.encode('iso-8859-1').decode('utf-8')
         except UnicodeError:

@@ -1,4 +1,4 @@
-"""Integrity test for metrics example."""
+"""Integrity tests for the metrics example."""
 # pylint: disable=redefined-outer-name
 # pylint: disable=missing-function-docstring
 # pylint: disable=no-self-use
@@ -13,7 +13,8 @@ from . support import start_server, check_url
 
 @fixture(scope="module")
 def url(request):
-    """Return server url or if exists or start metrics application."""
+    """Returns the server URL or starts the metrics application if it doesn't
+    exist."""
     retval = environ.get("TEST_METRICS_URL", "").strip('/')
     if retval:
         yield retval
@@ -31,15 +32,18 @@ def url(request):
 class TestMetrics():
     """Tests for example endpoints."""
     def test_root(self, url):
+        """Tests the root endpoint."""
         res = check_url(url+"/",
                         headers={'Accept': 'text/plain'})
         assert res.headers["Content-Type"] == "text/plain"
 
     def test_metrics(self, url):
+        """Tests the metrics endpoint."""
         res = check_url(url+"/metrics")
         assert res.headers["Content-Type"].startswith("application/json")
 
     def test_invalid_request(self, url):
+        """Tests an invalid request to an endpoint."""
         check_url(url+"/json", status_code=400,
                   method="POST", data={'message': 'invalid'},
                   headers={'Content-Type': 'application/json'})

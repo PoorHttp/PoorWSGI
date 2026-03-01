@@ -27,7 +27,7 @@ app.debug = True
 
 @app.route('/blackhole/<filename>', method=state.METHOD_PUT)
 def blackhole_put(req, filename: str):
-    """Upload file via PUT method like in webdav"""
+    """Uploads a file via the PUT method, similar to WebDAV."""
     checksum = sha256()
     uploaded = 0
 
@@ -49,7 +49,7 @@ def blackhole_put(req, filename: str):
 
 @app.route('/temporary/<filename>', method=state.METHOD_PUT)
 def temporary_put(req, filename: str):
-    """Upload file via PUT method like in webdav"""
+    """Uploads a file via the PUT method, similar to WebDAV."""
     checksum = sha256()
     uploaded = 0
 
@@ -72,7 +72,7 @@ def temporary_put(req, filename: str):
 
 @app.route('/')
 def root(req):
-    """Return Root (Index) page."""
+    """Returns the Root (Index) page."""
     assert req
     return """<html>
       <head>
@@ -134,10 +134,10 @@ def root(req):
 
 class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
     """This class is identical to WSGIServer but uses threads to handle
-    requests by using the ThreadingMixIn. This is useful to handle weg
-    browsers pre-opening sockets, on which Server would wait indefinitely.
+        requests by using the ThreadingMixIn. This is useful to handle web
+        browsers pre-opening sockets, on which the server would wait
+        indefinitely.
     """
-
     multithread = True
     daemon_threads = True
 

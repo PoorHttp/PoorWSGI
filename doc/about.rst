@@ -1,9 +1,9 @@
 About PoorWSGI
 ==============
-PoorWSGI for Python is light WGI connector with uri routing between WSGI
-server and your application. It have request object like in mod_python,
-which is post to all uri or http state handlers. The simplest way to run and
-test with wsgiref.simple_server it looks like that:
+PoorWSGI for Python is a lightweight WSGI connector with URI routing between the WSGI
+server and your application. It has a request object similar to mod_python,
+which is passed to all URI or HTTP state handlers. The simplest way to run and
+test it with wsgiref.simple_server looks like this:
 
 .. code:: python
 
@@ -24,17 +24,17 @@ test with wsgiref.simple_server it looks like that:
 
     ~$ python simple.py
 
-It has base error pages like 403, 404, 405, 500 or 501. 500 internal server
-error have debug output if poor_Debug is set. And there is special debug page
-on ``/debug-info`` uri, which is available when poor_Debug is set too.
+It has basic error pages like 403, 404, 405, 500, or 501. A 500 internal server
+error will have debug output if poor_Debug is set. Additionally, there is a special debug page
+on the ``/debug-info`` URI, which is also available when poor_Debug is set.
 
 .. code:: sh
 
     ~$ poor_Debug=On python simple.py
 
-Poor WSGI have some functions, to you can use as real http server, which could
-send files with right mime-type from disk, or generate directory listing. See
-Configuration section for more info.
+PoorWSGI has some functions that you can use as a real HTTP server, which can
+send files with the correct MIME type from disk, or generate directory listings.
+See the Configuration section for more info.
 
 .. code:: sh
 
@@ -42,50 +42,50 @@ Configuration section for more info.
 
 The Story
 =========
-Once upon a time, there was a King. Ok there was a Prince. Oh, may by, there
-was not a prince, but probably, there was a Programmer, hmm ok, programmer.
-And this programmer know apaches mod_python. Yes it was very very bad paragon,
-but before python, he was programing in php. So mod_python was be big movement
-to right direction at that times.
+Once upon a time, there was a King. Or there was a Prince. Oh, maybe, there wasn't a
+prince, but probably there was a Programmer, hmm, okay, a programmer. And this
+programmer knew Apache's mod_python. Yes, it was a very, very bad paragon, but
+before Python, he was programming in PHP. So mod_python was a big movement in the
+right direction at that time.
 
-He was founding how he can write, and host on server python applications. And as
-he know some close-source framework, which works right, he write some another,
-similar for his use. That is base of Poor Publisher. But WGSI was coming so he
-had idea, to write some new backend for his applications. That is base of Poor
-HTTP and Poor WSGI.
+He was finding out how he could write and host Python applications on a server.
+And as he knew some closed-source framework that worked correctly, he wrote
+another similar one for his own use. That is the basis of Poor Publisher. But WSGI was
+coming, so he had an idea to write a new backend for his applications. That
+is the basis of Poor HTTP and PoorWSGI.
 
-Some times, Poor HTTP and Poor WSGI was one project. It is better way, but
-that's not right way. After some time, he divide these too projects to Poor WSGI
-and Poor HTTP projects. But there is bad concept in Poor WSGI framework, which
-is not framework in fact. So he look for another projects, and see how could be
-nice to create WSGI application for user. That is time when Poor WSGI is
-rewritten to library type code, and application is callable class with some nice
-route and other methods - decorators.
+Sometimes, Poor HTTP and PoorWSGI were one project. It was a better way, but
+that wasn't the right way. After some time, he divided these two projects into
+PoorWSGI and Poor HTTP projects. But there was a flawed concept in the PoorWSGI
+framework, which wasn't a framework in fact. So he looked for other projects and
+saw how nice it could be to create a WSGI application for the user. That is when
+PoorWSGI was rewritten into library-type code, and the application became a
+callable class with some nice routing methods and decorators.
 
-This is story of one programmer and his WSGI framework, which is not framework
-in fact, because, it knows only handle uri request with some mod_python
-compatibility layer. As you can see, there are some ways, how this project can
-go. It's author, programmer use it on his projects, and it would be so nice, if
-there are more programmers then he, which use this little project, let's call
-it WSGI connector.
+This is the story of one programmer and his WSGI framework, which is not a
+framework in fact, because it only handles URI requests with some mod_python
+compatibility layer. As you can see, there are several ways this project can
+evolve. Its author, the programmer, uses it on his projects, and it would be
+very nice if there were more programmers than just him who used this little
+project. Let's call it a WSGI connector.
 
 If you have any questions, proposals, bug fixes, text corrections, or any
-other things, please send me email to *mcbig at zeropage.cz* or you can
-create issue on GutHub:
-https://github.com/PoorHttp/PoorWSGI/issues Thank you so much.
+other matters, please send me an email to *mcbig at zeropage.cz*, or you can
+create an issue on GitHub: https://github.com/PoorHttp/PoorWSGI/issues.
+Thank you so much.
 
 ChangeLog
 =========
-For release history or difference of releases, you can use git diff, diff log,
-git2cl tool or you can see ChangeLog from source code or on git repository
-web. See:
+For release history or differences between releases, you can use git diff, diff
+log, the git2cl tool, or consult the ChangeLog from the source code or on the Git
+repository's web page. See:
 
     https://github.com/PoorHttp/PoorWSGI/blob/master/doc/ChangeLog
 
 Examples
 ========
-It is published application test files. You can download it, study it,
-test or use it as you can. See:
+These are published application test files. You can download them, study them,
+test them, or use them as you wish. See:
 
 **http_digest.py**
     https://github.com/PoorHttp/PoorWSGI/blob/master/examples/http_digest.py
@@ -96,7 +96,7 @@ test or use it as you can. See:
 
 **put_file.py**
 
-    Example of uploading file via PUT method like in WebDAV
+    Example of uploading a file via the PUT method, similar to WebDAV.
 
     https://github.com/PoorHttp/PoorWSGI/blob/master/examples/put_file.py
 

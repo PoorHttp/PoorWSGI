@@ -49,10 +49,10 @@ This module defines how outgoing responses are constructed.
 `results` (`poorwsgi/results.py`)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This module contains pre-defined handlers for all standard HTTP status codes (e.g., `not_found` for 404, `internal_server_error` for 500).
+This module contains predefined handlers for all standard HTTP status codes (e.g., `not_found` for 404, `internal_server_error` for 500).
 
 *   These are used as default error handlers if the user does not register their own.
-*   It also contains the powerful `debug_info` handler, which generates a comprehensive introspection page at the `/_debug-info` URL when the application is in debug mode.
+*   It also contains the powerful `debug_info` handler, which generates a comprehensive introspection page at the `/debug-info` URL when the application is in debug mode.
 
 The Request-Response Lifecycle
 ------------------------------

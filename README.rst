@@ -25,8 +25,8 @@
 Poor WSGI for Python
 ====================
 
-Poor WSGI for Python is light WGI connector with uri routing between WSGI server
-and your application. The simplest way to run and test it looks like that:
+Poor WSGI for Python is a lightweight WSGI connector with URI routing between the WSGI server
+and your application. The simplest way to run and test it looks like this:
 
 .. code-block:: python
 
@@ -43,7 +43,7 @@ and your application. The simplest way to run and test it looks like that:
         httpd = make_server('127.0.0.1', 8080, app)
         httpd.serve_forever()
 
-You can use python wsgiref.simple_server for test it:
+You can use Python's wsgiref.simple_server to test it:
 
 .. code-block::
 

@@ -1,8 +1,10 @@
-"""This is example and test application for PoorWSGI connector with openapi3
+"""This is an example and test application for the PoorWSGI connector with
+OpenAPI 3
 support.
 
-This sample testing example is free to use, modify and study under same BSD
-licence as PoorWSGI. So enjoy it ;)
+This sample testing example is free to use, modify, and study under the same
+BSD
+license as PoorWSGI. Enjoy!
 """
 
 from wsgiref.simple_server import make_server
@@ -59,7 +61,7 @@ with open(path.join(path.dirname(__file__), "openapi.json"),
 
 @app.before_response()
 def cors_request(req):
-    """CORS additional response for method OPTIONS."""
+    """CORS additional response for the OPTIONS method."""
     if req.uri.startswith("/p/"):
         return      # endpoints for printers does not need CORS
     if req.method_number == state.METHOD_OPTIONS:
@@ -71,7 +73,7 @@ def cors_request(req):
 
 @app.after_response()
 def cors_response(req, res):
-    """CORS additional headers in response."""
+    """CORS additional headers in the response."""
     if isinstance(req, Request):
         res.add_header("Access-Control-Allow-Origin",
                        req.headers.get("Origin", "*"))
@@ -81,7 +83,7 @@ def cors_response(req, res):
 
 @app.before_response()
 def before_each_response(req):
-    """Check API before process each response."""
+    """Checks the API before processing each response."""
     req.api = OpenAPIRequest(req)
     try:
         unmarshal_request(req.api, app.openapi_spec)
@@ -99,7 +101,7 @@ def before_each_response(req):
 
 @app.after_response()
 def after_each_response(req, res):
-    """Check if ansewer is valid by OpenAPI."""
+    """Checks if the answer is valid by OpenAPI."""
     if not hasattr(req, "api"):
         req.api = OpenAPIRequest(req)
     try:
@@ -117,14 +119,14 @@ def after_each_response(req, res):
 
 @app.route("/plain_text")
 def plain_text(req):
-    """Simple hello world example."""
+    """A simple hello world example."""
     assert req
     return "Hello world", "text/plain"
 
 
 @app.route("/response")
 def response_handler(req):
-    """Override content-type via header value."""
+    """Overrides the Content-Type via a header value."""
     assert req
     return Response(
         status_code=200,
@@ -134,14 +136,14 @@ def response_handler(req):
 
 @app.route("/json/<arg>")
 def ajax_arg(req, arg):
-    """Ajax JSON example."""
+    """An Ajax JSON example."""
     assert req
     return json.dumps({"arg": arg}), "application/json"
 
 
 @app.route('/json', method=state.METHOD_POST | state.METHOD_PUT)
 def test_json(req):
-    """JSONResponse example"""
+    """JSONResponse example."""
     assert req
     return JSONResponse(status_code=418, message="I'm teapot :-)",
                         request=req.json)
@@ -149,21 +151,21 @@ def test_json(req):
 
 @app.route("/arg/<arg:int>")
 def ajax_integer(req, arg):
-    """Simple JSON response with integer argument in path."""
+    """A simple JSON response with an integer argument in the path."""
     assert req
     return json.dumps({"arg": arg}), "application/json"
 
 
 @app.route("/arg/<arg:float>")
 def ajax_float(req, arg):
-    """Simple JSON response with float argument in path."""
+    """A simple JSON response with a float argument in the path."""
     assert req
     return json.dumps({"arg": arg}), "application/json"
 
 
 @app.route("/arg/<arg:uuid>")
 def ajax_uuid(req, arg):
-    """Simple JSON response with uuid argument in path."""
+    """A simple JSON response with a UUID argument in the path."""
     assert req
     return json.dumps({"arg": str(arg)}), "application/json"
 
@@ -177,7 +179,7 @@ def method_raises_errror(req):
 
 @app.route('/login')
 def login(req):
-    """Set login cookie test."""
+    """Sets a login cookie test."""
     assert req
     cookie = PoorSession(app.secret_key)
     cookie.data['login'] = True
@@ -188,7 +190,7 @@ def login(req):
 
 @app.route('/check/login')
 def check_login(req):
-    """Clear login cookie - logout test."""
+    """Clears the login cookie - logout test."""
     session = PoorSession(app.secret_key)
     session.load(req.cookies)
     if 'login' not in session.data:
@@ -207,7 +209,7 @@ def check_api_key(req):
 
 @app.http_state(state.HTTP_NOT_FOUND)
 def not_found(req):
-    """404 NotFound test."""
+    """404 Not Found test."""
     return (json.dumps(
         {"error": f"Url {req.uri}, you are request not found"}),
         "application/json", None, 404)

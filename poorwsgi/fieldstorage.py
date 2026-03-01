@@ -1,4 +1,4 @@
-"""PoorWSGI reimplementation of legacy cgi.FieldStorage.
+"""PoorWSGI reimplementation of the legacy cgi.FieldStorage.
 
 :Classes: FieldStorage, FieldStorageParser
 :Functions: valid_boundary
@@ -20,7 +20,7 @@ _RE_BIN_BOUNDARY = re.compile(b"^[ -~]{0,200}[!-~]$")
 
 
 def valid_boundary(data):
-    """Check valid boundary label.
+    """Checks for a valid boundary label.
 
     >>> valid_boundary("----WebKitFormBoundaryMPRpF8CUUmlmqKqy")
     True
@@ -35,9 +35,8 @@ def valid_boundary(data):
 class FieldStorageInterface(metaclass=ABCMeta):
     """FieldStorage Interface
 
-    Implements methods getvalue, getfirst and getlist
+    Implements the methods getvalue, getfirst, and getlist.
     """
-
     @abstractmethod
     def __contains__(self, key: str) -> bool: ...
 
@@ -46,16 +45,15 @@ class FieldStorageInterface(metaclass=ABCMeta):
 
     def getvalue(self, key: str, default: Any = None,
                  func: Callable = lambda x: x):
-        """Get but func is called for all values.
+        """Returns the value for the given key, applying func to it.
 
-        Arguments:
-            key : str
-                key name
-            default : None
-                default value if key not found
-            func : converter (lambda x: x)
-                Function or class which processed value. Default type of value
-                is bytes for files and string for others.
+        key
+            The key name.
+        default
+            The default value if the key is not found.
+        func
+            The function or class that processes the value. The default
+            type of value is bytes for files and string for others.
         """
         if key in self:
             return func(self[key])
@@ -64,14 +62,15 @@ class FieldStorageInterface(metaclass=ABCMeta):
     def getfirst(self, key: str, default: Any = None,
                  func: Callable = lambda x: x,
                  fce: Optional[Callable] = None):
-        """Get first item from list for key or default.
+        """Gets the first item from a list for a key, or a default value.
 
-        default : any
-            Default value if key not exists.
-        func : converter
-            Function which processed value.
-        fce : deprecated converter name
-            Use func converter just like getvalue.
+        default
+            The default value if the key does not exist.
+        func
+            The function that processes the value.
+        fce
+            Deprecated converter name. Use the func converter, just like
+            getvalue.
         """
         if fce:
             warnings.warn("Using deprecated fce argument. Use func instead.",
@@ -87,14 +86,15 @@ class FieldStorageInterface(metaclass=ABCMeta):
     def getlist(self, key: str, default: Optional[list] = None,
                 func: Callable = lambda x: x,
                 fce: Optional[Callable] = None):
-        """Returns list of variable values for key or empty list.
+        """Returns a list of variable values for a key, or an empty list.
 
-        default : list or None
-            Default list if key not exists.
-        func : converter
-            Function which processed each value.
-        fce : deprecated converter name
-            Use func converter just like getvalue.
+        default
+            The default list if the key does not exist.
+        func
+            The function that processes each value.
+        fce
+            Deprecated converter name. Use the func converter, just like
+            getvalue.
         """
         if fce:
             warnings.warn("Using deprecated fce argument. Use func instead.",
@@ -109,41 +109,45 @@ class FieldStorageInterface(metaclass=ABCMeta):
 
 
 class FieldStorage(FieldStorageInterface):
-    """Class inspired by cgi.FieldStorage.
+    """A class inspired by cgi.FieldStorage.
 
-    Instead of FieldStorage from cgi module, this is only storage for fields,
-    with some additional functionality in getfirst, getlist, getvalue or simple
-    get method. They return values instead of __getitem__ ([]), which returns
-    another FieldStorage.
+    Instead of FieldStorage from the cgi module, this is only storage for
+    fields, with some additional functionality in getfirst, getlist,
+    getvalue, or simple get methods. They return values instead of
+    __getitem__ ([]), which returns another FieldStorage.
 
     Available attributes:
 
-    :name:          variable name, the same name from input attribute.
-    :value:         property which returns content of field
-    :type:          mime-type of variable. All variables have internal
-                    mime-type, if that is no file, mime-type is text/plain.
-    :type_options:  other content-type parameters, just like encoding.
-    :disposition:   content disposition header if is set
-    :disposition_options: other content-disposition parameters if are set.
-    :filename:      if variable is file, filename is its name from form.
-    :length:        field length if was set in header, -1 by default.
-    :file:          file type instance, from you can read variable. This
-                    instance could be TemporaryFile as default for files,
-                    StringIO for normal variables or instance of your own file
-                    type class, create from file_callback.
-    :lists:         if variable is list of variables, this contains instances
-                    of other fields.
+    :name:          The variable name, the same name as from the input
+                    attribute.
+    :value:         A property that returns the content of the field.
+    :type:          The MIME type of the variable. All variables have an
+                    internal MIME type; if it is not a file, the MIME
+                    type is text/plain.
+    :type_options:  Other Content-Type parameters, such as encoding.
+    :disposition:   The Content-Disposition header, if set.
+    :disposition_options: Other Content-Disposition parameters, if set.
+    :filename:      If the variable is a file, filename is its name
+                    from the form.
+    :length:        The field length if it was set in the header;
+                    -1 by default.
+    :file:          A file type instance from which you can read the
+                    variable. This instance can be a TemporaryFile
+                    (default for files), StringIO (for normal variables),
+                    or an instance of your own file type class, created
+                    from file_callback.
+    :lists:         If the variable is a list of variables, this contains
+                    instances of other fields.
 
-    FieldStorage is create by FieldStorageParser.
+    FieldStorage is created by FieldStorageParser.
 
-    FieldStorage has context methods, so you cat read files like this:
+    FieldStorage has context methods, so you can read files like this:
     >>> field = FieldStorage("key")
     >>> field.file = StringIO("value")
     >>> with field:
     ...     print(field.value)
     value
     """
-
     name: Optional[str] = None
     filename: Optional[str] = None
     length: int
@@ -228,7 +232,7 @@ class FieldStorage(FieldStorageInterface):
         return any(item.name == key for item in self.list)
 
     def __getitem__(self, key: str):
-        """Returns field if exist.
+        """Returns the field if it exists.
         >>> field = FieldStorage()
         >>> field.list = [FieldStorage("key", "value")]
         >>> field["key"].value
@@ -249,12 +253,12 @@ class FieldStorage(FieldStorageInterface):
 
     @property
     def value(self) -> Optional[Union[str, bytes, list]]:
-        """Return content of field.
+        """Returns the content of the field.
 
-        * If field is file, return it's content.
-        * If field is string value, return string.
-        * If field is list of other fields (root FieldStorage), return that
-          list.
+        * If the field is a file, its content is returned.
+        * If the field is a string value, the string is returned.
+        * If the field is a list of other fields (root FieldStorage), that
+          list is returned.
 
         >>> field = FieldStorage()
         >>> print(field.value)
@@ -289,7 +293,7 @@ class FieldStorage(FieldStorageInterface):
         return value
 
     def keys(self):
-        """Dictionary like keys() method.
+        """A dictionary-like keys() method.
 
         >>> field = FieldStorage()
         >>> field.list = [FieldStorage("key", "value")]
@@ -299,9 +303,10 @@ class FieldStorage(FieldStorageInterface):
         return dict.fromkeys(k.name for k in self.list).keys()
 
     def get(self, key: str, default: Any = None):
-        """Compatibility methods with dict.
+        """Compatibility method with dict.
 
-        Return value of list of values if exists.
+        Returns the field value, or a list of values if multiple exist
+        for the key.
 
         >>> field = FieldStorage()
         >>> field.list = [FieldStorage("key", "value")]
@@ -319,16 +324,15 @@ class FieldStorage(FieldStorageInterface):
 
     def getvalue(self, key: str, default: Any = None,
                  func: Callable = lambda x: x):
-        """Get but func is called for all values.
+        """Returns the value for the given key, applying func to each value.
 
-        Arguments:
-            key : str
-                key name
-            default : None
-                default value if key not found
-            func : converter (lambda x: x)
-                Function or class which processed value. Default type of value
-                is bytes for files and string for others.
+        key
+            The key name.
+        default
+            The default value if the key is not found.
+        func
+            The function or class that processes the value. The default
+            type of value is bytes for files and string for others.
 
         >>> field = FieldStorage()
         >>> field.list = [FieldStorage("key", "42")]
@@ -345,10 +349,12 @@ class FieldStorage(FieldStorageInterface):
     def getfirst(self, key: str, default: Any = None,
                  func: Callable = lambda x: x,
                  fce: Optional[Callable] = None):
-        """Get first item from list for key or default.
+        """Gets the first item from a list for a key, or a default value.
 
-        Use func converter just like getvalue.
-        :fce: deprecated converter name.
+        Uses the func converter just like getvalue.
+
+        fce
+            Deprecated converter name.
 
         >>> field = FieldStorage()
         >>> field.list = [FieldStorage("key", "1"), FieldStorage("key", "2")]
@@ -369,10 +375,12 @@ class FieldStorage(FieldStorageInterface):
     def getlist(self, key: str, default: Optional[list] = None,
                 func: Callable = lambda x: x,
                 fce: Optional[Callable] = None):
-        """Returns list of variable values for key or empty list.
+        """Returns a list of variable values for a key, or an empty list.
 
-        Use func converter just like getvalue.
-        :fce: deprecated converter name
+        Uses the func converter just like getvalue.
+
+        fce
+            Deprecated converter name.
 
         >>> field = FieldStorage()
         >>> field.list = [FieldStorage("key", "1"), FieldStorage("key", "2")]
@@ -396,16 +404,17 @@ class FieldStorage(FieldStorageInterface):
 
 
 class FieldStorageParser:
-    """Class inspired by cgi.FieldStorage.
+    """A class inspired by cgi.FieldStorage.
 
-    This is only parsing part of old FieldStorage. It contain methods for
-    parsing POST form encoede in multipart/form-data or
-    application/x-www-form-urlencoded which is default.
+    This is only the parsing part of the old FieldStorage. It contains
+    methods for parsing POST forms encoded in multipart/form-data or
+    application/x-www-form-urlencoded, which is the default.
 
-    It generate FieldStorage or Field in depennd on encoding. But it do it
-    only from request body. FieldStorage has internal StringIO for all
-    values which are not stored in file. Some small binary files can be stored
-    in BytesIO. Limit for storing fields in temporary files is 8192 bytes.
+    It generates FieldStorage or Field depending on the encoding, but
+    it does so only from the request body. FieldStorage has an internal
+    StringIO for all values that are not stored in a file. Some small
+    binary files can be stored in BytesIO. The limit for storing fields
+    in temporary files is 8192 bytes.
 
     .. code:: python
 
@@ -420,44 +429,53 @@ class FieldStorageParser:
                  keep_blank_values=0, strict_parsing=0,
                  limit=None, encoding='utf-8', errors='replace',
                  max_num_fields=None, separator='&', file_callback=None):
-        """Constructor.  Read multipart/* until last part.
+        """Constructor. Reads multipart/* until the last part.
 
         Arguments, all optional:
 
-        :input\\_:    Request.input file object
+        input\\_
+            Request.input file object.
 
-        :headers:   header dictionary-like object
+        headers
+            A header dictionary-like object.
 
-        :outerboundary: terminating multipart boundary
-            (for internal use only)
+        outerboundary
+            The terminating multipart boundary (for internal use only).
 
-        :keep_blank_values: flag indicating whether blank values in
+        keep_blank_values
+            A flag indicating whether blank values in
             percent-encoded forms should be treated as blank strings.
             A true value indicates that blanks should be retained as
-            blank strings.  The default false value indicates that
+            blank strings. The default false value indicates that
             blank values are to be ignored and treated as if they were
             not included.
 
-        :strict_parsing:    flag indicating what to do with parsing errors.
-            If false (the default), errors are silently ignored.
-            If true, errors raise a ValueError exception.
+        strict_parsing
+            A flag indicating what to do with parsing
+            errors. If False (the default), errors are silently ignored.
+            If True, errors raise a ValueError exception.
 
-        :limit: used internally to read parts of multipart/form-data forms,
-            to exit from the reading loop when reached. It is the difference
-            between the form content-length and the number of bytes already
-            read
+        limit
+            Used internally to read parts of
+            multipart/form-data forms, to exit from the reading loop
+            when reached. It is the difference between the form's
+            content-length and the number of bytes already read.
 
-        :encoding, errors:  the encoding and error handler used to decode the
-            binary stream to strings. Must be the same as the charset defined
-            for the page sending the form (content-type : meta http-equiv or
-            header)
+        encoding, errors
+            The encoding and error handler used to
+            decode the binary stream to strings. Must be the same as the
+            charset defined for the page sending the form (content-type :
+            meta http-equiv or header).
 
-        :max_num_fields:    int. If set, then parse throws a ValueError
+        max_num_fields
+            If set, then parse throws a ValueError
             if there are more than n fields read by parse_qsl().
 
-        :file_callback: function returns file class for own handling creating
-            files for write operations. By this, you can write file from
-            request direct to destionation without temporary files.
+        file_callback
+            A function that returns a file class for
+            custom handling of creating files for write operations. This
+            allows you to write a file from the request directly to its
+            destination without temporary files.
         """
         self.headers = headers
         self.outerboundary = outerboundary
@@ -483,18 +501,18 @@ class FieldStorageParser:
             self.input = input_
 
     def _parse_content_type(self):
-        """ Process content-type header
+        """Processes the Content-Type header.
 
-        Honor any existing content-type header.  But if there is no
-        content-type header, use some sensible defaults.  Assume
+        Honors any existing Content-Type header. If no
+        Content-Type header is present, sensible defaults are used. Assumes
         outerboundary is "" at the outer level, but something non-false
-        inside a multi-part.  The default for an inner part is text/plain,
-        but for an outer part it should be urlencoded.  This should catch
-        bogus clients which erroneously forget to include a content-type
+        inside a multi-part. The default for an inner part is text/plain,
+        but for an outer part it should be urlencoded. This should catch
+        bogus clients that erroneously forget to include a Content-Type
         header.
 
-        See below for what we do if there does exist a content-type header,
-        but it happens to be something we don't understand.
+        See below for what is done if a Content-Type header exists,
+        but it is not understood.
         """
         if 'content-type' in self.headers:
             ctype, pdict = parse_header(self.headers['content-type'])
@@ -505,7 +523,7 @@ class FieldStorageParser:
         return ctype, pdict
 
     def parse(self) -> FieldStorage:
-        """Read input and generate FieldStorage from that."""
+        """Reads input and generates FieldStorage from it."""
 
         field = FieldStorage()
 
@@ -547,7 +565,7 @@ class FieldStorageParser:
         return field
 
     def read_urlencoded(self):
-        """Internal: read data in query string format."""
+        """Internal: Reads data in query string format."""
         qs = self.input.read(self.length)
         if not isinstance(qs, bytes):
             msg = f"{self.input} should return bytes, got {type(qs).__name__}"
@@ -562,7 +580,7 @@ class FieldStorageParser:
         return [FieldStorage(key, value) for key, value in query]
 
     def _skip_to_boundary(self):
-        """Check and read file until we've hit our inner boundary."""
+        """Checks and reads the file until the inner boundary is hit."""
         if not valid_boundary(self.innerboundary):
             msg = ('Invalid boundary in multipart form:'
                    f'{repr(self.innerboundary)}')
@@ -582,7 +600,7 @@ class FieldStorageParser:
             self.bytes_read += len(first_line)
 
     def read_multi(self):
-        """Internal: read a part that is itself multipart."""
+        """Internal: Reads a part that is itself multipart."""
         self._skip_to_boundary()
         max_num_fields = self.max_num_fields
         _list = []
@@ -634,7 +652,7 @@ class FieldStorageParser:
         return _list
 
     def read_single(self):
-        """Internal: read an atomic part."""
+        """Internal: Reads an atomic part."""
         if self.length >= 0:
             file = self.read_binary()
             self.skip_lines()
@@ -644,7 +662,7 @@ class FieldStorageParser:
         return file
 
     def read_binary(self):
-        """Internal: read binary data."""
+        """Internal: Reads binary data."""
         file = self.make_file()
         todo = self.length
         if todo >= 0:
@@ -663,7 +681,7 @@ class FieldStorageParser:
         return file
 
     def read_lines(self):
-        """Internal: read lines until EOF or outerboundary."""
+        """Internal: Reads lines until EOF or the outer boundary."""
         if self.filename and self.file_callback:
             file = self.make_file()
         elif self.filename:
@@ -678,7 +696,7 @@ class FieldStorageParser:
         return file
 
     def _write(self, line, file):
-        """line is always bytes, not string"""
+        """The line is always bytes, not a string."""
         if isinstance(file, (BytesIO, StringIO)):  # if file is in memory
             if file.tell() + len(line) > self.BUFSIZE:
                 _file = self.make_file()
@@ -692,7 +710,7 @@ class FieldStorageParser:
         return file
 
     def read_lines_to_eof(self, file):
-        """Internal: read lines until EOF."""
+        """Internal: Reads lines until EOF."""
         while 1:
             line = self.input.readline(1 << 16)
             self.bytes_read += len(line)
@@ -703,8 +721,8 @@ class FieldStorageParser:
         return file
 
     def read_lines_to_outerboundary(self, file):  # noqa: C901
-        """Internal: read lines until outerboundary.
-        Data is read as bytes: boundaries and line ends must be converted
+        """Internal: Reads lines until the outer boundary.
+        Data is read as bytes: boundaries and line endings must be converted
         to bytes for comparisons.
         """
         next_boundary = b"--" + self.outerboundary
@@ -754,7 +772,7 @@ class FieldStorageParser:
         return file
 
     def skip_lines(self):
-        """Internal: skip lines until outer boundary if defined."""
+        """Internal: Skips lines until the outer boundary, if defined."""
         if not self.outerboundary or self.done:
             return
         next_boundary = b"--" + self.outerboundary
@@ -776,11 +794,10 @@ class FieldStorageParser:
             last_line_lfend = line.endswith(b'\n')
 
     def make_file(self):
-        """Return readable and writable temporery file.
+        """Returns a readable and writable temporary file.
 
-        If filename and file_callback was set, file_callback is called instead
-        of creating temporary file.
-
+        If a filename and file_callback are set, file_callback is called
+        instead of creating a temporary file.
         """
         if self.filename and self.file_callback:
             return self.file_callback(self.filename)

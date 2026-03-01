@@ -1,4 +1,4 @@
-"""Classes, which is used for managing requests.
+"""Classes that are used for managing requests.
 
 :Classes:   SimpleRequest, Request, EmptyForm, Args, Json
 """
@@ -69,34 +69,34 @@ class SimpleRequest:
 
     @property
     def app(self):
-        """Return Application object which was created Request."""
+        """Returns the Application object that created the Request."""
         return self.__app
 
     @property
     def environ(self):
-        """Copy of table object containing request environment.
+        """Copy of the table object containing the request environment.
 
-        Information is get from wsgi server.
+        Information is retrieved from the WSGI server.
         """
         return self.__environ.copy()
 
     @property
     def poor_environ(self):
-        """Environ with ``poor_`` variables.
+        """Environment with ``poor_`` variables.
 
-        It is environ from request, or os.environ
+        It is the environment from the request or os.environ.
         """
         return self.__poor_environ.copy()
 
     @property
     def uri_rule(self):
-        """Rule from one of application handler table.
+        """Rule from one of the application handler tables.
 
-        This property could be set once, and that do Application object. There
-        are some internal uri_rules which is set typical if some internal
-        handler was called. There are: ``/*`` for default, directory and file
-        handler and ``/debug-info`` for debug handler. In other case, there be
-        url or regex.
+        This property can be set only once by the Application object. There
+        are some internal uri_rules that are typically set if an internal
+        handler was called. These include: ``/*`` for the default,
+        directory, and file handlers, and ``/debug-info`` for the debug
+        handler. In other cases, it will be a URL or a regex.
         """
         return self.__uri_rule
 
@@ -107,15 +107,16 @@ class SimpleRequest:
 
     @property
     def uri_handler(self):
-        """This property is set at the same point as uri_rule.
+        """This property is set at the same time as uri_rule.
 
-        It was set by Application object when end point handler is known before
-        calling all pre handlers. Typical use case is set some special
-        attribute to handler, and read them in pre handler.
+        It is set by the Application object when the endpoint handler is
+        known before calling all pre-handlers. A typical use case is to
+        set a special attribute on the handler and read it in a
+        pre-handler.
 
-        Property was set when any route is found for request uri. Sending file
-        internaly when document_root is set, or by Error handlers leave
-        uri_handler None.
+        The property is set when any route is found for the request URI.
+        Sending a file internally when document_root is set, or by Error
+        handlers, leaves uri_handler as None.
         """
         return self.__uri_handler
 
@@ -126,10 +127,10 @@ class SimpleRequest:
 
     @property
     def error_handler(self):
-        """This property is set only when error handler was called.
+        """This property is set only when an error handler is called.
 
-        It was set by Application object when error handler is known before
-        calling.
+        It is set by the Application object when the error handler is
+        known before being called.
         """
         return self.__error_handler
 
@@ -174,7 +175,7 @@ class SimpleRequest:
 
     @property
     def path(self):
-        """Path part of url."""
+        """Path part of the URL."""
         try:
             return (
                 self.__environ.get("PATH_INFO").encode("iso-8859-1").decode()
@@ -192,7 +193,7 @@ class SimpleRequest:
 
     @property
     def full_path(self):
-        """Path with query, if it exist, from url."""
+        """Path with query, if it exists, from the URL."""
         query = self.query
         return self.path + ("?" + query if query else "")
 
@@ -208,7 +209,7 @@ class SimpleRequest:
 
     @property
     def referer(self):
-        """Request referer if is available or None."""
+        """Request referer if available, otherwise None."""
         return self.__environ.get("HTTP_REFERER")
 
     @property
@@ -218,7 +219,7 @@ class SimpleRequest:
 
     @property
     def server_scheme(self):
-        """Request scheme, typical ``http`` or ``https``."""
+        """Request scheme, typically ``http`` or ``https``."""
         return self.__environ.get("wsgi.url_scheme")
 
     @property
@@ -236,7 +237,7 @@ class SimpleRequest:
 
     @property
     def server_admin(self):
-        """Server admin if set, or ``webmaster@hostname``."""
+        """Server admin if set, otherwise ``webmaster@hostname``."""
         return self.__environ.get("SERVER_ADMIN", f"webmaster@{self.hostname}")
 
     @property
@@ -258,23 +259,24 @@ class SimpleRequest:
     def server_protocol(self):
         """Server protocol, as given by the client.
 
-        In ``HTTP/0.9``. cgi ``SERVER_PROTOCOL`` value.
+        In ``HTTP/1.1``. CGI ``SERVER_PROTOCOL`` value.
         """
         return self.__environ.get("SERVER_PROTOCOL")
 
     @property
     def protocol(self):
-        """Alias for ``server_protocol`` property"""
+        """Alias for ``server_protocol`` property."""
         return self.__environ.get("SERVER_PROTOCOL")
 
     @property
     def forwarded_for(self):
-        """``X-Forward-For`` http header if exists."""
+        """The ``X-Forward-For`` HTTP header, if it exists."""
         return self.__environ.get("HTTP_X_FORWARDED_FOR")
 
     @property
     def forwarded_host(self):
-        """``X-Forward-Host`` http header without port if exists."""
+        """The ``X-Forwarded-Host`` HTTP header without the port, if it
+        exists."""
         host = self.__environ.get("HTTP_X_FORWARDED_HOST")
         if host:
             host = host.split(":")[0]
@@ -295,25 +297,25 @@ class SimpleRequest:
 
     @property
     def forwarded_proto(self):
-        """``X-Forward-Proto`` http header if exists."""
+        """The ``X-Forwarded-Proto`` HTTP header, if it exists."""
         return self.__environ.get("HTTP_X_FORWARDED_PROTO")
 
     @property
     def secret_key(self):
-        """Value of ``poor_SecretKey`` variable.
+        """Value of the ``poor_SecretKey`` variable.
 
-        Secret key is used by PoorSession class. It is generate from
-        some server variables, and the best way is set programmatically
-        by Application.secret_key from random data.
+        The secret key is used by the PoorSession class. It is generated from
+        some server variables, and the best way to set it is programmatically
+        via Application.secret_key from random data.
         """
         return self.__poor_environ.get("poor_SecretKey", self.__app.secret_key)
 
     @property
     def document_index(self):
-        """Value of poor_DocumentIndex variable.
+        """Value of the poor_DocumentIndex variable.
 
-        Variable is used to generate index html page, when poor_DocumentRoot
-        is set.
+        This variable is used to generate an index.html page when
+        poor_DocumentRoot is set.
         """
         var = self.__poor_environ.get("poor_DocumentIndex")
         if var:
@@ -329,19 +331,21 @@ class SimpleRequest:
 
     @property
     def start_time(self):
-        """Return timestamp when http request starts."""
+        """Returns the timestamp of when the HTTP request started."""
         return self.__start_time
 
     @property
     def end_time(self):
-        """Return timestamp when Request was created (end of __init__)."""
+        """Returns the timestamp of when the Request was created (at the end of
+        __init__)."""
         return self.__end_time
 
     def get_options(self):
-        """Returns dictionary with application variables from environment.
+        """Returns a dictionary with application variables from the
+        environment.
 
-        Application variables start with ``app_`` prefix, but in returned
-        dictionary is set without this prefix.
+        Application variables start with the ``app_`` prefix, but in the
+        returned dictionary, they are set without this prefix.
 
         .. code:: ini
 
@@ -366,10 +370,11 @@ class SimpleRequest:
     def construct_url(self, uri: str):
         """This function returns a fully qualified URI string.
 
-        Url is create from the path specified by uri, using the information
-        stored in the request to determine the scheme, server host name
-        and port. The port number is not included in the string if it is the
-        same as the default port 80."""
+        The URL is created from the path specified by the URI, using
+        information stored in the request to determine the scheme, server
+        hostname, and port. The port number is not included in the string
+        if it is the same as the default port (80 for http, 443 for
+        https)."""
 
         if not RE_HTTPURLPATTERN.match(uri):
             scheme = self.forwarded_proto or self.server_scheme
@@ -387,17 +392,18 @@ class SimpleRequest:
 class Request(SimpleRequest):
     """HTTP request object with all server elements.
 
-    It could be compatible as soon as possible with mod_python.apache.request.
+    It aims to be as compatible as possible with mod_python.apache.request.
     Special variables for user use are prefixed with ``app_``.
     """
 
     # pylint: disable=too-many-public-methods
 
     def __init__(self, environ, app):
-        """Object was created automatically in wsgi module.
+        """The object is created automatically in the wsgi module.
 
-        It's input parameters are the same, which Application object gets from
-        WSGI server plus file callback for auto request body parsing.
+        Its input parameters are the same as those that the Application
+        object gets from the WSGI server, plus a file callback for
+        automatic request body parsing.
         """
         # pylint: disable=too-many-branches, too-many-statements
         super().__init__(environ, app)
@@ -495,32 +501,32 @@ class Request(SimpleRequest):
         # pylint: disable=invalid-name
         self._SimpleRequest__end_time = time()
 
-    # enddef
-
     # -------------------------- Properties --------------------------- #
     @property
     def mime_type(self) -> str:
-        """Request ``Content-Type`` header or empty string if not set."""
+        """The request's ``Content-Type`` header, or an empty string if not
+        set."""
         return self.__mime_type
 
     @property
     def charset(self) -> str:
-        """Request ``Content-Type`` charset header string, utf-8 if not set."""
+        """The request's ``Content-Type`` charset header string; defaults to
+        'utf-8' if not set."""
         return self.__charset
 
     @property
     def content_length(self) -> int:
-        """Request ``Content-Length`` header value, -1 if not set."""
+        """The request's ``Content-Length`` header value; -1 if not set."""
         return self.__content_length
 
     @property
     def headers(self):
-        """Reference to input headers object."""
+        """A reference to the input headers object."""
         return self.__headers
 
     @property
     def accept(self) -> tuple:
-        """Tuple of client supported mime types from Accept header."""
+        """A tuple of client-supported MIME types from the Accept header."""
         if self.__accept is None:
             self.__accept = tuple(
                 parse_negotiation(self.__headers.get("Accept", ""))
@@ -529,7 +535,8 @@ class Request(SimpleRequest):
 
     @property
     def accept_charset(self) -> tuple:
-        """Tuple of client supported charset from Accept-Charset header."""
+        """A tuple of client-supported charsets from the Accept-Charset
+        header."""
         if self.__accept_charset is None:
             self.__accept_charset = tuple(
                 parse_negotiation(self.__headers.get("Accept-Charset", ""))
@@ -538,7 +545,8 @@ class Request(SimpleRequest):
 
     @property
     def accept_encoding(self) -> tuple:
-        """Tuple of client supported charset from Accept-Encoding header."""
+        """A tuple of client-supported encodings from the Accept-Encoding
+        header."""
         if self.__accept_encoding is None:
             self.__accept_encoding = tuple(
                 parse_negotiation(self.__headers.get("Accept-Encoding", ""))
@@ -547,7 +555,8 @@ class Request(SimpleRequest):
 
     @property
     def accept_language(self) -> tuple:
-        """List of client supported languages from Accept-Language header."""
+        """A tuple of client-supported languages from the Accept-Language
+        header."""
         if self.__accept_language is None:
             self.__accept_language = tuple(
                 parse_negotiation(self.__headers.get("Accept-Language", ""))
@@ -556,28 +565,28 @@ class Request(SimpleRequest):
 
     @property
     def accept_html(self) -> bool:
-        """Return true if ``text/html`` mime type is in accept negotiations
-        values.
+        """Returns True if the ``text/html`` MIME type is in the accepted
+        negotiation values.
         """
         return "text/html" in dict(self.accept)
 
     @property
     def accept_xhtml(self) -> bool:
-        """Return true if ``text/xhtml`` mime type is in accept negotiations
-        values.
+        """Returns True if the ``text/xhtml`` MIME type is in the accepted
+        negotiation values.
         """
         return "text/xhtml" in dict(self.accept)
 
     @property
     def accept_json(self) -> bool:
-        """Return true if ``application/json`` mime type is in accept
-        negotiations values.
+        """Returns True if the ``application/json`` MIME type is in the
+        accepted negotiation values.
         """
         return "application/json" in dict(self.accept)
 
     @property
     def authorization(self) -> dict:
-        """Return Authorization header parsed to dictionary."""
+        """Returns the Authorization header parsed into a dictionary."""
         if self.__authorization is None:
             auth = self.__headers.get("Authorization", "").strip()
             self.__authorization = dict(
@@ -592,18 +601,19 @@ class Request(SimpleRequest):
 
     @property
     def is_xhr(self) -> bool:
-        """If ``X-Requested-With`` header is set with ``XMLHttpRequest`` value.
+        """Returns True if the ``X-Requested-With`` header is set to
+        ``XMLHttpRequest``.
         """
         return self.__headers.get("X-Requested-With") == "XMLHttpRequest"
 
     @property
     def is_body_request(self) -> bool:
-        """True if has set Content-Length more than zero."""
+        """Returns True if Content-Length is greater than zero."""
         return self.__content_length > 0
 
     @property
     def is_chunked(self) -> bool:
-        """True if has set Transfer-Encoding is chunked."""
+        """Returns True if Transfer-Encoding is 'chunked'."""
         return self.__headers.get("Transfer-Encoding") == "chunked"
 
     @property
@@ -618,7 +628,8 @@ class Request(SimpleRequest):
 
     @property
     def path_args(self) -> dict:
-        """Dictionary arguments from path of regual expression rule."""
+        """A dictionary of arguments from the path of a regular expression
+        rule."""
         return (self.__path_args or {}).copy()
 
     @path_args.setter
@@ -628,13 +639,13 @@ class Request(SimpleRequest):
 
     @property
     def args(self):
-        """Extended dictionary (Args instance) of request arguments.
+        """An extended dictionary (Args instance) of request arguments.
 
-        Argument are parsed from QUERY_STRING, which is typical, but not only
-        for GET method. Arguments are parsed when Application.auto_args is set
-        which is default.
+        Arguments are parsed from the QUERY_STRING, which is typical for,
+        but not limited to, the GET method. Arguments are parsed when
+        Application.auto_args is set (which is the default).
 
-        This property could be **set only once**.
+        This property can be **set only once**.
         """
         return self.__args
 
@@ -645,14 +656,14 @@ class Request(SimpleRequest):
 
     @property
     def form(self):
-        """Dictionary like class (FieldStorage instance) of body arguments.
+        """A dictionary-like class (FieldStorage instance) for body arguments.
 
-        Arguments must be send in request body with mime type
-        one of Application.form_mime_types. Method must be POST, PUT
-        or PATCH. Request body is parsed when Application.auto_form
-        is set, which default and when method is POST, PUT or PATCH.
+        Arguments must be sent in the request body with a MIME type from
+        Application.form_mime_types. The method must be POST, PUT,
+        or PATCH. The request body is parsed when Application.auto_form
+        is set (which is the default) and the method is POST, PUT, or PATCH.
 
-        This property could be **set only once**.
+        This property can be **set only once**.
         """
         return self.__form
 
@@ -663,34 +674,36 @@ class Request(SimpleRequest):
 
     @property
     def json(self):
-        """Json dictionary if request mime type is JSON.
+        """A JSON dictionary if the request's MIME type is JSON.
 
-        Json types is defined in Application.json_mime_types, typical is
-        ``application/json`` and request method must be POST, PUT or PATCH and
-        Application.auto_json must be set to true (default). Otherwise json
-        is EmptyForm.
+        JSON types are defined in Application.json_mime_types (typically
+        ``application/json``). The request method must be POST, PUT, or
+        PATCH, and Application.auto_json must be set to True (default).
+        Otherwise, json is an EmptyForm.
 
-        When request data is present, that will by parsed with
+        When request data is present, it will be parsed with the
         parse_json_request function.
         """
         return self.__json
 
     @property
     def cookies(self):
-        """SimpleCookie iterable object of all cookies from Cookie header.
+        """A SimpleCookie iterable object of all cookies from the Cookie
+        header.
 
-        This property was set if Application.auto_cookies is set to true,
-        which is default. Otherwise cookies is None.
+        This property is set if Application.auto_cookies is set to True
+        (which is the default). Otherwise, cookies is None.
         """
         return self.__cookies
 
     @property
     def data(self):  # pylint: disable=inconsistent-return-statements
-        """Returns input data from wsgi.input file.
+        """Returns input data from the wsgi.input file.
 
-        This works only, when auto_data configuration and Content-Length of
-        request are lower then input_cache configuration value. Other requests
-        like big file data uploads increase memory and time system requests.
+        This works only when auto_data is configured and the request's
+        Content-Length is lower than the input_cache configuration value.
+        Other requests, like large file data uploads, will increase
+        memory and system request time.
         """
         if isinstance(self.__file, BytesIO):
             try:
@@ -701,7 +714,7 @@ class Request(SimpleRequest):
 
     @property
     def input(self):
-        """Return input file, for internal use in FieldStorage"""
+        """Returns the input file; for internal use in FieldStorage."""
         if self.__cached_input:
             return self.__cached_input
         if not self.__cached_size or isinstance(self.__file, BytesIO):
@@ -716,7 +729,7 @@ class Request(SimpleRequest):
 
     @property
     def user(self):
-        """For user object, who is login for example (default None)."""
+        """For the user object, e.g., who is logged in (defaults to None)."""
         return self.__user
 
     @user.setter
@@ -725,7 +738,7 @@ class Request(SimpleRequest):
 
     @property
     def api(self):
-        """For api request object, could be used for OpenAPIRequest."""
+        """For the API request object; can be used for OpenAPIRequest."""
         return self.__api
 
     @api.setter
@@ -734,7 +747,8 @@ class Request(SimpleRequest):
 
     @property
     def db(self):
-        """For api request object, could be used for database connection(s)."""
+        """For the API request object; can be used for database
+        connection(s)."""
         return self.__db
 
     @db.setter
@@ -746,10 +760,10 @@ class Request(SimpleRequest):
         return self.__file.read(length)
 
     def read(self, length=-1):  # pylint: disable=method-hidden
-        """Read data from client (typical for XHR2 data POST).
+        """Reads data from the client (typical for XHR2 data POST).
 
-        If length is not set, or if is lower then zero, Content-Length was
-        be use.
+        If length is not set, or if it is less than zero, Content-Length will
+        be used.
         """
         if not self.is_body_request and self.server_protocol != "HTTP/0.9":
             log.error("No Content-Length found, read was failed!")
@@ -760,13 +774,14 @@ class Request(SimpleRequest):
         return self.__file.read(self.__content_length)
 
     def read_chunk(self):
-        """Read chunk when Transfer-Encoding is `chunked`.
+        """Reads a chunk when Transfer-Encoding is 'chunked'.
 
-        Method read line with chunk size first, then read chunk and return it,
-        or raise ValueError when chunk size is in bad format.
+        The method first reads a line with the chunk size, then reads the
+        chunk and returns it. It will raise a ValueError if the chunk size
+        is in a bad format.
 
-        Be sure that wsgi server allow readline from wsgi.input. For examples
-        uWSGI has extra API
+        Ensure that the WSGI server allows readline from wsgi.input. For
+        example, uWSGI has an extra API for this:
         https://uwsgi-docs.readthedocs.io/en/latest/Chunked.html
         """
         size = int(self.__file.readline(), base=16)
@@ -786,7 +801,7 @@ class EmptyForm(dict, fieldstorage.FieldStorageInterface):
     def getvalue(
         self, key: str, default: Any = None, func: Callable = lambda x: x
     ):
-        """Just return default."""
+        """Simply returns the default value."""
         return default
 
     def getfirst(
@@ -796,7 +811,7 @@ class EmptyForm(dict, fieldstorage.FieldStorageInterface):
         func: Callable = lambda x: x,
         fce: Optional[Callable] = None,
     ):
-        """Just return default."""
+        """Simply returns the default value."""
         if fce:
             warnings.warn(
                 "Using deprecated fce argument. Use func instead.",
@@ -812,7 +827,7 @@ class EmptyForm(dict, fieldstorage.FieldStorageInterface):
         func: Callable = lambda x: x,
         fce: Optional[Callable] = None,
     ):
-        """Just return default or empty list."""
+        """Simply returns the default value or an empty list."""
         if fce:
             warnings.warn(
                 "Using deprecated fce argument. Use func instead.",
@@ -823,10 +838,10 @@ class EmptyForm(dict, fieldstorage.FieldStorageInterface):
 
 
 class Args(dict, fieldstorage.FieldStorageInterface):
-    """Compatibility class for read values from QUERY_STRING.
+    """Compatibility class for reading values from QUERY_STRING.
 
-    Class is based on dictionary. It has getfirst and getlist methods,
-    which can call function on values.
+    This class is based on a dictionary. It has getfirst and getlist methods,
+    which can call a function on the values.
     """
 
     def __init__(self, req: Request, keep_blank_values=0, strict_parsing=0):
@@ -844,12 +859,13 @@ class Args(dict, fieldstorage.FieldStorageInterface):
 
 
 class JsonDict(dict, fieldstorage.FieldStorageInterface):
-    """Compatibility class for read values from JSON POST, PUT or PATCH
+    """A compatibility class for reading values from a JSON POST, PUT, or PATCH
     request.
 
-    It has getfirst and getlist methods, which can call function on values.
+    It has getfirst and getlist methods, which can call a function on the
+    values.
 
-    **Deprecated:** this class will be deleted in next major version.
+    **Deprecated:** This class will be removed in a future major version.
 
     >>> json = JsonDict({"key": "42"})
     >>> json.getvalue("key", func=int)
@@ -865,27 +881,28 @@ class JsonDict(dict, fieldstorage.FieldStorageInterface):
 
 
 class JsonList(list):
-    """Compatibility class for read values from JSON POST, PUT or PATCH
+    """A compatibility class for reading values from a JSON POST, PUT, or PATCH
     request.
 
-    It has getfirst and getlist methods, which can call function on values.
+    It has getfirst and getlist methods, which can call a function on the
+    values.
 
-    **Deprecated:** this class will be deleted in next major version.
+    **Deprecated:** This class will be removed in a future major version.
     """
 
     # pylint: disable=unused-argument
     def getvalue(
         self, key=None, default: Any = None, func: Callable = lambda x: x
     ):
-        """Returns first item or default if no exists.
+        """Returns the first item, or the default value if it does not exist.
 
-        key : None
-            Compatibility parametr is ignored.
-        default : any
-            Default value if key not exists.
-        func : converter (lambda x: x)
-                Function or class which processed value. Default type of value
-                is bytes for files and string for others.
+        key
+            This compatibility parameter is ignored.
+        default
+            The default value if the key does not exist.
+        func
+            A function or class that processes the value. The default
+            type of the value is bytes for files and string for others.
         """
         return func(self[0]) if self else default
 
@@ -896,16 +913,18 @@ class JsonList(list):
         func: Callable = lambda x: x,
         fce: Optional[Callable] = None,
     ):
-        """Returns first variable value or default, if no one exist.
+        """Returns the first variable's value, or the default if it does not
+        exist.
 
-        key : None
-            Compatibility parametr is ignored.
-        default : any
-            Default value if key not exists.
-        func : converter
-            Function which processed value.
-        fce : deprecated converter name
-            Use func converter just like getvalue.
+        key
+            This compatibility parameter is ignored.
+        default
+            The default value if the key does not exist.
+        func
+            A function that processes the value.
+        fce
+            Deprecated converter name. Use the func converter just like
+            getvalue.
         """
         if fce:
             warnings.warn(
@@ -924,16 +943,17 @@ class JsonList(list):
         func: Callable = lambda x: x,
         fce: Optional[Callable] = None,
     ):
-        """Returns list of values
+        """Returns a list of values.
 
-        key : None
-            Compatibility parametr is ignored.
-        default : list
-            Default value when self is empty.
-        func : converter
-            Function which processed value.
-        fce : deprecated converter name
-            Use func converter just like getvalue.
+        key
+            This compatibility parameter is ignored.
+        default
+            The default value when self is empty.
+        func
+            A function that processes the value.
+        fce
+            Deprecated converter name. Use the func converter just like
+            getvalue.
         """
         if fce:
             warnings.warn(
@@ -950,15 +970,15 @@ class JsonList(list):
 
 # pylint: disable=inconsistent-return-statements
 def parse_json_request(raw: bytes, charset: str = "utf-8"):
-    """Try to parse request data.
+    """Tries to parse request data.
 
-    Returned type could be:
+    The returned type can be:
 
-    * JsonDict when dictionary is parsed.
-    * JsonList when list is parsed.
-    * Other based types from json.loads function like str, int, float, bool
-      or None.
-    * None when parsing of JSON fails. That is logged with WARNING log level.
+    * JsonDict, when a dictionary is parsed.
+    * JsonList, when a list is parsed.
+    * Other base types from the json.loads function, such as str, int,
+      float, bool, or None.
+    * None, when JSON parsing fails. This is logged with a WARNING log level.
 
     """
     # pylint: disable=inconsistent-return-statements
@@ -985,11 +1005,11 @@ def FieldStorage(  # noqa: N802
     separator="&",
     file_callback=None,
 ):
-    """**Deprecated:**  back compatibility function.
+    """**Deprecated:** A backwards compatibility function.
 
-    This function will be deleted in next major version.
+    This function will be removed in a future major version.
 
-    Use direct FieldStorageParser instead of this!.
+    Use FieldStorageParser directly instead of this.
     """
     # pylint: disable=unused-argument
     # pylint: disable=invalid-name
@@ -1017,10 +1037,10 @@ def FieldStorage(  # noqa: N802
 
 class CachedInput:
     """
-    Wrapper around wsgi.input file, which reads data block by block.
+    A wrapper around the wsgi.input file that reads data block by block.
 
-    timeout : float
-        how long to wait for new bytes in seconds
+    timeout
+        How long to wait for new bytes, in seconds.
     """
 
     def __init__(
@@ -1033,7 +1053,7 @@ class CachedInput:
         self.block_size = block_size
 
     def read(self, size=-1):
-        """Compatible file read which works with internal buffer."""
+        """A compatible file read that works with an internal buffer."""
         if size < 0:
             size = self.block_size
 
@@ -1056,7 +1076,7 @@ class CachedInput:
         return self.__file.read(size)
 
     def readline(self, size=-1):  # noqa: C901
-        """Compatible file read which works with internal buffer."""
+        """A compatible file read that works with an internal buffer."""
         if size < 0:
             size = self.block_size
 
@@ -1075,7 +1095,7 @@ class CachedInput:
             max_size = size - l_size
             pos = self.__buffer.find(b"\r\n", 0, max_size)
             if pos >= 0:
-                line += self.__buffer[:pos + 2]
+                line += self.__buffer[: pos + 2]
                 self.__buffer = self.__buffer[pos + 2:]
                 return line
 

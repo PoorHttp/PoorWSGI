@@ -1,4 +1,4 @@
-"""Test for request module fuctionality."""
+"""Tests for request module functionality."""
 from io import BytesIO
 from time import time
 from typing import Any, ClassVar
@@ -24,8 +24,9 @@ def app():
 
 
 class TestEmpty:
-    """Test for Empty class"""
+    """Tests for the Empty class."""
     def test_emptry_form(self):
+        """Tests the EmptyForm class behavior."""
         form = EmptyForm()
         assert form.getvalue("name") is None
         assert form.getvalue("name", "PooWSGI") == "PooWSGI"
@@ -36,8 +37,9 @@ class TestEmpty:
 
 
 class TestJSON:
-    """Test for JSON input class"""
+    """Tests for the JSON input classes."""
     def test_json_dict(self):
+        """Tests the JsonDict class."""
         json = JsonDict(age=23, items=[1, 2], size="25")
         assert json.getvalue("no") is None
         assert json.getvalue("name", "PooWSGI") == "PooWSGI"
@@ -50,6 +52,7 @@ class TestJSON:
         assert not tuple(json.getlist("values"))
 
     def test_json_list_empty(self):
+        """Tests the JsonList class with an empty list."""
         json = JsonList()
         assert json.getvalue("no") is None
         assert json.getvalue("name", "PooWSGI") == "PooWSGI"
@@ -61,6 +64,7 @@ class TestJSON:
         assert not tuple(json.getlist("ages"))
 
     def test_json_list(self):
+        """Tests the JsonList class with a populated list."""
         json = JsonList([1, 2])
         assert json.getvalue("age") == 1
         assert json.getfirst("age") == 1
@@ -68,14 +72,15 @@ class TestJSON:
 
 
 class TestArgs:
-    """Tests for Args class"""
+    """Tests for the Args class."""
     class Req:
-        """Request class mock"""
+        """A mock Request class."""
         app = None
         query = ''
         environ: ClassVar[dict[str, Any]] = {}
 
     def test_empty(self):
+        """Tests the Args class with empty arguments."""
         args = Args(self.Req())
         assert args.getvalue("no") is None
         assert args.getvalue("name", "PooWSGI") == "PooWSGI"
@@ -87,7 +92,7 @@ class TestArgs:
 
 
 class Empty:
-    """Empty Request class mock"""
+    """A mock Empty Request class."""
     environ: ClassVar[dict[str, Any]] = {}
     headers: ClassVar[dict[str, str]] = {}
     input = BytesIO(b"")
@@ -99,7 +104,7 @@ def empty():
 
 
 class UrlEncoded:
-    """Request class with application/x-www-form-urlencoded content."""
+    """A mock Request class with application/x-www-form-urlencoded content."""
     environ: ClassVar[dict[str, Any]] = {}
     headers = Headers({
         "Content-Length": "60",
@@ -116,7 +121,7 @@ def url_encoded():
 
 
 class MultiPart:
-    """Request class with multipart/form-data content."""
+    """A mock Request class with multipart/form-data content."""
     environ: ClassVar[dict[str, Any]] = {}
     headers = Headers({
         "Content-Type":
@@ -153,7 +158,7 @@ def multipart():
 
 
 class TxtFile:
-    """Request class with bin file in multipart content."""
+    """A mock Request class with a binary file in multipart content."""
     environ: ClassVar[dict[str, Any]] = {}
     headers = Headers({
         "Content-Length": "293",
@@ -178,8 +183,9 @@ def txt_file():
 
 
 class TestForm:
-    """Tests for FieldStorage"""
+    """Tests for FieldStorage."""
     def test_empty(self, empty):
+        """Tests parsing an empty form."""
         parser = FieldStorageParser(empty.input, empty.headers)
         form = parser.parse()
 
@@ -192,6 +198,7 @@ class TestForm:
         assert not tuple(form.getlist("values"))
 
     def test_multipart(self, multipart):
+        """Tests parsing a multipart form."""
         parser = FieldStorageParser(multipart.input, multipart.headers)
         form = parser.parse()
 
@@ -203,6 +210,7 @@ class TestForm:
         assert form.getvalue("data") == "#"*2000
 
     def test_urlencoded(self, url_encoded):
+        """Tests parsing a URL-encoded form."""
         parser = FieldStorageParser(url_encoded.input, url_encoded.headers)
         form = parser.parse()
 
@@ -212,6 +220,7 @@ class TestForm:
         assert list(form.getlist("px", func=int)) == [8, 7, 6]
 
     def test_txtfile(self, txt_file):
+        """Tests parsing a text file in a form."""
         parser = FieldStorageParser(txt_file.input, txt_file.headers)
         form = parser.parse()
 
@@ -226,6 +235,7 @@ class TestForm:
         assert isinstance(form.getvalue("file"), bytes)
 
     def test_txtfile_callback(self, txt_file):
+        """Tests parsing a text file using a file_callback."""
         tmp = BytesIO()
 
         def file_callback(filename: str):
@@ -246,52 +256,65 @@ class TestForm:
 class TestParseJson:
     """Tests for parsing JSON requests."""
     def test_str(self):
+        """Tests parsing a JSON string."""
         assert isinstance(parse_json_request(b"{}"), JsonDict)
 
     def test_list(self):
+        """Tests parsing a JSON list."""
         assert isinstance(parse_json_request(b"[]"), JsonList)
 
     def test_text(self):
+        """Tests parsing JSON plain text."""
         assert isinstance(parse_json_request(b'"text"'), str)
 
     def test_int(self):
+        """Tests parsing a JSON integer."""
         assert isinstance(parse_json_request(b"23"), int)
 
     def test_float(self):
+        """Tests parsing a JSON float."""
         assert isinstance(parse_json_request(b"3.14"), float)
 
     def test_bool(self):
+        """Tests parsing a JSON boolean."""
         assert isinstance(parse_json_request(b"true"), bool)
 
     def test_null(self):
+        """Tests parsing a JSON null value."""
         assert parse_json_request(b"null") is None
 
     def test_error(self):
+        """Tests parsing an invalid JSON string, expecting an HTTPException."""
         with raises(HTTPException) as err:
             parse_json_request(BytesIO(b"abraka"))
         assert err.value.args[0] == 400
         assert 'error' in err.value.args[1]
 
     def test_unicode(self):
+        """Tests parsing JSON with Unicode characters."""
         rval = parse_json_request(b'"\\u010de\\u0161tina"')
         assert rval == "čeština"
 
     def test_utf8(self):
+        """Tests parsing JSON with UTF-8 encoded characters."""
         rval = parse_json_request(b'"\xc4\x8de\xc5\xa1tina"')
         assert rval == "čeština"
 
     def test_unicode_struct(self):
+        """Tests parsing a JSON structure with Unicode characters."""
         rval = parse_json_request(b'{"lang":"\\u010de\\u0161tina"}')
         assert rval == {"lang": "čeština"}
 
     def test_utf_struct(self):
+        """Tests parsing a JSON structure with UTF-8 encoded characters."""
         rval = parse_json_request(b'{"lang":"\xc4\x8de\xc5\xa1tina"}')
         assert rval == {"lang": "čeština"}
 
 
 class TestRequest:
-    """Test Request class."""
+    """Tests the Request class."""
     def test_host_wsgi(self, app):
+        """Tests Request host resolution with WSGI environment variables."""
         env = {
              'PATH_INFO': '/path',
              'wsgi.url_scheme': 'http',
@@ -306,6 +329,7 @@ class TestRequest:
         assert req.construct_url('/x') == 'http://example.org/x'
 
     def test_host_header(self, app):
+        """Tests Request host resolution with HTTP_HOST header."""
         env = {
              'PATH_INFO': '/path',
              'wsgi.url_scheme': 'http',
@@ -321,6 +345,7 @@ class TestRequest:
         assert req.construct_url('/x') == 'http://example.net:8080/x'
 
     def test_forward_header(self, app):
+        """Tests Request host resolution with X-Forwarded headers."""
         env = {
              'PATH_INFO': '/path',
              'wsgi.url_scheme': 'http',
@@ -338,6 +363,7 @@ class TestRequest:
         assert req.construct_url('/x') == 'https://example.com/x'
 
     def test_empty_form(self, app):
+        """Tests request handling with an empty form."""
         env = {
             'PATH_INFO': '/path',
             'SERVER_PROTOCOL': 'HTTP/1.0',
@@ -354,7 +380,7 @@ class TestRequest:
 
 
 def test_bad_path_info_triggers_400(app):
-    """Test that bad PATH_INFO encoding is handled and returns 400."""
+    """Tests that bad PATH_INFO encoding is handled and returns 400."""
     captured_status = None
     captured_headers = None
 

@@ -1,6 +1,6 @@
 """HTTP Authenticate Digest method.
 
-This file could be used as known ``htdigest`` tool.
+This file can be used as a standalone ``htdigest``-like tool.
 
 .. code:: sh
 
@@ -31,11 +31,10 @@ log = getLogger("poorwsgi")  # pylint: disable=invalid-name
 
 
 def check_response(req, password):
-    """Check digest response value.
+    """Checks the digest response value.
 
-    Return True if response value is right.
+    Returns True if the response value is correct.
     """
-
     kwargs = req.authorization.copy()
     kwargs['hash1'] = password
 
@@ -73,10 +72,10 @@ def check_response(req, password):
 
 
 def check_credentials(req, realm, username=None):
-    """Check Digest authorization credentials.
+    """Checks Digest authorization credentials.
 
-    Return True if Authorization header is valid for realm.
-    Username is checked too, if it is set.
+    Returns True if the Authorization header is valid for the realm.
+    The username is also checked if it is set.
     """
     # pylint: disable=too-many-return-statements
 
@@ -129,13 +128,13 @@ def check_credentials(req, realm, username=None):
 
 
 def check_digest(realm, username=None):
-    """Check HTTP Digest Authenticate.
+    """Checks HTTP Digest Authentication.
 
-    Allow only valid HTTP Digest authorization for realm. Username
-    is checked too, if it is set. When no, HTTP_UNAUTHORIZED response was
-    raised with realm and stale value if is need.
+    Allows only valid HTTP Digest authorization for the realm. The username
+    is also checked if it is set. If not, an HTTP_UNAUTHORIZED response is
+    raised with the realm and stale value, if needed.
 
-    When user is valid, req.user attribute is set to username.
+    If the user is valid, the req.user attribute is set to the username.
 
     .. code :: python
 
@@ -180,9 +179,9 @@ def check_digest(realm, username=None):
 
 
 def hexdigest(username, realm, password, algorithm=md5):
-    """Return digest hash value for user password.
+    """Returns the digest hash value for a user's password.
 
-    Return algorithm(username:realm:password).hexdigest()
+    Returns algorithm(username:realm:password).hexdigest().
     """
     return algorithm(
         ('%s:%s:%s' % (username, realm, password)).encode()
@@ -190,38 +189,38 @@ def hexdigest(username, realm, password, algorithm=md5):
 
 
 class PasswordMap(defaultdict):
-    """Simple memory object to store user password.
+    """A simple memory object to store user passwords.
 
     Attributes:
         pathname : str
-            Full path to password file, must be set for PasswordMap.write
-            and PasswordMap.load methods.
+            The full path to the password file; must be set for
+            PasswordMap.write and PasswordMap.load methods.
     """
     def __init__(self, pathname=None):
         super().__init__(dict)
         self.pathname = pathname
 
     def set(self, realm, username, digest):
-        """Add username to realm."""
+        """Adds a username to the realm."""
         self[realm][username] = digest
 
     def delete(self, realm, username):
-        """Delete username from realm."""
+        """Deletes a username from the realm."""
         return bool(self[realm].pop(username, None))
 
     def find(self, realm, username):
-        """Return digest for username in realm if exist."""
+        """Returns the digest for a username in the realm if it exists."""
         if realm in self and username in self[realm]:
             return self[realm][username]
         return None
 
     def verify(self, realm, username, digest):
-        """Check digest in password map."""
+        """Checks the digest in the password map."""
         digest_ = self.find(realm, username)
         return bool(digest_) and digest_ == digest
 
     def load(self):
-        """Load map from file."""
+        """Loads the map from a file."""
         if self.pathname is None:
             raise RuntimeError("No pathname was set.")
 
@@ -231,7 +230,7 @@ class PasswordMap(defaultdict):
                 self.set(realm, username, digest)
 
     def write(self):
-        """Write memory map dump."""
+        """Writes the memory map dump."""
         if self.pathname is None:
             raise RuntimeError("No pathname was set.")
 
@@ -242,7 +241,7 @@ class PasswordMap(defaultdict):
 
 
 def get_re_type():
-    """Get password from stdin with re-type ."""
+    """Gets a password from stdin with re-type confirmation."""
     password = getpass('New password: ')
     re_type = getpass('Re-type new password: ')
     if password != re_type:
@@ -252,7 +251,7 @@ def get_re_type():
 
 
 def main():  # noqa: C901
-    """Main function for manipulation with passwordfile."""
+    """Main function for manipulating the password file."""
     # pylint: disable=too-many-return-statements
     # pylint: disable=too-many-statements
     # pylint: disable=too-many-branches

@@ -38,7 +38,7 @@ try:
     import uwsgi  # type: ignore
 
 except ModuleNotFoundError:
-    uwsgi = None  # pylint: disable=invalid-name
+    uwsgi = None  # type: ignore[assignment]  # pylint: disable=invalid-name
 
 logger = log.getLogger()
 logger.setLevel("DEBUG")
@@ -275,7 +275,7 @@ def style(_):
 @app.route('/test/<variable:int>')
 @app.route('/test/<variable:uuid>')
 @app.route('/test/static')
-def test_dynamic(req, variable=None):
+def test_dynamic(req, variable=None):  # noqa: PT028
     """Tests dynamic values."""
     if not variable and req.headers.get('ETag') == 'W/"0123"':
         return not_modified(req)

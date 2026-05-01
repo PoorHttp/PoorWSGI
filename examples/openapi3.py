@@ -14,10 +14,7 @@ from sys import path as python_path
 import logging as log
 import json
 
-from openapi_core import (
-        Spec,
-        unmarshal_request, unmarshal_response,
-        )
+from openapi_core import OpenAPI
 
 from openapi_core.exceptions import OpenAPIError
 from openapi_core.templating.paths.exceptions import PathNotFound, \
@@ -56,7 +53,7 @@ options_headers = {
 
 with open(path.join(path.dirname(__file__), "openapi.json"),
           "r", encoding="utf-8") as openapi:
-    app.openapi_spec = Spec.from_dict(json.load(openapi))  # type: ignore
+    app.openapi_spec = OpenAPI.from_dict(json.load(openapi))  # type: ignore
 
 
 @app.before_response()
@@ -86,7 +83,8 @@ def before_each_response(req):
     """Checks the API before processing each response."""
     req.api = OpenAPIRequest(req)
     try:
-        unmarshal_request(req.api, app.openapi_spec)
+        result = app.openapi_spec.unmarshal_request(req.api)
+        result.raise_for_errors()
     except (OperationNotFound, PathNotFound) as error:
         log.debug("%s", error)
         return  # not found
@@ -105,10 +103,10 @@ def after_each_response(req, res):
     if not hasattr(req, "api"):
         req.api = OpenAPIRequest(req)
     try:
-        unmarshal_response(
+        result = app.openapi_spec.unmarshal_response(
                 req.api,
-                OpenAPIResponse(res),
-                app.openapi_spec)
+                OpenAPIResponse(res))
+        result.raise_for_errors()
     except (OperationNotFound, PathNotFound):
         return res
     except OpenAPIError as error:
@@ -168,6 +166,13 @@ def ajax_uuid(req, arg):
     """A simple JSON response with a UUID argument in the path."""
     assert req
     return json.dumps({"arg": str(arg)}), "application/json"
+
+
+@app.route("/arg/<arg>")
+def ajax_arg_fallback(req, arg):
+    """Catch-all for /arg/{arg} - OpenAPI validation handles invalid types."""
+    assert req
+    return json.dumps({"arg": arg}), "application/json"
 
 
 @app.route('/internal-server-error')

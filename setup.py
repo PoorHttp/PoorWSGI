@@ -195,7 +195,7 @@ setup(name="PoorWSGI",
           "Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware",
           "Topic :: Software Development :: Libraries :: Python Modules"
       ],
-      python_requires=">=3.8",
+      python_requires=">=3.11",
       cmdclass={
           'build_doc': BuildDoc,
           'clean_doc': CleanDoc,

@@ -4,7 +4,7 @@ import json
 from email.message import Message
 from urllib.parse import parse_qs, urlparse
 
-from openapi_core import Spec  # type: ignore
+from openapi_core import OpenAPI  # type: ignore
 from openapi_core.validation.request.datatypes import (  # type: ignore
         RequestParameters)
 
@@ -83,7 +83,7 @@ class OpenAPIResponse:
 def response_spec_json(filename):
     """Initializes a response_validator for openapi.json."""
     with open(filename, "r", encoding="utf-8") as openapi:
-        return Spec.from_dict(json.load(openapi))
+        return OpenAPI.from_dict(json.load(openapi))
 
 
 __all__ = ["OpenAPIRequest", "OpenAPIResponse", "response_spec_json"]

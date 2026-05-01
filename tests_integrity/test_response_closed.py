@@ -24,6 +24,8 @@ def url(request):
 class TestResponseClosed:
     """Test for Response with closed buffer handling."""
 
+    # pylint: disable=no-self-use
+
     def test_simple_response(self, url):
         """Test that a simple response works normally."""
         check_url(url+"/test")

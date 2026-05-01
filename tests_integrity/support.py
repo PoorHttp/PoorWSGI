@@ -8,7 +8,6 @@ from itertools import chain
 
 from requests import Request, Session
 from requests.exceptions import RequestException
-from openapi_core import unmarshal_response
 from openapi_core.contrib.requests import (RequestsOpenAPIRequest,
                                            RequestsOpenAPIResponse)
 from openapi_core.exceptions import OpenAPIError
@@ -95,10 +94,10 @@ def check_api(url, method="GET", status_code=200,
             status_code = [status_code]
         assert response.status_code in status_code
         try:
-            unmarshal_response(
+            result = response_spec.unmarshal_response(
                     RequestsOpenAPIRequest(request),
-                    RequestsOpenAPIResponse(response),
-                    response_spec)
+                    RequestsOpenAPIResponse(response))
+            result.raise_for_errors()
         except PathNotFound:
             if response.status_code == 404:
                 return response

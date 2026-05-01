@@ -6,6 +6,8 @@
     * Updated openapi3.py example to openapi-core 0.23+ API (Spec replaced
       by OpenAPI)
     * Drop Python 3.9 and 3.10 support, require Python >= 3.11
+    * Session base class - plain cookie wrapper for server-side session IDs or
+      JWTs; PoorSession inherits from Session
     * PoorSession cookie encryption - ! existing cookies are invalidated !
         - Self-contained encrypted session cookie using shake_256 XOF keystream
           (1024 B) and byte-substitution (no external dependencies)

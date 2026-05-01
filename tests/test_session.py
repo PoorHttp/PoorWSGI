@@ -1,4 +1,4 @@
-"""Unit tests for the PoorSession class."""
+"""Unit tests for Session and PoorSession classes."""
 from os import urandom
 from sys import version_info
 from http.cookies import SimpleCookie, Morsel
@@ -6,7 +6,7 @@ from typing import Any
 
 from pytest import fixture, raises, mark
 
-from poorwsgi.session import PoorSession, SessionError
+from poorwsgi.session import Session, PoorSession, SessionError
 
 SECRET_KEY = urandom(32)
 
@@ -43,7 +43,7 @@ def req_session():
     return request
 
 
-class TestSession:
+class TestPoorSession:
     """Tests PoorSession configuration options."""
 
     # pylint: disable=no-self-use
@@ -227,3 +227,80 @@ class TestLoadWrite:
         session = PoorSession(b'different_key_' + SECRET_KEY)
         with raises(SessionError):
             session.load(req_session.cookies)
+
+
+class TestSession:
+    """Tests for the plain Session base class."""
+
+    # pylint: disable=no-self-use
+
+    def test_default(self):
+        """Tests default Session cookie attributes."""
+        session = Session()
+        headers = session.header()
+        assert "HttpOnly" in headers[0][1]
+        assert "Path=/" in headers[0][1]
+        assert "Expires" not in headers[0][1]
+        assert "Max-Age" not in headers[0][1]
+        assert "Domain" not in headers[0][1]
+        assert "Secure" not in headers[0][1]
+
+    def test_load_write(self):
+        """Tests that a value written by Session can be read back."""
+        session = Session()
+        session.data = "my-session-id"
+        session.write()
+
+        session2 = Session()
+        session2.load(session.cookie)
+        assert session2.data == "my-session-id"
+
+    def test_empty_cookie(self):
+        """Tests that Session.load with no matching cookie leaves data as
+        empty string."""
+        session = Session()
+        session.load(SimpleCookie())
+        assert session.data == ""
+
+    def test_destroy(self):
+        """Tests that destroy sets expires in the past."""
+        session = Session()
+        session.destroy()
+        headers = session.header()
+        assert "expires=" in headers[0][1]
+
+    def test_expires(self):
+        """Tests Session with an expires setting."""
+        session = Session(expires=3600)
+        headers = session.header()
+        assert "expires=" in headers[0][1]
+
+    def test_max_age(self):
+        """Tests Session with a max_age setting."""
+        session = Session(max_age=3600)
+        headers = session.header()
+        assert "Max-Age=3600" in headers[0][1]
+
+    def test_secure(self):
+        """Tests Session with secure=True."""
+        session = Session(secure=True)
+        headers = session.header()
+        assert "Secure" in headers[0][1]
+
+    def test_same_site(self):
+        """Tests Session with same_site='Strict'."""
+        session = Session(same_site="Strict")
+        headers = session.header()
+        assert "SameSite=Strict" in headers[0][1]
+
+    def test_custom_sid(self):
+        """Tests Session with a custom cookie name."""
+        session = Session(sid="MYSESSID")
+        session.data = "token-value"
+        session.write()
+        assert "MYSESSID" in session.cookie
+
+    def test_is_base_of_poor_session(self):
+        """Tests that PoorSession is a subclass of Session."""
+        assert issubclass(PoorSession, Session)
+        assert isinstance(PoorSession(SECRET_KEY), Session)

@@ -1,16 +1,21 @@
-"""PoorSession self-contained cookie class.
+"""Session cookie classes.
 
-:Classes:   NoCompress, PoorSession
+:Classes:   NoCompress, Session, PoorSession
 :Functions: hidden, encrypt, decrypt, get_token, check_token
 
-Cookie format: ``base64(ciphertext).base64(hmac-sha256)``
+:class:`Session` is a plain cookie wrapper suitable for storing a server-side
+session ID or a JWT.  No encryption is applied; the value is stored verbatim.
 
-Security note: this implementation uses a custom XOR + byte-substitution
-cipher with HMAC-SHA256 authentication. The keystream is derived
-deterministically from the secret key (no per-message nonce), which makes it
-vulnerable to known-plaintext attacks given enough collected cookies. It is
-suitable as a "no external dependencies" baseline. For stronger confidentiality
-use the ``cryptography`` package variant.
+:class:`PoorSession` is a self-contained encrypted session cookie.
+
+Cookie format for PoorSession: ``base64(ciphertext).base64(hmac-sha256)``
+
+Security note: PoorSession uses a custom XOR + byte-substitution cipher with
+HMAC-SHA256 authentication. The keystream is derived deterministically from
+the secret key (no per-message nonce), which makes it vulnerable to
+known-plaintext attacks given enough collected cookies. It is suitable as a
+"no external dependencies" baseline. For stronger confidentiality use the
+``cryptography`` package variant.
 """
 import bz2
 import hmac
@@ -141,7 +146,147 @@ class NoCompress:
         return data
 
 
-class PoorSession:
+class Session:
+    """Simple cookie session — stores a single raw string value.
+
+    Suitable for holding a server-side session ID or a JWT.  No encryption
+    or integrity protection is applied; the value is stored in the cookie
+    verbatim.  When storing a JWT, integrity and authenticity are provided by
+    the JWT itself.  When storing a server-side session ID, security comes
+    from the server-side store.
+
+    The cookie is always set with ``HttpOnly=True``.  Use ``secure=True``
+    when serving over HTTPS.
+
+    This class is also the base class for :class:`PoorSession`.
+
+    .. code:: python
+
+        session = Session(secure=True)
+        session.load(req.cookies)
+
+        if not session.data:            # no active session
+            session.data = create_server_session(req)
+
+        resp = Response(...)
+        session.header(resp)
+
+    """
+
+    def __init__(self, expires: int = 0, max_age: Optional[int] = None,
+                 domain: str = '', path: str = '/', secure: bool = False,
+                 same_site: Union[str, bool] = False, sid: str = 'SESSID'):
+        """Constructor.
+
+        Arguments:
+            expires
+                Cookie ``Expires`` time in seconds. If it is 0, no expiration
+                is set.
+            max_age
+                Cookie ``Max-Age`` attribute. If both expires and max-age are
+                set, max_age has precedence.
+            domain
+                The cookie ``Host`` to which the cookie will be sent.
+            path
+                The cookie ``Path`` that must exist in the requested URL.
+            secure
+                If the ``Secure`` cookie attribute will be sent.
+            same_site
+                The ``SameSite`` attribute. When set, it can be one of
+                ``Strict|Lax|None``. By default, the attribute is not
+                set, which browsers default to ``Lax``.
+            sid
+                The cookie key name.
+        """
+        self._sid = sid
+        self.__expires = expires
+        self.__max_age = max_age
+        self.__domain = domain
+        self.__path = path
+        self.__secure = secure
+        self.__same_site = same_site
+
+        self.data: Any = ""
+        self.cookie: SimpleCookie = SimpleCookie()
+        self.cookie[sid] = ''
+
+    def _apply_cookie_attrs(self):
+        """Apply security and configuration attributes to the session cookie.
+
+        Called by :meth:`write` and subclass overrides of :meth:`write`.
+        Sets ``HttpOnly``, ``Domain``, ``Path``, ``Secure``, ``SameSite``,
+        ``Expires``, and ``Max-Age`` as configured.
+        """
+        self.cookie[self._sid]['HttpOnly'] = True
+        if self.__domain:
+            self.cookie[self._sid]['Domain'] = self.__domain
+        if self.__path:
+            self.cookie[self._sid]['path'] = self.__path
+        if self.__secure:
+            self.cookie[self._sid]['Secure'] = True
+        if self.__same_site:
+            self.cookie[self._sid]['SameSite'] = self.__same_site
+        if self.__expires:
+            self.cookie[self._sid]['expires'] = self.__expires
+        if self.__max_age is not None:
+            self.cookie[self._sid]['Max-Age'] = self.__max_age
+
+    def load(self, cookies: Optional[SimpleCookie]):
+        """Load the session value from the request's cookies.
+
+        Sets :attr:`data` to the raw cookie string, or leaves it as ``""``
+        if the cookie is absent or empty.
+        """
+        if not isinstance(cookies, SimpleCookie) or self._sid not in cookies:
+            return
+        self.data = cookies[self._sid].value
+
+    def write(self) -> str:
+        """Store :attr:`data` to the cookie value.
+
+        This method is called automatically by :meth:`header`.
+        Returns the raw string written to the cookie.
+        """
+        raw = self.data if isinstance(self.data, str) else str(self.data)
+        self.cookie[self._sid] = raw
+        self._apply_cookie_attrs()
+        return raw
+
+    def destroy(self):
+        """Destroy the session by setting the cookie's expires to the past
+        (-1).
+
+        Ensures that data cannot be changed:
+        https://stackoverflow.com/a/5285982/8379994
+        """
+        self.cookie[self._sid]['expires'] = -1
+        if self.__max_age is not None:
+            self.cookie[self._sid]['Max-Age'] = -1
+        self.cookie[self._sid]['HttpOnly'] = True
+        if self.__secure:
+            self.cookie[self._sid]['Secure'] = True
+
+    def header(self, headers: Optional[Union[Headers, Response]] = None):
+        """Generate cookie headers and optionally append them to headers.
+
+        Returns a list of ``(name, value)`` cookie header pairs.
+
+        headers
+            The object used to write the header directly.
+        """
+        self.write()
+        cookies = self.cookie.output().split('\r\n')
+        retval = []
+        for cookie in cookies:
+            var = cookie[:10]   # Set-Cookie
+            val = cookie[12:]   # SID=###; expires=###; Path=/
+            retval.append((var, val))
+            if headers:
+                headers.add_header(var, val)
+        return retval
+
+
+class PoorSession(Session):
     """A self-contained cookie with session data.
 
     You can store or read data from the object via the PoorSession.data
@@ -187,10 +332,13 @@ class PoorSession:
     def __init__(self, secret_key: Union[str, bytes],
                  expires: int = 0, max_age: Optional[int] = None,
                  domain: str = '', path: str = '/', secure: bool = False,
-                 same_site: bool = False, compress=bz2, sid: str = 'SESSID'):
+                 same_site: Union[str, bool] = False, compress=bz2,
+                 sid: str = 'SESSID'):
         """Constructor.
 
         Arguments:
+            secret_key
+                The application secret key used for encryption and signing.
             expires
                 Cookie ``Expires`` time in seconds. If it is 0, no expiration
                 is set.
@@ -222,7 +370,7 @@ class PoorSession:
                 'domain': 'example.net',
                 'path': '/application',
                 'secure': True,
-                'same_site': True,
+                'same_site': 'Strict',
                 'compress': gzip,
                 'sid': 'MYSID'
             }
@@ -236,14 +384,9 @@ class PoorSession:
         *Changed in version 2.4.x*: Use app.secret_key in the
         constructor, and then call the load method.
         """
-        self.__sid = sid
-        self.__expires = expires
-        self.__max_age = max_age
-        self.__domain = domain
-        self.__path = path
-        self.__secure = secure
-        self.__same_site = same_site
-        self.__cps = compress if compress is not None else NoCompress
+        super().__init__(expires=expires, max_age=max_age, domain=domain,
+                         path=path, secure=secure, same_site=same_site,
+                         sid=sid)
 
         _request = None
         if not isinstance(secret_key, (str, bytes)):  # backwards compatibility
@@ -269,19 +412,17 @@ class PoorSession:
         perm_seed = shake_256(b'perm\x00' + secret_key).digest(32)
         Random(perm_seed).shuffle(self.__secret_table)  # nosec  # noqa: S311
 
-        # data is session dictionary to store user data in cookie
+        self.__cps = compress if compress is not None else NoCompress
         self.data: Dict[Any, Any] = {}
-        self.cookie: SimpleCookie = SimpleCookie()
-        self.cookie[sid] = ''
 
         if _request is not None:
             self.load(_request.cookies)
 
     def load(self, cookies: Optional[SimpleCookie]):
-        """Loads the session from the request's cookie."""
-        if not isinstance(cookies, SimpleCookie) or self.__sid not in cookies:
+        """Load and decrypt the session from the request's cookies."""
+        if not isinstance(cookies, SimpleCookie) or self._sid not in cookies:
             return
-        raw = cookies[self.__sid].value
+        raw = cookies[self._sid].value
 
         if not raw:
             return
@@ -314,10 +455,10 @@ class PoorSession:
         if not isinstance(self.data, dict):
             raise SessionError("Cookie data is not dictionary!")
 
-    def write(self):
-        """Stores data to the cookie value.
+    def write(self) -> str:
+        """Encrypt and sign the session data, write to cookie.
 
-        This method is called automatically in the header method.
+        This method is called automatically by :meth:`header`.
         """
         payload = self.__cps.compress(
             encrypt(hidden(dumps(self.data), self.__secret_hash),
@@ -325,53 +466,6 @@ class PoorSession:
             9)
         signature = hmac.digest(self.__mac_key, payload, 'sha256')
         raw = b64encode(payload).decode() + '.' + b64encode(signature).decode()
-        self.cookie[self.__sid] = raw
-        self.cookie[self.__sid]['HttpOnly'] = True
-
-        if self.__domain:
-            self.cookie[self.__sid]['Domain'] = self.__domain
-        if self.__path:
-            self.cookie[self.__sid]['path'] = self.__path
-        if self.__secure:
-            self.cookie[self.__sid]['Secure'] = True
-        if self.__same_site:
-            self.cookie[self.__sid]['SameSite'] = self.__same_site
-        if self.__expires:
-            self.cookie[self.__sid]['expires'] = self.__expires
-        if self.__max_age is not None:
-            self.cookie[self.__sid]['Max-Age'] = self.__max_age
-
+        self.cookie[self._sid] = raw
+        self._apply_cookie_attrs()
         return raw
-
-    def destroy(self):
-        """Destroys the session by setting the cookie's expires value
-        to the past (-1).
-
-        Ensures that data cannot be changed:
-        https://stackoverflow.com/a/5285982/8379994
-        """
-        self.cookie[self.__sid]['expires'] = -1
-        if self.__max_age is not None:
-            self.cookie[self.__sid]['Max-Age'] = -1
-        self.cookie[self.__sid]['HttpOnly'] = True
-        if self.__secure:
-            self.cookie[self.__sid]['Secure'] = True
-
-    def header(self, headers: Optional[Union[Headers, Response]] = None):
-        """Generates cookie headers and appends them to headers if set.
-
-        Returns a list of cookie header pairs.
-
-        headers
-            The object used to write the header directly.
-        """
-        self.write()
-        cookies = self.cookie.output().split('\r\n')
-        retval = []
-        for cookie in cookies:
-            var = cookie[:10]   # Set-Cookie
-            val = cookie[12:]   # SID=###; expires=###; Path=/
-            retval.append((var, val))
-            if headers:
-                headers.add_header(var, val)
-        return retval

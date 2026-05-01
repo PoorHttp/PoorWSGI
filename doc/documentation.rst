@@ -1050,9 +1050,46 @@ multiple times.
 
 Sessions
 ~~~~~~~~
-Like mod_python, PoorSession is the session class of PoorWSGI. It's a
-self-contained cookie with a data dictionary. Data are stored in the cookie
-in an **encrypted and authenticated** format. PoorSession needs a
+PoorWSGI provides a ``Session`` base class and ``PoorSession`` which extends
+it. Both share the same interface.
+
+Session
+```````
+``Session`` is a thin wrapper around ``http.cookies.SimpleCookie``. It is
+suitable when the cookie value is either a **server-side session ID** (the
+server holds the real data) or a **JWT** (which provides its own signature).
+No encryption is applied — the value is stored as-is in the cookie.
+
+.. code:: python
+
+    from poorwsgi.session import Session
+
+    # Store a session-id issued by the server
+    session = Session(sid="SESSID", secure=True, same_site="Lax")
+    session.data = generate_session_id()   # any string value
+    session.write()
+    session.header(response)
+
+    # Read back
+    session = Session()
+    session.load(req.cookies)
+    server_data = server_store[session.data]
+
+The ``Session`` class accepts the following keyword arguments:
+``sid``, ``expires``, ``max_age``, ``domain``, ``path``, ``secure``,
+``same_site``. It exposes ``load()``, ``write()``, ``destroy()``, and
+``header()`` methods.
+
+.. note::
+
+    ``Session`` does **not** encrypt or sign the cookie value. If you store a
+    predictable token, an attacker can forge it. Use a cryptographically random
+    session ID or a properly signed JWT as the value.
+
+PoorSession
+```````````
+``PoorSession`` extends ``Session`` and stores data as an **encrypted and
+authenticated** dictionary directly in the cookie. PoorSession needs a
 ``secret_key``, which can be set via the ``poor_SecretKey`` environment
 variable or the ``Application.secret_key`` property.
 

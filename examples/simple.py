@@ -168,7 +168,7 @@ def check_login(fun):
         try:
             session.load(req.cookies)
         except SessionError:
-            pass
+            pass  # no valid session means empty session data
         if 'login' not in session.data:
             log.info('Login cookie not found.')
             redirect(

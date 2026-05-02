@@ -551,7 +551,7 @@ class FieldStorageParser:
             try:
                 clen = int(self.headers['content-length'])
             except ValueError:
-                pass
+                pass  # clen will be still -1 if value is not integer
         field.length = self.length = clen
         if self.limit is None and clen >= 0:
             self.limit = clen

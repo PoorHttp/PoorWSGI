@@ -3,10 +3,10 @@
 :Classes:   NoCompress, Session, PoorSession
 :Functions: hidden, encrypt, decrypt, get_token, check_token
 
-:class:`Session` is a plain cookie wrapper suitable for storing a server-side
+``Session`` is a plain cookie wrapper suitable for storing a server-side
 session ID or a JWT.  No encryption is applied; the value is stored verbatim.
 
-:class:`PoorSession` is a self-contained encrypted session cookie.
+``PoorSession`` is a self-contained encrypted session cookie.
 
 Cookie format for PoorSession: ``base64(ciphertext).base64(hmac-sha256)``
 
@@ -158,7 +158,7 @@ class Session:
     The cookie is always set with ``HttpOnly=True``.  Use ``secure=True``
     when serving over HTTPS.
 
-    This class is also the base class for :class:`PoorSession`.
+    This class is also the base class for ``PoorSession``.
 
     .. code:: python
 
@@ -213,7 +213,7 @@ class Session:
     def _apply_cookie_attrs(self):
         """Apply security and configuration attributes to the session cookie.
 
-        Called by :meth:`write` and subclass overrides of :meth:`write`.
+        Called by ``write`` and subclass overrides of ``write``.
         Sets ``HttpOnly``, ``Domain``, ``Path``, ``Secure``, ``SameSite``,
         ``Expires``, and ``Max-Age`` as configured.
         """
@@ -234,7 +234,7 @@ class Session:
     def load(self, cookies: Optional[SimpleCookie]):
         """Load the session value from the request's cookies.
 
-        Sets :attr:`data` to the raw cookie string, or leaves it as ``""``
+        Sets ``data`` to the raw cookie string, or leaves it as ``""``
         if the cookie is absent or empty.
         """
         if not isinstance(cookies, SimpleCookie) or self._sid not in cookies:
@@ -242,9 +242,9 @@ class Session:
         self.data = cookies[self._sid].value
 
     def write(self) -> str:
-        """Store :attr:`data` to the cookie value.
+        """Store ``data`` to the cookie value.
 
-        This method is called automatically by :meth:`header`.
+        This method is called automatically by ``header``.
         Returns the raw string written to the cookie.
         """
         raw = self.data if isinstance(self.data, str) else str(self.data)
@@ -458,7 +458,7 @@ class PoorSession(Session):
     def write(self) -> str:
         """Encrypt and sign the session data, write to cookie.
 
-        This method is called automatically by :meth:`header`.
+        This method is called automatically by ``header``.
         """
         payload = self.__cps.compress(
             encrypt(hidden(dumps(self.data), self.__secret_hash),

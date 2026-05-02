@@ -1,10 +1,9 @@
 """Unit tests for Session and PoorSession classes."""
 from os import urandom
-from sys import version_info
 from http.cookies import SimpleCookie, Morsel
 from typing import Any
 
-from pytest import fixture, raises, mark
+from pytest import fixture, raises
 
 from poorwsgi.session import Session, PoorSession, SessionError
 
@@ -122,8 +121,6 @@ class TestPoorSession:
         assert session.data == {}
 
 
-@mark.skipif(version_info.minor < 8,
-             reason="SameSite is supported from Python 3.8")
 class TestSameSite:
     """Tests for the PoorSession same_site option."""
 

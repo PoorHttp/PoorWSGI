@@ -10,7 +10,6 @@ from websocket import WebSocket
 
 from . support import start_server, check_url
 
-# pylint: disable=inconsistent-return-statements
 # pylint: disable=missing-function-docstring
 # pylint: disable=redefined-outer-name
 # pylint: disable=no-self-use
@@ -19,18 +18,20 @@ from . support import start_server, check_url
 @fixture(scope="module")
 def server(request):
     """Fixture for starting the WebSocket example server."""
-    value = environ.get("TEST_WEBSOCKET_URL", "").strip('/')
+    process = None
+    value = environ.get("TEST_WEBSOCKET_URL", "").rstrip('/')
     if value:
-        return value
+        yield value
+    else:
+        process = start_server(
+            request,
+            join(dirname(__file__), pardir, 'examples/websocket.py'),
+            close=False)
+        yield "localhost:8080"  # server is running
 
-    process = start_server(
-        request,
-        join(dirname(__file__), pardir, 'examples/websocket.py'),
-        close=False)
-
-    yield "localhost:8080"  # server is running
-    process.kill()
-    process.wait()
+    if process is not None:
+        process.kill()
+        process.wait()
 
 
 @fixture(scope="module")

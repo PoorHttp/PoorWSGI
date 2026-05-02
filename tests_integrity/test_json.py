@@ -8,7 +8,6 @@ from pytest import fixture
 from . support import start_server, check_url
 
 # pylint: disable=missing-function-docstring
-# pylint: disable=inconsistent-return-statements
 # pylint: disable=redefined-outer-name
 # pylint: disable=no-self-use
 # pylint: disable=consider-using-f-string
@@ -17,17 +16,19 @@ from . support import start_server, check_url
 @fixture(scope="module")
 def server(request):
     """Fixture for starting the JSON example server."""
-    value = environ.get("TEST_SIMPLE_JSON_URL", "").strip('/')
+    process = None
+    value = environ.get("TEST_SIMPLE_JSON_URL", "").rstrip('/')
     if value:
-        return value
+        yield value
+    else:
+        process = start_server(
+            request,
+            join(dirname(__file__), pardir, 'examples/simple_json.py'))
+        yield "http://localhost:8080"  # server is running
 
-    process = start_server(
-        request,
-        join(dirname(__file__), pardir, 'examples/simple_json.py'))
-
-    yield "http://localhost:8080"  # server is running
-    process.kill()
-    process.wait()
+    if process is not None:
+        process.kill()
+        process.wait()
 
 
 class TestHeaders:

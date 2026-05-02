@@ -3,7 +3,6 @@ from os import environ
 from os.path import dirname, join, pardir
 
 from pytest import fixture
-from requests import Session
 
 from .support import check_url, start_server
 
@@ -11,6 +10,7 @@ from .support import check_url, start_server
 # pylint: disable=no-self-use
 # pylint: disable=redefined-outer-name
 # pylint: disable=consider-using-f-string
+# pylint: disable=duplicate-code
 
 
 @fixture(scope="module")
@@ -29,18 +29,6 @@ def url(request):
     if process is not None:
         process.kill()
         process.wait()
-
-
-@fixture
-def session(url):
-    """Fixture for creating a session and logging in."""
-    session = Session()
-    res = check_url(url+"/login", status_code=302, session=session,
-                    allow_redirects=False)
-    assert "SESSID" in session.cookies
-    cookie = res.headers["Set-Cookie"]
-    assert "; HttpOnly; " in cookie
-    return session
 
 
 class TestSimple():
@@ -198,53 +186,32 @@ class TestPartialResponse():
         assert len(res.text) == 50
         assert len(res.text) < len(res.text.encode("utf-8"))
 
+    def test_form_get(self, url):
+        """Tests GET form access."""
+        check_url(url+"/test/form")
 
-class TestSession():
-    """Session tests."""
-
-    def test_login(self, url):
-        """Tests the /login endpoint."""
-        check_url(url+"/login", status_code=302, allow_redirects=False)
-
-    def test_logout(self, url, session):
-        """Tests the /logout endpoint."""
-        res = check_url(url+"/logout", session=session,
-                        allow_redirects=False, status_code=302)
-        assert "SESSID" not in session.cookies      # cookie is expired
-        cookie = res.headers["Set-Cookie"]          # header must exists
-        assert "; HttpOnly; " in cookie
-
-    def test_form_get_not_logged(self, url):
-        """Tests GET form access when not logged in."""
-        check_url(url+"/test/form", status_code=302, allow_redirects=False)
-
-    def test_form_get_logged(self, url, session):
-        """Tests GET form access when logged in."""
-        check_url(url+"/test/form", session=session, allow_redirects=False)
-
-    def test_form_post(self, url, session):
+    def test_form_post(self, url):
         """Tests POST form submission."""
-        check_url(url+"/test/form", method="POST", session=session,
-                  allow_redirects=False)
+        check_url(url+"/test/form", method="POST")
 
-    def test_form_upload(self, url, session):
+    def test_form_upload(self, url):
         """Tests file upload via form."""
         with open(__file__, 'rb') as _file:
             files = {'file_0': ('testfile.py', _file,
                                 'text/x-python', {'Expires': '0'})}
-            res = check_url(url+"/test/upload", method="POST", session=session,
+            res = check_url(url+"/test/upload", method="POST",
                             allow_redirects=False, files=files)
             assert 'testfile.py' in res.text
             assert __doc__ in res.text
             assert 'anything' in res.text
 
-    def test_form_upload_small(self, url, session):
+    def test_form_upload_small(self, url):
         """Tests small file upload via form."""
         manifest = join(dirname(__file__), pardir, 'MANIFEST.in')
         with open(manifest, 'rb') as _file:
             files = {'file_0': ('MANIFEST.in', _file,
                                 'text/plain', {'Expires': '0'})}
-            res = check_url(url+"/test/upload", method="POST", session=session,
+            res = check_url(url+"/test/upload", method="POST",
                             allow_redirects=False, files=files)
             assert 'MANIFEST.in' in res.text
             assert 'graft' in res.text

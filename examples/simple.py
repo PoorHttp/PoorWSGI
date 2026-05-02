@@ -9,7 +9,6 @@ import logging as log
 import os
 from base64 import decodebytes, encodebytes, urlsafe_b64encode
 from collections import OrderedDict
-from functools import wraps
 from hashlib import md5
 from io import BytesIO
 from io import FileIO as file
@@ -23,16 +22,15 @@ python_path.insert(
     0, os.path.abspath(os.path.join(EXAMPLES_PATH, os.path.pardir)))
 
 # pylint: disable=import-error, wrong-import-position
-from poorwsgi import Application, redirect, state  # noqa
+from poorwsgi import Application, state  # noqa
 from poorwsgi.fieldstorage import FieldStorageParser  # noqa
 from poorwsgi.headers import http_to_time, parse_range, time_to_http  # noqa
 from poorwsgi.response import FileResponse  # noqa
 from poorwsgi.response import HTTPException  # noqa
 from poorwsgi.response import (FileObjResponse, GeneratorResponse,  # noqa
                                NoContentResponse, NotModifiedResponse,
-                               PartialResponse, RedirectResponse, Response)
+                               PartialResponse, Response)
 from poorwsgi.results import html_escape, not_modified  # noqa
-from poorwsgi.session import PoorSession, SessionError  # noqa
 
 try:
     import uwsgi  # type: ignore
@@ -46,7 +44,6 @@ app = application = Application("simple")
 app.debug = True
 app.document_root = '.'
 app.document_index = True
-app.secret_key = os.urandom(32)  # random key each run
 
 
 class MyValueError(ValueError):
@@ -159,27 +156,6 @@ def get_variables(req):
 app.set_filter('email', r'[\w\.\-]+@[\w\.\-]+')
 
 
-def check_login(fun):
-    """Checks the session cookie."""
-
-    @wraps(fun)
-    def handler(req):
-        session = PoorSession(app.secret_key)
-        try:
-            session.load(req.cookies)
-        except SessionError:
-            pass  # no valid session means empty session data
-        if 'login' not in session.data:
-            log.info('Login cookie not found.')
-            redirect(
-                "/",
-                message="Login required",
-            )
-        return fun(req)
-
-    return handler
-
-
 @app.route('/')
 def root(req):
     """Returns the root index page."""
@@ -204,12 +180,10 @@ def root(req):
         ' - Testing variable args</li>',
         '<li><a href="/test/headers">/test/headers</a> - Testing Headers'
         '</li>',
-        '<li><a href="/login">/login</a> - Create login session</li>',
-        '<li><a href="/logout">/logout</a> - Destroy login session</li>',
         '<li><a href="/test/form">/test/form</a>'
-        ' - Testing http form (only if you have login cookie / session)</li>',
+        ' - Testing http form</li>',
         '<li><a href="/test/upload">/test/upload</a> - '
-        'Testing file upload (only if you have login cookie / session)</li>',
+        'Testing file upload</li>',
         '<li><a href="/debug-info">/debug-info</a>'
         ' - Debug Page (only if poor_Debug is set)</li>',
         '<li><a href="/no-page">/no-page</a> - No Exist Page</li>',
@@ -346,30 +320,7 @@ def test_varargs(req, *args):
     return response
 
 
-@app.route('/login')
-def login(req):
-    """Creates a login session cookie."""
-    log.debug("Input cookies: %s", repr(req.cookies))
-    cookie = PoorSession(app.secret_key)
-    cookie.data['login'] = True
-    response = RedirectResponse('/')
-    cookie.header(response)
-    return response
-
-
-@app.route('/logout')
-def logout(req):
-    """Destroys the login session cookie."""
-    log.debug("Input cookies: %s", repr(req.cookies))
-    cookie = PoorSession(app.secret_key)
-    cookie.destroy()
-    response = RedirectResponse('/')
-    cookie.header(response)
-    return response
-
-
 @app.route('/test/form', method=state.METHOD_GET_POST)
-@check_login
 def test_form(req):
     """A form example."""
     # pylint: disable=consider-using-f-string
@@ -448,7 +399,6 @@ def test_form(req):
 
 
 @app.route('/test/upload', method=state.METHOD_GET_POST)
-@check_login
 def test_upload(req):
     """A file upload example."""
     var_info = OrderedDict((

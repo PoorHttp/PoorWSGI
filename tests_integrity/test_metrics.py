@@ -15,18 +15,19 @@ from . support import start_server, check_url
 def url(request):
     """Returns the server URL or starts the metrics application if it doesn't
     exist."""
-    retval = environ.get("TEST_METRICS_URL", "").strip('/')
+    process = None
+    retval = environ.get("TEST_METRICS_URL", "").rstrip('/')
     if retval:
         yield retval
-        return
+    else:
+        process = start_server(
+            request,
+            join(dirname(__file__), pardir, 'examples/metrics.py'))
+        yield "http://localhost:8080"  # server is running
 
-    process = start_server(
-        request,
-        join(dirname(__file__), pardir, 'examples/metrics.py'))
-
-    yield "http://localhost:8080"  # server is running
-    process.kill()
-    process.wait()
+    if process is not None:
+        process.kill()
+        process.wait()
 
 
 class TestMetrics():

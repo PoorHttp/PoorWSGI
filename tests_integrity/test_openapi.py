@@ -19,18 +19,19 @@ SPEC = response_spec_json(
 @fixture(scope="module")
 def url(request):
     """Fixture for starting the OpenAPI example server."""
-    url = environ.get("TEST_OPENAPI_URL", "").strip('/')
-    if url:
-        yield url
-        return
+    process = None
+    val = environ.get("TEST_OPENAPI_URL", "").rstrip('/')
+    if val:
+        yield val
+    else:
+        process = start_server(
+            request,
+            join(dirname(__file__), pardir, 'examples/openapi3.py'))
+        yield "http://localhost:8080"  # server is running
 
-    process = start_server(
-        request,
-        join(dirname(__file__), pardir, 'examples/openapi3.py'))
-
-    yield "http://localhost:8080"  # server is running
-    process.kill()
-    process.wait()
+    if process is not None:
+        process.kill()
+        process.wait()
 
 
 @fixture

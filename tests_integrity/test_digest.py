@@ -7,7 +7,6 @@ from requests.auth import HTTPDigestAuth
 
 from .support import check_url, start_server
 
-# pylint: disable=inconsistent-return-statements
 # pylint: disable=missing-function-docstring
 # pylint: disable=redefined-outer-name
 # pylint: disable=no-self-use
@@ -16,17 +15,19 @@ from .support import check_url, start_server
 @fixture(scope="module")
 def url(request):
     """The URL (server fixture)."""
-    val = environ.get("TEST_DIGEST_URL", "").strip('/')
+    process = None
+    val = environ.get("TEST_DIGEST_URL", "").rstrip('/')
     if val:
-        return val
+        yield val
+    else:
+        process = start_server(
+            request,
+            join(dirname(__file__), pardir, 'examples/http_digest.py'))
+        yield "http://localhost:8080"  # server is running
 
-    process = start_server(
-        request,
-        join(dirname(__file__), pardir, 'examples/http_digest.py'))
-
-    yield "http://localhost:8080"  # server is running
-    process.kill()
-    process.wait()
+    if process is not None:
+        process.kill()
+        process.wait()
 
 
 @fixture

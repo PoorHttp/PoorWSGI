@@ -131,17 +131,17 @@ class TestResponses():
         Modified."""
         res = check_url(url+"/simple.py")
         last_modified = res.headers.get('Last-Modified')
-        res = check_url(url+"/simple.py",
-                        headers={'If-Modified-Since': last_modified},
-                        status_code=304)
+        check_url(url+"/simple.py",
+                  headers={'If-Modified-Since': last_modified},
+                  status_code=304)
 
     def test_file_response_304_etag(self, url):
         """Tests FileResponse with ETag header for 304 Not Modified."""
         res = check_url(url+"/simple.py")
         etag = res.headers.get('ETag')
-        res = check_url(url+"/simple.py",
-                        headers={'If-None-Match': etag},
-                        status_code=304)
+        check_url(url+"/simple.py",
+                  headers={'If-None-Match': etag},
+                  status_code=304)
 
     def test_none_no_content(self, url):
         """Tests None response resulting in 204 No Content."""

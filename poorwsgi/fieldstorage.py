@@ -13,7 +13,7 @@ from email.parser import FeedParser
 from io import BytesIO, StringIO, TextIOWrapper
 from typing import Any, Callable, Optional, Union
 
-from poorwsgi.headers import parse_header
+from poorwsgi.headers import parse_header, Headers
 
 _RE_STR_BOUNDARY = re.compile("^[ -~]{0,200}[!-~]$")
 _RE_BIN_BOUNDARY = re.compile(b"^[ -~]{0,200}[!-~]$")
@@ -425,7 +425,7 @@ class FieldStorageParser:
     """
     BUFSIZE = 8*1024  # buffering size for copy to file and storing StringIO
 
-    def __init__(self, input_=None, headers=None, outerboundary=b'',
+    def __init__(self, input_=None, headers=None | Headers, outerboundary=b'',
                  keep_blank_values=0, strict_parsing=0,
                  limit=None, encoding='utf-8', errors='replace',
                  max_num_fields=None, separator='&', file_callback=None):
@@ -477,7 +477,7 @@ class FieldStorageParser:
             allows you to write a file from the request directly to its
             destination without temporary files.
         """
-        self.headers = headers
+        self.headers = headers or Headers()
         self.outerboundary = outerboundary
         self.keep_blank_values = keep_blank_values
         self.strict_parsing = strict_parsing

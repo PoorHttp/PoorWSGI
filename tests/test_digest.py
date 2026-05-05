@@ -72,8 +72,10 @@ class TestMap():
 
     def test_delete(self, pmap):
         """Tests deleting a user from the PasswordMap."""
-        assert pmap.delete(REALM, USER) is True
-        assert pmap.delete(REALM, USER) is False
+        deleted = pmap.delete(REALM, USER)
+        assert deleted is True
+        deleted_again = pmap.delete(REALM, USER)
+        assert deleted_again is False
 
     def test_find(self, pmap):
         """Tests finding a user's digest in the PasswordMap."""

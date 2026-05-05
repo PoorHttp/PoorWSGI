@@ -477,7 +477,7 @@ def not_found(req, *_):
         "<body>",
         "<h1>404 - Page Not Found</h1>",
         get_crumbnav(req),
-        f"<p>Your reqeuest <code>{req.uri}</code> was not found.</p>",
+        f"<p>Your request <code>{req.uri}</code> was not found.</p>",
     ) + get_footer()
 
     response = Response(status_code=state.HTTP_NOT_FOUND)

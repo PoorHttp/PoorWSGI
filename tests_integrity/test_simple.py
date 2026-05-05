@@ -238,7 +238,7 @@ class TestErrors():
         check_url(url+"/no-page", status_code=404)
 
     def test_method_not_allowed(self, url):
-        """Tests the /internal-server-error endpoint with an disallowed
+        """Tests the /internal-server-error endpoint with a disallowed
         method."""
         check_url(url+"/internal-server-error", method="PUT", status_code=405)
 

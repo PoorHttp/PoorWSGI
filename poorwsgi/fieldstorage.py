@@ -425,7 +425,7 @@ class FieldStorageParser:
     """
     BUFSIZE = 8*1024  # buffering size for copy to file and storing StringIO
 
-    def __init__(self, input_=None, headers=None | Headers, outerboundary=b'',
+    def __init__(self, input_=None, headers: Optional[Headers] = None, outerboundary=b'',
                  keep_blank_values=0, strict_parsing=0,
                  limit=None, encoding='utf-8', errors='replace',
                  max_num_fields=None, separator='&', file_callback=None):

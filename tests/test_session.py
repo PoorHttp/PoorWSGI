@@ -1,17 +1,50 @@
 """Unit tests for Session and PoorSession classes."""
+import bz2
+import hmac as _hmac
+from base64 import b64encode
+from hashlib import shake_256
 from os import urandom
 from http.cookies import SimpleCookie, Morsel
+from json import dumps
+from random import Random
+from time import time as _time
 from typing import Any
 
 from pytest import fixture, raises
 
-from poorwsgi.session import Session, PoorSession, SessionError
+from poorwsgi.session import (
+    Session, PoorSession, SessionError, NoCompress,
+    get_token, check_token, hidden, encrypt, KEYSTREAM_SIZE,
+)
 
 SECRET_KEY = urandom(32)
 
 # pylint: disable=redefined-outer-name
 # pylint: disable=missing-function-docstring
 # pylint: disable=too-few-public-methods
+
+
+def _make_poor_cookie(key: bytes, data) -> str:
+    """Build a PoorSession-compatible cookie with arbitrary (possibly non-dict)
+    data so we can craft edge-case payloads in tests."""
+    secret_hash = shake_256(b'ks\x00' + key).digest(KEYSTREAM_SIZE)
+    mac_key = shake_256(b'mac\x00' + key).digest(32)
+    table = bytearray(range(256))
+    perm_seed = shake_256(b'perm\x00' + key).digest(32)
+    Random(perm_seed).shuffle(table)  # nosec # noqa: S311
+    payload = bz2.compress(
+        encrypt(hidden(dumps(data), secret_hash), table), 9)
+    sig = _hmac.digest(mac_key, payload, 'sha256')
+    return b64encode(payload).decode() + '.' + b64encode(sig).decode()
+
+
+class MockHeaders:
+    """Minimal stand-in for Headers/Response that records add_header calls."""
+    def __init__(self):
+        self.headers = []
+
+    def add_header(self, name, value):
+        self.headers.append((name, value))
 
 
 class Request:
@@ -40,6 +73,68 @@ def req_session():
     session.write()
     request.cookies = session.cookie
     return request
+
+
+class TestNoCompress:
+    """Tests for the NoCompress pass-through class."""
+
+    # pylint: disable=no-self-use
+
+    def test_compress_returns_data_unchanged(self):
+        data = b"hello world"
+        assert NoCompress.compress(data) == data
+
+    def test_decompress_returns_data_unchanged(self):
+        data = b"hello world"
+        assert NoCompress.decompress(data) == data
+
+
+class TestTokens:
+    """Tests for get_token and check_token helper functions."""
+
+    # pylint: disable=no-self-use
+
+    def test_get_token_without_timeout(self):
+        token = get_token("secret", "client")
+        assert isinstance(token, str)
+        assert len(token) == 64  # sha3_256 hex digest
+
+    def test_get_token_is_deterministic(self):
+        assert get_token("secret", "client") == get_token("secret", "client")
+
+    def test_get_token_with_timeout(self):
+        token = get_token("secret", "client", timeout=300)
+        assert isinstance(token, str)
+        assert len(token) == 64
+
+    def test_get_token_with_explicit_expired(self):
+        token = get_token("secret", "client", timeout=300, expired=9999999999)
+        assert isinstance(token, str)
+
+    def test_check_token_without_timeout_valid(self):
+        token = get_token("secret", "client")
+        assert check_token(token, "secret", "client") is True
+
+    def test_check_token_without_timeout_invalid(self):
+        assert check_token("badtoken", "secret", "client") is False
+
+    def test_check_token_with_timeout_valid(self):
+        token = get_token("secret", "client", timeout=300)
+        assert check_token(token, "secret", "client", timeout=300) is True
+
+    def test_check_token_with_timeout_first_window_match(self):
+        """check_token must return True on first window match (covers early
+        return branch)."""
+        timeout = 300
+        now = int(_time() / timeout) * timeout
+        # check_token tries expired = now + timeout first
+        token = get_token("secret", "client", timeout=timeout,
+                          expired=now + timeout)
+        assert check_token(token, "secret", "client", timeout=timeout) is True
+
+    def test_check_token_with_timeout_invalid(self):
+        assert check_token(
+            "badtoken", "secret", "client", timeout=300) is False
 
 
 class TestPoorSession:
@@ -186,6 +281,50 @@ class TestErrors:
         with raises(SessionError):
             session.load(cookies)
 
+    def test_string_secret_key(self):
+        """PoorSession accepts a str key (encodes to bytes internally)."""
+        session = PoorSession("string-secret-key")
+        session.data['x'] = 1
+        session.write()
+        session2 = PoorSession("string-secret-key")
+        session2.load(session.cookie)
+        assert session2.data == {'x': 1}
+
+    def test_load_empty_cookie_value(self):
+        """load() with an empty cookie value leaves data unchanged."""
+        cookies = SimpleCookie()
+        cookies['SESSID'] = ''
+        session = PoorSession(SECRET_KEY)
+        session.load(cookies)
+        assert session.data == {}
+
+    def test_load_no_dot_separator(self):
+        """Cookie without a '.' separator must raise SessionError."""
+        cookies = SimpleCookie()
+        cookies['SESSID'] = b64encode(b'nodot').decode()
+        session = PoorSession(SECRET_KEY)
+        with raises(SessionError):
+            session.load(cookies)
+
+    def test_load_short_signature(self):
+        """Cookie with a signature shorter than 32 bytes must raise
+        SessionError."""
+        payload = b64encode(b'somepayload').decode()
+        sig = b64encode(b'short').decode()
+        cookies = SimpleCookie()
+        cookies['SESSID'] = f'{payload}.{sig}'
+        session = PoorSession(SECRET_KEY)
+        with raises(SessionError):
+            session.load(cookies)
+
+    def test_load_non_dict_data(self):
+        """Non-dict cookie data must raise SessionError."""
+        cookies = SimpleCookie()
+        cookies['SESSID'] = _make_poor_cookie(SECRET_KEY, [1, 2, 3])
+        session = PoorSession(SECRET_KEY)
+        with raises(SessionError):
+            session.load(cookies)
+
     def test_bad_session_compatibility(self, req):
         """Tests PoorSession compatibility with a bad session cookie, expecting
         SessionError."""
@@ -290,6 +429,30 @@ class TestSession:
         session.destroy()
         headers = session.header()
         assert "expires=" in headers[0][1]
+
+    def test_destroy_with_max_age(self):
+        """destroy() must also set Max-Age=-1 when max_age was configured."""
+        session = Session(max_age=3600)
+        session.destroy()
+        headers = session.header()
+        assert "Max-Age=-1" in headers[0][1]
+        assert "Max-Age=3600" not in headers[0][1]
+
+    def test_destroy_with_secure(self):
+        """destroy() must preserve the Secure flag when configured."""
+        session = Session(secure=True)
+        session.destroy()
+        headers = session.header()
+        assert "Secure" in headers[0][1]
+
+    def test_header_writes_to_headers_object(self):
+        """header(obj) must call obj.add_header() for each cookie header."""
+        session = Session()
+        session.data = "tok"
+        mock = MockHeaders()
+        returned = session.header(mock)
+        assert len(mock.headers) == len(returned)
+        assert mock.headers == returned
 
     def test_expires(self):
         """Tests Session with an expires setting."""

@@ -1,10 +1,16 @@
 """Unit tests for AESSession class."""
+import hmac as _hmac
+from base64 import urlsafe_b64encode
+from hashlib import sha256, sha3_256
+from json import dumps
 from os import urandom
 from http.cookies import SimpleCookie
 
+from pyaes import (  # type: ignore[import-untyped]
+    AESModeOfOperationCTR, Counter)
 from pytest import fixture, raises
 
-from poorwsgi.aes_session import AESSession
+from poorwsgi.aes_session import AESSession, _NONCE_SIZE
 from poorwsgi.session import Session, SessionError
 
 SECRET_KEY = urandom(32)
@@ -50,6 +56,62 @@ class TestErrors:
         """same_site='None' without secure=True must raise ValueError."""
         with raises(ValueError, match="requires secure=True"):
             AESSession(SECRET_KEY, same_site="None", secure=False)
+
+    def test_string_secret_key(self):
+        """AESSession accepts a str key (encodes to bytes internally)."""
+        session = AESSession("string-secret-key")
+        session.data['x'] = 1
+        session.write()
+        session2 = AESSession("string-secret-key")
+        session2.load(session.cookie)
+        assert session2.data == {'x': 1}
+
+    def test_load_missing_sid(self):
+        """load() with no matching cookie name leaves data unchanged."""
+        session = AESSession(SECRET_KEY)
+        session.load(SimpleCookie())
+        assert session.data == {}
+
+    def test_load_empty_cookie_value(self):
+        """load() with an empty cookie value leaves data unchanged."""
+        cookies = SimpleCookie()
+        cookies['SESSID'] = ''
+        session = AESSession(SECRET_KEY)
+        session.load(cookies)
+        assert session.data == {}
+
+    def test_load_short_payload(self):
+        """Payload shorter than the nonce size must raise SessionError."""
+        root = sha3_256(SECRET_KEY).digest()
+        mac_key = sha3_256(root + b'mac').digest()
+        short_payload = b'\x00' * (_NONCE_SIZE - 1)
+        digest = _hmac.digest(mac_key, short_payload, digest=sha256)
+        raw = (urlsafe_b64encode(short_payload)
+               + b'.'
+               + urlsafe_b64encode(digest))
+        cookies = SimpleCookie()
+        cookies['SESSID'] = raw.decode()
+        session = AESSession(SECRET_KEY)
+        with raises(SessionError):
+            session.load(cookies)
+
+    def test_load_non_dict_data(self):
+        """Non-dict cookie data must raise SessionError."""
+        root = sha3_256(SECRET_KEY).digest()
+        enc_key = sha3_256(root + b'enc').digest()
+        mac_key = sha3_256(root + b'mac').digest()
+        nonce = urandom(_NONCE_SIZE)
+        counter = Counter(initial_value=int.from_bytes(nonce, 'big'))
+        aes = AESModeOfOperationCTR(enc_key, counter=counter)
+        ciphertext = aes.encrypt(dumps([1, 2, 3]))
+        payload = nonce + ciphertext
+        digest = _hmac.digest(mac_key, payload, digest=sha256)
+        raw = urlsafe_b64encode(payload) + b'.' + urlsafe_b64encode(digest)
+        cookies = SimpleCookie()
+        cookies['SESSID'] = raw.decode()
+        session = AESSession(SECRET_KEY)
+        with raises(SessionError):
+            session.load(cookies)
 
     def test_bad_session_data(self):
         cookies = SimpleCookie()

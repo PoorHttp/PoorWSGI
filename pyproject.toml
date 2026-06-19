@@ -1,6 +1,20 @@
+# Central configuration file.
+# Packaging stays in setup.py until a full migration to pyproject.toml.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["poorwsgi"]
+
+[tool.isort]
+line_length = 79
+
+[tool.ruff]
 line-length = 79
 
-lint.select = [
+[tool.ruff.lint]
+select = [
     "F",    # pyflakes
     "E",    # pycodestyle
     "W",    # pycodestyle
@@ -50,8 +64,7 @@ lint.select = [
     "NPY",  # NumPy-specific rules
     "RUF",  # Ruff-specific rules
 ]
-
-lint.ignore = [
+ignore = [
     "Q000",     # [*] Single quotes found but double quotes preferred
     "I001",     # [*] Import block is un-sorted or un-formatted
     "COM812",   # [*] Trailing comma missing
@@ -93,7 +106,7 @@ lint.ignore = [
     "RET504",   # Unnecessary variable assignment before `return` statement
     "F841",     # [*] Local variable `accepted` is assigned to but never used
     "F401",     # [*] `time.time` imported but unused
-    "RUF005",   # [*] Consider `[('share/doc/poorwsgi', ['doc/ChangeLog', 'doc/licence.txt', 'README.rst', 'CONTRIBUTION.rst']), *find_data_files('examples', 'share/poorwsgi/examples')]` instead of concatenation
+    "RUF005",   # [*] Consider `[...]` instead of concatenation
     "G010",     # [*] Logging statement uses `warn` instead of `warning`
     "PGH002",   # `warn` is deprecated in favor of `warning`
     "C400",     # [*] Unnecessary generator (rewrite as a `list` comprehension)
@@ -109,24 +122,22 @@ lint.ignore = [
     "ARG004",   # Unused static method argument: `compresslevel`
     "ARG002",   # Unused method argument: `start_response`
     "G001",     # Logging statement uses `string.format()`
-    "SIM108",   # [*] Use ternary operator `val = CgiFieldStorage.getlist(self, key) if key in self else default or []` instead of `if`-`else`-block
-    "A003",     # Class attribute `input` is shadowing a Python builtin
-    "SIM108",   # [*] Use ternary operator `val = CgiFieldStorage.getlist(self, key) if key in self else default or []` instead of `if`-`else`-block
+    "SIM108",   # [*] Use ternary operator instead of `if`-`else`-block
     "A003",     # Class attribute `input` is shadowing a Python builtin
     "C402",     # [*] Unnecessary generator (rewrite as a `dict` comprehension)
     "C417",     # [*] Unnecessary `map` usage (rewrite using a generator expression)
     "PLR0915",  # Too many statements (52 > 50)
     "EM103",    # [*] Exception must not use a `.format()` string directly, assign to variable first
-    "DTZ003",   # The use of `datetime.datetime.utcnow()` is not allowed, use `datetime.datetime.now(tz=)` instead
+    "DTZ003",   # The use of `datetime.datetime.utcnow()` is not allowed
     "PGH004",   # Use specific rule codes when using `noqa`
-    "INP001",   # File `examples/websocket.py` is part of an implicit namespace package. Add an `__init__.py`.
+    "INP001",   # File is part of an implicit namespace package. Add an `__init__.py`.
     "ARG001",   # Unused function argument: `req`
     "S324",     # Probable use of insecure hash functions in `hashlib`: `md5`
-    "SIM118",   # [*] Use `key in req.form` instead of `key in req.form.keys()`
-    "SIM105",   # [*] Use `contextlib.suppress(SessionError)` instead of `try`-`except`-`pass`
+    "SIM118",   # [*] Use `key in dict` instead of `key in dict.keys()`
+    "SIM105",   # [*] Use `contextlib.suppress(...)` instead of `try`-`except`-`pass`
     "PIE810",   # [*] Call `startswith` once with a `tuple`
     "C414",     # [*] Unnecessary `tuple` call within `sorted()`
-    "TRY401",   # Redundant exception object included in `logging.exception` call¸
+    "TRY401",   # Redundant exception object included in `logging.exception` call
     "TRY002",   # Create your own exception
     "E402",     # Module level import not at top of file
     "RUF100",   # [*] Unused blanket `noqa` directive

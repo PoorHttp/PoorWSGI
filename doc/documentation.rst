@@ -1075,10 +1075,34 @@ No encryption is applied — the value is stored as-is in the cookie.
     session.load(req.cookies)
     server_data = server_store[session.data]
 
-The ``Session`` class accepts the following keyword arguments:
-``sid``, ``expires``, ``max_age``, ``domain``, ``path``, ``secure``,
-``same_site``. It exposes ``load()``, ``write()``, ``destroy()``, and
-``header()`` methods.
+The ``Session`` constructor accepts the following keyword arguments:
+
+``sid``
+    Cookie name (default ``'SESSID'``).
+``expires``
+    ``Expires`` time in seconds from now.  ``0`` (default) means no expiration.
+``max_age``
+    ``Max-Age`` in seconds.  Takes precedence over ``expires`` when both are set.
+``domain``
+    ``Domain`` attribute — restricts which hosts receive the cookie.
+``path``
+    ``Path`` attribute (default ``'/'``).
+``secure``
+    Set the ``Secure`` flag.  Required when ``same_site='None'``.
+``same_site``
+    ``SameSite`` attribute.  Accepted values:
+
+    * ``'Strict'`` — cookie is sent only in same-site requests.
+    * ``'Lax'`` — cookie is sent in same-site requests and top-level
+      navigations (browsers default to this when the attribute is absent).
+    * ``'None'`` — cookie is sent in all contexts including cross-site
+      requests.  **Requires** ``secure=True``.
+    * ``False`` (default) — the attribute is omitted entirely.
+
+    Passing any other value raises ``ValueError``.  Passing ``'None'``
+    without ``secure=True`` also raises ``ValueError``.
+
+It exposes ``load()``, ``write()``, ``destroy()``, and ``header()`` methods.
 
 .. note::
 
@@ -1116,6 +1140,13 @@ variable or the ``Application.secret_key`` property.
   behaviour.
 
 * **Cookie format**: ``base64(ciphertext).base64(hmac-sha256)``
+
+``PoorSession`` accepts the same cookie keyword arguments as ``Session``
+(``sid``, ``expires``, ``max_age``, ``domain``, ``path``, ``secure``,
+``same_site``) plus ``compress`` and ``secret_key`` (positional).
+The constructor raises ``SessionError`` if ``secret_key`` is empty, and
+``ValueError`` for an invalid ``same_site`` value or the ``'None'`` /
+``secure=False`` combination (see `Session`_ for details).
 
 The ``KEYSTREAM_SIZE`` constant in ``poorwsgi.session`` controls the keystream
 length (default ``1024``). Increasing it makes known-plaintext attacks harder
@@ -1205,6 +1236,13 @@ The cookie format is ``base64(nonce + ciphertext).base64(hmac-sha256)``.
 A 16-byte random nonce is generated on every ``write()`` call to prevent
 CTR nonce reuse.  A missing or tampered signature causes ``SessionError``
 to be raised in ``load()``.
+
+``AESSession`` accepts the same cookie keyword arguments as ``Session``
+(``sid``, ``expires``, ``max_age``, ``domain``, ``path``, ``secure``,
+``same_site``) plus ``secret_key`` (positional).
+The constructor raises ``SessionError`` if ``secret_key`` is empty, and
+``ValueError`` for an invalid ``same_site`` value or the ``'None'`` /
+``secure=False`` combination (see `Session`_ for details).
 
 JSON Web Tokens
 ```````````````

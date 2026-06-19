@@ -41,6 +41,16 @@ class TestErrors:
         with raises(SessionError):
             AESSession("")
 
+    def test_same_site_invalid_raises(self):
+        """Unrecognised same_site value must raise ValueError."""
+        with raises(ValueError, match="is not valid"):
+            AESSession(SECRET_KEY, same_site=True)
+
+    def test_same_site_none_without_secure_raises(self):
+        """same_site='None' without secure=True must raise ValueError."""
+        with raises(ValueError, match="requires secure=True"):
+            AESSession(SECRET_KEY, same_site="None", secure=False)
+
     def test_bad_session_data(self):
         cookies = SimpleCookie()
         cookies["SESSID"] = "notvalidbase64!!!"

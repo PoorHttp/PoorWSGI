@@ -28,17 +28,20 @@ jobs:
         python -m pip install --upgrade pip
         pip install -U flake8 setuptools
         pip install -U openapi-core uwsgi simplejson WSocket PyJWT pyaes
-        pip install -U pytest pytest-doctestplus pytest-pylint pytest-mypy requests websocket-client
-        pip install -U types-simplejson types-requests types-PyYAML
+        pip install -U pytest pytest-doctestplus pytest-mypy requests websocket-client
+        pip install -U pylint types-simplejson types-requests types-PyYAML
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Lint with pylit
+    - name: Lint with pylint
       run: |
-        pytest -v poorwsgi --pylint --mypy --doctest-plus --doctest-rst
+        pylint poorwsgi
+    - name: Lint with mypy and doctest
+      run: |
+        pytest -v poorwsgi --mypy --doctest-plus --doctest-rst
     - name: Tests
       run: |
         pytest -v tests --mypy

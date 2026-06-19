@@ -1,3 +1,14 @@
+==== 2.8.1 ====
+    * Session, PoorSession, AESSession: validate same_site argument
+        - Accepted values are 'Strict', 'Lax', 'None', or False
+        - ValueError is raised for any other value
+        - ValueError is raised when same_site='None' and secure=False
+          (browsers reject SameSite=None without the Secure flag)
+        - Type annotation corrected from Union[str, bool] to
+          Union[str, Literal[False]]
+    * Updated docstrings and documentation to document valid same_site
+      values, the Secure requirement for 'None', and raised exceptions
+
 ==== 2.8.0 ====
     * Fix I/O operation on closed file/buffer error in Response classes (#21)
     * Validate route filter definitions to reject spaces with clear error

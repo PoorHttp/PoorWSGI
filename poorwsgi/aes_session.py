@@ -13,7 +13,7 @@ from http.cookies import SimpleCookie
 from json import dumps, loads
 from logging import getLogger
 from os import urandom
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Literal, Optional, Union
 
 from pyaes import (  # type: ignore[import-untyped]
     AESModeOfOperationCTR, Counter)
@@ -54,7 +54,7 @@ class AESSession(Session):
             domain: str = '',
             path: str = '/',
             secure: bool = False,
-            same_site: Union[str, bool] = False,
+            same_site: Union[str, Literal[False]] = False,
             sid: str = 'SESSID'):
         """Constructor.
 
@@ -72,10 +72,22 @@ class AESSession(Session):
             secure
                 If ``True``, set the ``Secure`` cookie attribute.
             same_site
-                The ``SameSite`` attribute value (``'Strict'``, ``'Lax'``,
-                ``'None'``) or ``False`` to omit it.
+                The ``SameSite`` cookie attribute.  Accepted values are
+                ``'Strict'``, ``'Lax'``, ``'None'``, or ``False``.
+                ``False`` (the default) omits the attribute entirely,
+                which browsers treat as ``'Lax'``.  ``'None'`` permits
+                the cookie in cross-site requests but requires
+                ``secure=True``.
             sid
                 Cookie name.
+
+        Raises:
+            SessionError
+                If *secret_key* is empty.
+            ValueError
+                If *same_site* is not one of ``'Strict'``, ``'Lax'``,
+                ``'None'``, or ``False``; or if *same_site* is ``'None'``
+                and *secure* is ``False``.
         """
         if not secret_key:
             raise SessionError("Empty secret_key")

@@ -133,8 +133,8 @@ class TestSameSite:
         assert "; SameSite" not in headers[0][1]
 
     def test_none(self):
-        """Tests PoorSession with SameSite set to 'None'."""
-        session = PoorSession(SECRET_KEY, same_site="None")
+        """Tests PoorSession with SameSite='None' (requires secure=True)."""
+        session = PoorSession(SECRET_KEY, same_site="None", secure=True)
         headers = session.header()
         assert "; SameSite=None" in headers[0][1]
 
@@ -149,6 +149,16 @@ class TestSameSite:
         session = PoorSession(SECRET_KEY, same_site="Strict")
         headers = session.header()
         assert "; SameSite=Strict" in headers[0][1]
+
+    def test_invalid_value_raises(self):
+        """Unrecognised same_site value must raise ValueError."""
+        with raises(ValueError, match="is not valid"):
+            PoorSession(SECRET_KEY, same_site=True)
+
+    def test_none_without_secure_raises(self):
+        """same_site='None' without secure=True must raise ValueError."""
+        with raises(ValueError, match="requires secure=True"):
+            PoorSession(SECRET_KEY, same_site="None", secure=False)
 
 
 class TestErrors:
@@ -304,6 +314,16 @@ class TestSession:
         session = Session(same_site="Strict")
         headers = session.header()
         assert "SameSite=Strict" in headers[0][1]
+
+    def test_same_site_invalid_raises(self):
+        """Unrecognised same_site value must raise ValueError."""
+        with raises(ValueError, match="is not valid"):
+            Session(same_site=True)
+
+    def test_same_site_none_without_secure_raises(self):
+        """same_site='None' without secure=True must raise ValueError."""
+        with raises(ValueError, match="requires secure=True"):
+            Session(same_site="None", secure=False)
 
     def test_custom_sid(self):
         """Tests Session with a custom cookie name."""

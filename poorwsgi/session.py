@@ -25,7 +25,7 @@ from json import dumps, loads
 from logging import getLogger
 from random import Random
 from time import time
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Literal, Optional, Union
 
 from http.cookies import SimpleCookie
 
@@ -175,7 +175,8 @@ class Session:
 
     def __init__(self, expires: int = 0, max_age: Optional[int] = None,
                  domain: str = '', path: str = '/', secure: bool = False,
-                 same_site: Union[str, bool] = False, sid: str = 'SESSID'):
+                 same_site: Union[str, Literal[False]] = False,
+                 sid: str = 'SESSID'):
         """Constructor.
 
         Arguments:
@@ -192,12 +193,27 @@ class Session:
             secure
                 If the ``Secure`` cookie attribute will be sent.
             same_site
-                The ``SameSite`` attribute. When set, it can be one of
-                ``Strict|Lax|None``. By default, the attribute is not
-                set, which browsers default to ``Lax``.
+                The ``SameSite`` cookie attribute.  Accepted values are
+                ``'Strict'``, ``'Lax'``, ``'None'``, or ``False``.
+                ``False`` (the default) omits the attribute entirely,
+                which browsers treat as ``'Lax'``.  ``'None'`` permits
+                the cookie in cross-site requests but requires
+                ``secure=True``.
             sid
                 The cookie key name.
+
+        Raises:
+            ValueError
+                If *same_site* is not one of ``'Strict'``, ``'Lax'``,
+                ``'None'``, or ``False``; or if *same_site* is ``'None'``
+                and *secure* is ``False``.
         """
+        if same_site not in ("Strict", "Lax", "None", False):
+            msg = (f"same_site={same_site!r} is not valid; "
+                   "use 'Strict', 'Lax', 'None', or False")
+            raise ValueError(msg)
+        if same_site == "None" and not secure:
+            raise ValueError("same_site='None' requires secure=True")
         self._sid = sid
         self.__expires = expires
         self.__max_age = max_age
@@ -332,7 +348,7 @@ class PoorSession(Session):
     def __init__(self, secret_key: Union[str, bytes],
                  expires: int = 0, max_age: Optional[int] = None,
                  domain: str = '', path: str = '/', secure: bool = False,
-                 same_site: Union[str, bool] = False, compress=bz2,
+                 same_site: Union[str, Literal[False]] = False, compress=bz2,
                  sid: str = 'SESSID'):
         """Constructor.
 
@@ -352,9 +368,12 @@ class PoorSession(Session):
             secure
                 If the ``Secure`` cookie attribute will be sent.
             same_site
-                The ``SameSite`` attribute. When set, it can be one of
-                ``Strict|Lax|None``. By default, the attribute is not
-                set, which browsers default to ``Lax``.
+                The ``SameSite`` cookie attribute.  Accepted values are
+                ``'Strict'``, ``'Lax'``, ``'None'``, or ``False``.
+                ``False`` (the default) omits the attribute entirely,
+                which browsers treat as ``'Lax'``.  ``'None'`` permits
+                the cookie in cross-site requests but requires
+                ``secure=True``.
             compress
                 Can be ``bz2``, ``gzip.zlib``, or any other, which has
                 standard compress and decompress methods. Or it can be
@@ -383,6 +402,14 @@ class PoorSession(Session):
 
         *Changed in version 2.4.x*: Use app.secret_key in the
         constructor, and then call the load method.
+
+        Raises:
+            ValueError
+                If *same_site* is not one of ``'Strict'``, ``'Lax'``,
+                ``'None'``, or ``False``; or if *same_site* is ``'None'``
+                and *secure* is ``False``.
+            SessionError
+                If *secret_key* is empty.
         """
         super().__init__(expires=expires, max_age=max_age, domain=domain,
                          path=path, secure=secure, same_site=same_site,

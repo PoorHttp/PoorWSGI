@@ -225,6 +225,7 @@ class Session:
         self.data: Any = ""
         self.cookie: SimpleCookie = SimpleCookie()
         self.cookie[sid] = ''
+        self._destroyed: bool = False
 
     def _apply_cookie_attrs(self):
         """Apply security and configuration attributes to the session cookie.
@@ -232,6 +233,8 @@ class Session:
         Called by ``write`` and subclass overrides of ``write``.
         Sets ``HttpOnly``, ``Domain``, ``Path``, ``Secure``, ``SameSite``,
         ``Expires``, and ``Max-Age`` as configured.
+        Skips ``Expires`` and ``Max-Age`` when ``destroy()`` was already
+        called, so those fields are not overwritten with the original values.
         """
         self.cookie[self._sid]['HttpOnly'] = True
         if self.__domain:
@@ -242,10 +245,11 @@ class Session:
             self.cookie[self._sid]['Secure'] = True
         if self.__same_site:
             self.cookie[self._sid]['SameSite'] = self.__same_site
-        if self.__expires:
-            self.cookie[self._sid]['expires'] = self.__expires
-        if self.__max_age is not None:
-            self.cookie[self._sid]['Max-Age'] = self.__max_age
+        if not self._destroyed:
+            if self.__expires:
+                self.cookie[self._sid]['expires'] = self.__expires
+            if self.__max_age is not None:
+                self.cookie[self._sid]['Max-Age'] = self.__max_age
 
     def load(self, cookies: Optional[SimpleCookie]):
         """Load the session value from the request's cookies.
@@ -275,6 +279,7 @@ class Session:
         Ensures that data cannot be changed:
         https://stackoverflow.com/a/5285982/8379994
         """
+        self._destroyed = True
         self.cookie[self._sid]['expires'] = -1
         if self.__max_age is not None:
             self.cookie[self._sid]['Max-Age'] = -1

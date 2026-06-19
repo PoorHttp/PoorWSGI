@@ -6,3 +6,4 @@ tags
 __pycache__/
 *.pyc
 *.profile
+.coverage

@@ -8,6 +8,17 @@
           Union[str, Literal[False]]
     * Updated docstrings and documentation to document valid same_site
       values, the Secure requirement for 'None', and raised exceptions
+    * Fix Session.destroy() with max_age: Max-Age=-1 was overwritten by
+      the subsequent write() call; _destroyed flag now prevents that
+    * Unit tests for session.py and aes_session.py: 100% coverage
+        - get_token, check_token, NoCompress
+        - Session.destroy() with max_age and secure
+        - Session.header() with a headers argument
+        - PoorSession and AESSession: str key, empty cookie, short
+          signature/payload, non-dict data
+    * Consolidate tool configuration into pyproject.toml
+        - ruff.toml and .isort.cfg removed
+        - pytest testpaths and coverage source configured
 
 ==== 2.8.0 ====
     * Fix I/O operation on closed file/buffer error in Response classes (#21)

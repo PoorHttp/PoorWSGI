@@ -13,6 +13,7 @@ This file can be used as a standalone ``htdigest``-like tool.
 
 from argparse import ArgumentParser
 from hashlib import md5, sha256
+from hmac import compare_digest
 from traceback import print_exc
 from getpass import getpass
 from os.path import exists
@@ -68,7 +69,7 @@ def check_response(req, password):
         response = req.app.auth_hash(
             '{hash1}:{nonce}:{hash2}'
             ''.format(**kwargs).encode()).hexdigest()
-    return response == kwargs['response']
+    return compare_digest(response, kwargs['response'])
 
 
 def check_credentials(req, realm, username=None):
@@ -182,6 +183,9 @@ def hexdigest(username, realm, password, algorithm=md5):
     """Returns the digest hash value for a user's password.
 
     Returns algorithm(username:realm:password).hexdigest().
+
+    The default algorithm is MD5 for compatibility with the htdigest file
+    format (RFC 2617). Use algorithm=sha256 for stronger hashing.
     """
     return algorithm(
         ('%s:%s:%s' % (username, realm, password)).encode()
@@ -217,7 +221,7 @@ class PasswordMap(defaultdict):
     def verify(self, realm, username, digest):
         """Checks the digest in the password map."""
         digest_ = self.find(realm, username)
-        return bool(digest_) and digest_ == digest
+        return bool(digest_) and compare_digest(digest_, digest)
 
     def load(self):
         """Loads the map from a file."""
@@ -302,7 +306,7 @@ def main():  # noqa: C901
             password = get_re_type()
             if password is None:
                 return 1
-            digest = hexdigest(args.username, args.realm, password)
+            digest = hexdigest(args.username, args.realm, password, algorithm)
             print('%s:%s:%s' % (args.username, args.realm, digest))
             return 0
 

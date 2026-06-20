@@ -8,7 +8,7 @@ from functools import wraps
 import warnings
 
 __author__ = "Ondrej Tuma (McBig) <mcbig@zeropage.cz>"
-__date__ = "19 Jun 2026"
+__date__ = "20 Jun 2026"
 # PEP 0386 -- Version Identification and Dependency Specification
 __version__ = "2.8.1"
 

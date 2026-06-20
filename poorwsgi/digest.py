@@ -12,7 +12,7 @@ This file can be used as a standalone ``htdigest``-like tool.
 # pylint: disable=consider-using-f-string
 
 from argparse import ArgumentParser
-from hashlib import md5, sha256
+from hashlib import md5, sha256  # nosec B324 - required by RFC 7616
 from hmac import compare_digest
 from traceback import print_exc
 from getpass import getpass

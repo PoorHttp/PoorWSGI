@@ -511,8 +511,11 @@ class TestSimpleRequest:
 
     def test_uri_handler_set_once(self, app):
         """uri_handler setter ignores subsequent assignments."""
-        def handler1(): ...
-        def handler2(): ...
+        def handler1():
+            pass
+
+        def handler2():
+            pass
         env = _make_env()
         req = SimpleRequest(env, app)
         req.uri_handler = handler1
@@ -521,8 +524,11 @@ class TestSimpleRequest:
 
     def test_error_handler_set_once(self, app):
         """error_handler setter ignores subsequent assignments."""
-        def h1(): ...
-        def h2(): ...
+        def h1():
+            pass
+
+        def h2():
+            pass
         env = _make_env()
         req = SimpleRequest(env, app)
         req.error_handler = h1

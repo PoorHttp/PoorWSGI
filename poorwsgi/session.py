@@ -62,7 +62,7 @@ def hidden(text: Union[str, bytes], secret_hash: bytes) -> bytes:
     for i, val in enumerate(text):
         retval.append(val ^ secret_hash[i % secret_len])
 
-    return retval
+    return bytes(retval)
 
 
 def encrypt(data: bytes, table: bytearray) -> bytes:

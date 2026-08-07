@@ -176,7 +176,7 @@ class TestPartialResponse():
                         headers={'Range': 'bytes=-15'},
                         status_code=206)
         assert len(res.text) == 15
-        assert res.text[-22:] == "\nline 8\nline 9\n"
+        assert res.text == "\nline 8\nline 9\n"
 
     def test_unicodes(self, url):
         """Tests a partial response with Unicode range units."""

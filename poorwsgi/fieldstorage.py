@@ -363,7 +363,7 @@ class FieldStorage(FieldStorageInterface):
         """
         if fce:
             warnings.warn("Using deprecated fce argument. Use func instead.",
-                          category=DeprecationWarning, stacklevel=1)
+                          category=DeprecationWarning, stacklevel=2)
             func = fce
         if key in self:
             value = self[key]

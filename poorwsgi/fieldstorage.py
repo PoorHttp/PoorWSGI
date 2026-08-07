@@ -784,7 +784,7 @@ class FieldStorageParser:
             if not line:
                 self.done = -1
                 break
-            if line.startswith(b"--") and last_line_lfend:
+            if line.endswith(b"--") and last_line_lfend:
                 strippedline = line.strip()
                 if strippedline == next_boundary:
                     break

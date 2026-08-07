@@ -61,7 +61,7 @@ class Storage(file):
         self.path = directory + '/' + filename
 
         if os.access(self.path, os.F_OK):
-            msg = f"File {filename} exist yet"
+            msg = f"File {filename} already exists"
             raise OSError(msg)
 
         super().__init__(self.path, 'w+b')
@@ -188,7 +188,7 @@ def root(req):
         ' - Debug Page (only if poor_Debug is set)</li>',
         '<li><a href="/no-page">/no-page</a> - No Exist Page</li>',
         '<li><a href="/internal-server-error">/internal-server-error</a>'
-        ' - Inernal Server Error</li>',
+        ' - Internal Server Error</li>',
         "</ul>",
     ) + get_footer()
     response = Response()
@@ -413,7 +413,7 @@ def test_upload(req):
             tuple(
                 html_escape(str(req.form[key].filename))
                 for key in req.form.keys()))),
-        ('form_value_lenghts',
+        ('form_value_lengths',
          ', '.join(tuple(str(req.form[key].length)
                          for key in req.form.keys()))),
         ('form_value_files', ', '.join(
@@ -452,7 +452,7 @@ def test_upload(req):
          '</form>',
          "<h2>Uploaded File</h2>",
          "<table>") + \
-        tuple("<tr><td>{key}:</td><td>{val}</td></tr>"
+        tuple(f"<tr><td>{key}:</td><td>{html_escape(str(val))}</td></tr>"
               for key, val in var_info.items()) + \
         ("</table>",) + \
         tuple(files) + \
@@ -563,7 +563,7 @@ def chunked(_):
         for i in range(10):
             yield b"line %d\n" % i
 
-    return GeneratorResponse(gen(), headers={'Transfer-Encoding': 'chanked'})
+    return GeneratorResponse(gen(), headers={'Transfer-Encoding': 'chunked'})
 
 
 @app.route('/yield', state.METHOD_POST)

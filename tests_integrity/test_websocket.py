@@ -66,7 +66,7 @@ class TestWebSocket:
         wsck = WebSocket()
         wsck.connect(ws_url+"/ws")
         msg = wsck.recv()
-        assert msg.endswith("Hello")
+        assert msg == "Hello"
         wsck.send("Test")
         msg = wsck.recv()
         assert msg.endswith("<b>Test</b>")

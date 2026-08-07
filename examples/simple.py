@@ -413,7 +413,7 @@ def test_upload(req):
             tuple(
                 html_escape(str(req.form[key].filename))
                 for key in req.form.keys()))),
-        ('form_value_lenghts',
+        ('form_value_lengths',
          ', '.join(tuple(str(req.form[key].length)
                          for key in req.form.keys()))),
         ('form_value_files', ', '.join(

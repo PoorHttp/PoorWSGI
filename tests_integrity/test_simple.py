@@ -168,7 +168,7 @@ class TestPartialResponse():
                         headers={'Range': 'bytes=0-14'},
                         status_code=206)
         assert len(res.text) == 15
-        assert res.text[-22:] == "line 0\nline 1\nl"
+        assert res.text == "line 0\nline 1\nl"
 
     def test_last_15(self, url):
         """Tests a partial generator response for the last 15 bytes."""

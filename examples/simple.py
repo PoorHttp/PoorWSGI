@@ -452,7 +452,7 @@ def test_upload(req):
          '</form>',
          "<h2>Uploaded File</h2>",
          "<table>") + \
-        tuple("<tr><td>{key}:</td><td>{val}</td></tr>"
+        tuple(f"<tr><td>{key}:</td><td>{val}</td></tr>"
               for key, val in var_info.items()) + \
         ("</table>",) + \
         tuple(files) + \

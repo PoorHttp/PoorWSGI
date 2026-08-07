@@ -563,7 +563,7 @@ def chunked(_):
         for i in range(10):
             yield b"line %d\n" % i
 
-    return GeneratorResponse(gen(), headers={'Transfer-Encoding': 'chanked'})
+    return GeneratorResponse(gen(), headers={'Transfer-Encoding': 'chunked'})
 
 
 @app.route('/yield', state.METHOD_POST)

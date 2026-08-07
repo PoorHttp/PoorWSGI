@@ -8,7 +8,7 @@ from pytest import fixture
 # websocket-client
 from websocket import WebSocket
 
-from . support import start_server, check_url
+from .support import start_server, check_url
 
 # pylint: disable=missing-function-docstring
 # pylint: disable=redefined-outer-name

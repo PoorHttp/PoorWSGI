@@ -61,7 +61,7 @@ class Storage(file):
         self.path = directory + '/' + filename
 
         if os.access(self.path, os.F_OK):
-            msg = f"File {filename} exist yet"
+            msg = f"File {filename} exists yet"
             raise OSError(msg)
 
         super().__init__(self.path, 'w+b')

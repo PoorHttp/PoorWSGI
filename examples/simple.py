@@ -61,7 +61,7 @@ class Storage(file):
         self.path = directory + '/' + filename
 
         if os.access(self.path, os.F_OK):
-            msg = f"File {filename} exists yet"
+            msg = f"File {filename} already exists"
             raise OSError(msg)
 
         super().__init__(self.path, 'w+b')
@@ -452,7 +452,7 @@ def test_upload(req):
          '</form>',
          "<h2>Uploaded File</h2>",
          "<table>") + \
-        tuple(f"<tr><td>{key}:</td><td>{val}</td></tr>"
+        tuple(f"<tr><td>{key}:</td><td>{html_escape(str(val))}</td></tr>"
               for key, val in var_info.items()) + \
         ("</table>",) + \
         tuple(files) + \

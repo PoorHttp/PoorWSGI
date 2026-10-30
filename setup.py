@@ -176,7 +176,7 @@ setup(name="PoorWSGI",
       packages=['poorwsgi'],
       package_data={'': ['py.typed']},
       data_files=[('share/doc/poorwsgi', [
-          'doc/ChangeLog', 'doc/licence.txt', 'README.rst', 'CONTRIBUTION.rst'
+          'doc/ChangeLog', 'doc/licence.txt', 'README.rst', 'CONTRIBUTING.rst'
       ])] + find_data_files("examples", "share/poorwsgi/examples"),
       license="BSD",
       license_files=['doc/licence.txt'],
